@@ -13,7 +13,7 @@
     "db:start": "tsx server/start-db.ts",
     "db:seed": "tsx server/seed.ts",
     "build": "npx prisma generate && vite build",
-    "start": "NODE_ENV=production tsx server/index.ts",
+    "start": "tsx server/index.ts",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
