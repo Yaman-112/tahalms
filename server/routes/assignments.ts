@@ -6,6 +6,16 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
 import { success, error } from '../utils/response';
 import { upload, UPLOAD_DIR } from '../middleware/upload';
+import { randomUUID } from 'crypto';
+
+function saveFile(buffer: Buffer, subDir: string, originalName: string): string {
+  const dir = path.join(UPLOAD_DIR, subDir);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filePath = path.join(dir, `${randomUUID()}-${safeName}`);
+  fs.writeFileSync(filePath, buffer);
+  return filePath;
+}
 
 const router = Router();
 router.use(authenticate);
@@ -111,15 +121,11 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (
       return error(res, 'courseId and title are required');
     }
 
-    // Move file to assignments subdirectory
+    // Save file to assignments subdirectory
     let attachmentPath: string | null = null;
     let attachmentName: string | null = null;
     if (req.file) {
-      const destDir = path.join(UPLOAD_DIR, 'assignments');
-      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-      const destPath = path.join(destDir, req.file.filename);
-      fs.renameSync(req.file.path, destPath);
-      attachmentPath = destPath;
+      attachmentPath = saveFile(req.file.buffer, 'assignments', req.file.originalname);
       attachmentName = req.file.originalname;
     }
 
@@ -169,15 +175,10 @@ router.patch('/:id', requireRole('ADMIN', 'TEACHER'), upload.single('file'), asy
 
     // Handle file replacement
     if (req.file) {
-      // Delete old file
       if (existing.attachmentPath && fs.existsSync(existing.attachmentPath)) {
         fs.unlinkSync(existing.attachmentPath);
       }
-      const destDir = path.join(UPLOAD_DIR, 'assignments');
-      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-      const destPath = path.join(destDir, req.file.filename);
-      fs.renameSync(req.file.path, destPath);
-      updates.attachmentPath = destPath;
+      updates.attachmentPath = saveFile(req.file.buffer, 'assignments', req.file.originalname);
       updates.attachmentName = req.file.originalname;
     }
 

@@ -6,6 +6,16 @@ import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
 import { success, error } from '../utils/response';
 import { upload, UPLOAD_DIR } from '../middleware/upload';
+import { randomUUID } from 'crypto';
+
+function saveFile(buffer: Buffer, subDir: string, originalName: string): string {
+  const dir = path.join(UPLOAD_DIR, subDir);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filePath = path.join(dir, `${randomUUID()}-${safeName}`);
+  fs.writeFileSync(filePath, buffer);
+  return filePath;
+}
 
 const router = Router();
 router.use(authenticate);
@@ -77,24 +87,17 @@ router.post('/', (req, res, next) => {
       const ext = path.extname(req.file.originalname).toLowerCase().replace(/^\./, '');
       const allowed = assignment.allowedFormats.split(',').map(f => f.trim().toLowerCase().replace(/^\./, ''));
       if (!allowed.includes(ext)) {
-        fs.unlinkSync(req.file.path);
         return error(res, `File type .${ext} not allowed. Accepted: ${assignment.allowedFormats}`);
       }
 
       // Check file size
       const maxBytes = assignment.maxFileSize * 1024 * 1024;
       if (req.file.size > maxBytes) {
-        fs.unlinkSync(req.file.path);
         return error(res, `File too large. Max: ${assignment.maxFileSize}MB`);
       }
 
-      // Move to submissions directory
-      const destDir = path.join(UPLOAD_DIR, 'submissions', assignmentId, studentId);
-      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-      const destPath = path.join(destDir, req.file.filename);
-      fs.renameSync(req.file.path, destPath);
-
-      filePath = destPath;
+      // Save to submissions directory
+      filePath = saveFile(req.file.buffer, `submissions/${assignmentId}/${studentId}`, req.file.originalname);
       fileName = req.file.originalname;
       fileSize = req.file.size;
 

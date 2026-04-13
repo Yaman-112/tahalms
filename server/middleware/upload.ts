@@ -1,7 +1,6 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { randomUUID } from 'crypto';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
 
@@ -10,17 +9,6 @@ for (const sub of ['', 'assignments', 'submissions']) {
   const dir = path.join(UPLOAD_DIR, sub);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, UPLOAD_DIR);
-  },
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
-    cb(null, `${randomUUID()}-${safeName}`);
-  },
-});
 
 const ALLOWED_MIMES = [
   'application/pdf',
@@ -36,10 +24,11 @@ const fileFilter = (_req: any, file: Express.Multer.File, cb: multer.FileFilterC
   }
 };
 
+// Use memory storage — routes write files to disk manually for precise path control
 export const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
+  limits: { fileSize: 50 * 1024 * 1024 },
 });
 
 export { UPLOAD_DIR };
