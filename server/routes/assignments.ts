@@ -35,7 +35,13 @@ router.get('/', async (req: AuthRequest, res) => {
       },
     });
 
-    return success(res, assignments);
+    // Don't expose server paths
+    const sanitized = assignments.map(({ attachmentPath, ...rest }) => ({
+      ...rest,
+      hasAttachment: !!attachmentPath,
+    }));
+
+    return success(res, sanitized);
   } catch (err) {
     console.error('List assignments error:', err);
     return error(res, 'Failed to list assignments', 500);
@@ -60,7 +66,19 @@ router.get('/:id', async (req: AuthRequest, res) => {
     });
 
     if (!assignment) return error(res, 'Assignment not found', 404);
-    return success(res, assignment);
+
+    // Don't expose server file paths to client
+    const { attachmentPath, ...rest } = assignment;
+    const sanitized = {
+      ...rest,
+      hasAttachment: !!attachmentPath,
+      submissions: assignment.submissions.map((s: any) => {
+        const { filePath, ...subRest } = s;
+        return { ...subRest, hasFile: !!filePath };
+      }),
+    };
+
+    return success(res, sanitized);
   } catch (err) {
     console.error('Get assignment error:', err);
     return error(res, 'Failed to get assignment', 500);

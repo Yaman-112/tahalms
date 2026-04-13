@@ -1569,7 +1569,7 @@ function CourseView({ courseId }: { courseId: string }) {
                       )}
 
                       {/* Attachment PDF Viewer */}
-                      {assignmentDetail.attachmentPath && (
+                      {assignmentDetail.hasAttachment && (
                         <div className="mb-6">
                           <h3 className="font-bold text-sm text-[#2D3B45] mb-2">
                             Attachment: {assignmentDetail.attachmentName || 'Document'}
