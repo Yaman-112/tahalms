@@ -48,7 +48,15 @@ router.get('/', async (req: AuthRequest, res) => {
 });
 
 // POST /api/submissions — submit with file (student)
-router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
+router.post('/', (req, res, next) => {
+  // Only use multer for multipart requests; skip for JSON
+  const ct = req.headers['content-type'] || '';
+  if (ct.includes('multipart')) {
+    upload.single('file')(req, res, next);
+  } else {
+    next();
+  }
+}, async (req: AuthRequest, res) => {
   try {
     const { assignmentId, comment } = req.body;
     const studentId = req.user!.userId;
@@ -66,8 +74,8 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
 
     if (req.file) {
       // Check file extension against allowed formats
-      const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
-      const allowed = assignment.allowedFormats.split(',').map(f => f.trim().toLowerCase());
+      const ext = path.extname(req.file.originalname).toLowerCase().replace(/^\./, '');
+      const allowed = assignment.allowedFormats.split(',').map(f => f.trim().toLowerCase().replace(/^\./, ''));
       if (!allowed.includes(ext)) {
         fs.unlinkSync(req.file.path);
         return error(res, `File type .${ext} not allowed. Accepted: ${assignment.allowedFormats}`);
