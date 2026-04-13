@@ -1,6 +1,6 @@
 import type { ApiResponse } from '../types';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 let accessToken: string | null = localStorage.getItem('accessToken');
 let refreshToken: string | null = localStorage.getItem('refreshToken');
