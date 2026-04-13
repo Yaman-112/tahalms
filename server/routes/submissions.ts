@@ -33,7 +33,6 @@ router.get('/', async (req: AuthRequest, res) => {
       orderBy: { submittedAt: 'desc' },
       include: {
         assignment: {
-          select: { id: true, title: true, type: true, points: true, dueDate: true },
           include: { course: { select: { id: true, name: true, code: true } } },
         },
         student: { select: { id: true, firstName: true, lastName: true, email: true } },
