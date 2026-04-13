@@ -13,7 +13,7 @@ import {
 import { motion } from 'motion/react';
 import { useAuth } from './context/AuthContext';
 import { useApi } from './hooks/useApi';
-import { api } from './api/client';
+import { api, getAccessToken } from './api/client';
 import type {
   StudentDashboard, TeacherDashboard, AdminDashboard,
   Course, Assignment, Submission, Message
@@ -1575,7 +1575,7 @@ function CourseView({ courseId }: { courseId: string }) {
                             Attachment: {assignmentDetail.attachmentName || 'Document'}
                           </h3>
                           <iframe
-                            src={`/api/assignments/${assignmentDetail.id}/attachment`}
+                            src={`/api/assignments/${assignmentDetail.id}/attachment?token=${getAccessToken()}`}
                             className="w-full h-[500px] border border-[#E1E1E1] rounded"
                             title="Assignment attachment"
                           />
@@ -1755,7 +1755,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                 <div>
                                                   <h4 className="font-bold text-sm text-[#2D3B45] mb-2">Student File: {sub.fileName || 'Submission'}</h4>
                                                   <iframe
-                                                    src={`/api/submissions/${sub.id}/file`}
+                                                    src={`/api/submissions/${sub.id}/file?token=${getAccessToken()}`}
                                                     className="w-full h-[400px] border border-[#E1E1E1] rounded bg-white"
                                                     title="Student submission"
                                                   />

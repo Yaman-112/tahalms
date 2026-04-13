@@ -12,12 +12,19 @@ export interface AuthRequest extends Request {
 }
 
 export function authenticate(req: AuthRequest, res: Response, next: NextFunction) {
+  // Support token via Authorization header or query param (for iframes/file downloads)
+  let token: string | undefined;
+
   const header = req.headers.authorization;
-  if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, error: 'No token provided' });
+  if (header?.startsWith('Bearer ')) {
+    token = header.split(' ')[1];
+  } else if (req.query.token) {
+    token = req.query.token as string;
   }
 
-  const token = header.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'No token provided' });
+  }
 
   try {
     const payload = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload;

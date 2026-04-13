@@ -1,8 +1,15 @@
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import { randomUUID } from 'crypto';
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads');
+
+// Ensure upload directories exist at startup
+for (const sub of ['', 'assignments', 'submissions']) {
+  const dir = path.join(UPLOAD_DIR, sub);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
