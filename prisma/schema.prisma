@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── USERS & AUTH ───────────────────────────────────────
+
+enum Role {
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String?              // Username(Email Id) from Excel
+  passwordHash  String   @map("password_hash")
+  role          Role     @default(STUDENT)
+  firstName     String   @map("first_name")
+  lastName      String   @map("last_name")
+  avatarUrl     String?  @map("avatar_url")
+  isActive      Boolean  @default(true) @map("is_active")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Student-specific fields
+  vNumber       String?  @map("v_number")  // VNumber — not unique, students may have multiple entries
+  contactNo     String?  @map("contact_no")
+  address       String?
+  campus        String?
+  startDate     DateTime? @map("start_date")
+  finishDate    DateTime? @map("finish_date")
+  program       String?
+  campusStatus  String?  @map("campus_status")
+  shift         String?  // AM/PM
+  admissionRep  String?  @map("admission_rep")
+
+  // Relations
+  enrollments       Enrollment[]
+  teacherBatches    Batch[]            @relation("TeacherBatches")
+  sentMessages      Message[]          @relation("SentMessages")
+  receivedMessages  MessageRecipient[]
+  submissions       Submission[]       @relation("StudentSubmissions")
+  gradedSubmissions Submission[]       @relation("GradedByTeacher")
+  createdEvents     CalendarEvent[]
+  auditLogs         AuditLog[]
+  importBatches     ImportBatch[]
+  refreshTokens     RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ─── COURSES ────────────────────────────────────────────
+
+enum CourseStatus {
+  PUBLISHED
+  UNPUBLISHED
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  name        String
+  code        String       @unique // SIS ID
+  description String?
+  color       String       @default("#2D3B45")
+  status      CourseStatus @default(UNPUBLISHED)
+  term        String       @default("Default Term")
+  subAccount  String       @default("TAHA College") @map("sub_account")
+  imageUrl    String?      @map("image_url")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  // Relations
+  enrollments    Enrollment[]
+  batches        Batch[]
+  assignments    Assignment[]
+  modules        Module[]
+  messages       Message[]
+  calendarEvents CalendarEvent[]
+
+  @@map("courses")
+}
+
+// ─── ENROLLMENTS (User <-> Course) ──────────────────────
+
+enum EnrollmentRole {
+  STUDENT
+  TEACHER
+}
+
+model Enrollment {
+  id              String         @id @default(cuid())
+  userId          String         @map("user_id")
+  courseId         String         @map("course_id")
+  role            EnrollmentRole @default(STUDENT)
+  enrolledAt      DateTime       @default(now()) @map("enrolled_at")
+
+  // Batch & schedule info
+  batchCode       String?        @map("batch_code")
+  campus          String?
+  classDays       String?        @map("class_days")
+  classTime       String?        @map("class_time")
+  schoolBreak     String?        @map("school_break")
+  startDate       DateTime?      @map("start_date")
+  endDate         DateTime?      @map("end_date")
+  midpointDate    DateTime?      @map("midpoint_date")
+  studyHours      Int?           @map("study_hours")
+  studyWeeks      Int?           @map("study_weeks")
+
+  // Fees & contract
+  totalFees       Float?         @map("total_fees")
+  contractSent    String?        @map("contract_sent")
+  contractSigned  String?        @map("contract_signed")
+  signedByCollege String?        @map("signed_by_college")
+
+  // Status
+  registrationStatus String?     @map("registration_status")
+  lastStatus      String?        @map("last_status")
+  lastRemarks     String?        @map("last_remarks")
+  lastUpdatedOn   String?        @map("last_updated_on")
+
+  // Progress tracking
+  joinedModulePosition  Int?     @map("joined_module_position") // which module # student joined at
+  currentModuleId       String?  @map("current_module_id")
+  overallProgress       Float?   @map("overall_progress")       // % of modules completed
+  overallGrade          Float?   @map("overall_grade")           // weighted grade so far
+
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  studentProgress StudentProgress[]
+
+  @@unique([userId, courseId, batchCode])
+  @@map("enrollments")
+}
+
+// ─── STUDENT PROGRESS (per module per student) ──────────
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
+model StudentProgress {
+  id            String         @id @default(cuid())
+  enrollmentId  String         @map("enrollment_id")
+  batchId       String         @map("batch_id")
+  moduleId      String         @map("module_id")
+  status        ProgressStatus @default(NOT_STARTED)
+  startedAt     DateTime?      @map("started_at")
+  completedAt   DateTime?      @map("completed_at")
+  moduleScore   Float?         @map("module_score")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  batch      Batch      @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, moduleId])
+  @@index([batchId])
+  @@map("student_progress")
+}
+
+// ─── BATCHES (Course sections taught by a teacher) ──────
+
+enum BatchStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+}
+
+model Batch {
+  id             String      @id @default(cuid())
+  batchCode      String      @unique @map("batch_code")
+  courseId        String      @map("course_id")
+  teacherId      String      @map("teacher_id")
+  courseCode      String      @default("") @map("course_code_prefix")
+
+  // Schedule
+  startDate      DateTime?   @map("start_date")
+  endDate        DateTime?   @map("end_date")
+  durationWeeks  Int?        @map("duration_weeks")
+  status         BatchStatus @default(UPCOMING)
+  campus         String?
+  classTime      String?     @map("class_time")
+  classDays      String?     @map("class_days")
+  maxStudents    Int?        @map("max_students")
+
+  // Dynamic batch management
+  batchType       String      @default("PRIMARY") @map("batch_type")   // PRIMARY or MID_COURSE
+  parentBatchCode String?     @map("parent_batch_code")                // links sub-batch to parent
+
+  course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher         User              @relation("TeacherBatches", fields: [teacherId], references: [id], onDelete: Cascade)
+  studentProgress StudentProgress[]
+
+  @@index([parentBatchCode])
+  @@map("batches")
+}
+
+// ─── MODULES ────────────────────────────────────────────
+
+model Module {
+  id        String   @id @default(cuid())
+  courseId   String   @map("course_id")
+  name      String
+  weight    Float?   // Module weight percentage (e.g., 4.17)
+  hours     Int?     // Total hours for this module
+  startDate DateTime? @map("start_date")
+  position  Int      @default(0)
+  published Boolean  @default(true)
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("modules")
+}
+
+// ─── ASSIGNMENTS ────────────────────────────────────────
+
+enum AssignmentType {
+  QUIZ
+  ASSIGNMENT
+}
+
+model Assignment {
+  id          String         @id @default(cuid())
+  courseId     String         @map("course_id")
+  title       String
+  description String?
+  type        AssignmentType @default(ASSIGNMENT)
+  points      Float          @default(0)
+  dueDate     DateTime?      @map("due_date") // single date — from Excel
+  published   Boolean        @default(true)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  submissions Submission[]
+
+  @@map("assignments")
+}
+
+// ─── SUBMISSIONS (Student work + grades) ────────────────
+
+enum SubmissionStatus {
+  MISSING
+  SUBMITTED
+  GRADED
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  assignmentId String           @map("assignment_id")
+  studentId    String           @map("student_id")
+  status       SubmissionStatus @default(MISSING)
+  score        Float?
+  date         DateTime?        // single date — from Excel
+  gradedById   String?          @map("graded_by_id")
+  feedback     String?
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User       @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy   User?      @relation("GradedByTeacher", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@unique([assignmentId, studentId])
+  @@map("submissions")
+}
+
+// ─── MESSAGES / INBOX ───────────────────────────────────
+
+model Message {
+  id        String   @id @default(cuid())
+  senderId  String   @map("sender_id")
+  courseId   String?  @map("course_id")
+  subject   String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sender     User               @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  course     Course?            @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  recipients MessageRecipient[]
+
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id        String  @id @default(cuid())
+  messageId String  @map("message_id")
+  userId    String  @map("user_id")
+  read      Boolean @default(false)
+  starred   Boolean @default(false)
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("message_recipients")
+}
+
+// ─── CALENDAR EVENTS ────────────────────────────────────
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  courseId     String?  @map("course_id")
+  title       String
+  description String?
+  startTime   DateTime @map("start_time")
+  endTime     DateTime? @map("end_time")
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  createdBy User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("calendar_events")
+}
+
+// ─── AUDIT LOG (append-only) ────────────────────────────
+
+enum AuditAction {
+  INSERT
+  UPDATE
+  DELETE
+  BACKDATE_IMPORT
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  tableName  String      @map("table_name")
+  recordId   String      @map("record_id")
+  action     AuditAction
+  oldValues  Json?       @map("old_values")
+  newValues  Json?       @map("new_values")
+  changedById String     @map("changed_by_id")
+  reason     String?
+  ipAddress  String?     @map("ip_address")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  changedBy User @relation(fields: [changedById], references: [id], onDelete: Cascade)
+
+  @@index([tableName, recordId])
+  @@index([changedById])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─── IMPORT BATCHES (tracks Excel uploads) ──────────────
+
+enum ImportStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model ImportBatch {
+  id           String       @id @default(cuid())
+  uploadedById String       @map("uploaded_by_id")
+  fileName     String       @map("file_name")
+  recordCount  Int          @default(0) @map("record_count")
+  status       ImportStatus @default(PROCESSING)
+  errorLog     Json?        @map("error_log")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  completedAt  DateTime?    @map("completed_at")
+
+  uploadedBy User @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  @@map("import_batches")
+}

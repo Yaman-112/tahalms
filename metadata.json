@@ -1,0 +1,5 @@
+{
+  "name": "Canvas Student Dashboard",
+  "description": "A precise replication of the Canvas LMS student dashboard UI.",
+  "requestFramePermissions": []
+}
