@@ -42,9 +42,7 @@ const SidebarItem = ({
 
 const CanvasLogo = () => (
   <div className="p-4 flex justify-center">
-    <div className="w-12 h-12 border-2 border-white rounded-lg flex items-center justify-center">
-      <span className="text-white text-3xl font-bold italic">T</span>
-    </div>
+    <img src="/tahalogo.png" alt="TAHA College" className="h-10 w-auto" />
   </div>
 );
 
