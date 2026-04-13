@@ -1,8 +1,11 @@
 import { Router } from 'express';
+import path from 'path';
+import fs from 'fs';
 import prisma from '../db';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
 import { success, error } from '../utils/response';
+import { upload, UPLOAD_DIR } from '../middleware/upload';
 
 const router = Router();
 router.use(authenticate);
@@ -16,25 +19,18 @@ router.get('/', async (req: AuthRequest, res) => {
     const assignmentId = req.query.assignmentId as string | undefined;
 
     let where: any = {};
-
-    // Students can only see their own submissions
     if (role === 'STUDENT') {
       where.studentId = userId;
     } else if (studentId) {
       where.studentId = studentId;
     }
 
-    if (assignmentId) {
-      where.assignmentId = assignmentId;
-    }
-
-    if (courseId) {
-      where.assignment = { courseId };
-    }
+    if (assignmentId) where.assignmentId = assignmentId;
+    if (courseId) where.assignment = { courseId };
 
     const submissions = await prisma.submission.findMany({
       where,
-      orderBy: { date: 'desc' },
+      orderBy: { submittedAt: 'desc' },
       include: {
         assignment: {
           select: { id: true, title: true, type: true, points: true, dueDate: true },
@@ -52,26 +48,146 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-// POST /api/submissions — create/submit (student)
-router.post('/', async (req: AuthRequest, res) => {
+// POST /api/submissions — submit with file (student)
+router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
   try {
-    const { assignmentId } = req.body;
+    const { assignmentId, comment } = req.body;
     const studentId = req.user!.userId;
 
-    if (!assignmentId) {
-      return error(res, 'assignmentId is required');
+    if (!assignmentId) return error(res, 'assignmentId is required');
+
+    // Get assignment for validation
+    const assignment = await prisma.assignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment) return error(res, 'Assignment not found', 404);
+
+    // Validate file if provided
+    let filePath: string | null = null;
+    let fileName: string | null = null;
+    let fileSize: number | null = null;
+
+    if (req.file) {
+      // Check file extension against allowed formats
+      const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+      const allowed = assignment.allowedFormats.split(',').map(f => f.trim().toLowerCase());
+      if (!allowed.includes(ext)) {
+        fs.unlinkSync(req.file.path);
+        return error(res, `File type .${ext} not allowed. Accepted: ${assignment.allowedFormats}`);
+      }
+
+      // Check file size
+      const maxBytes = assignment.maxFileSize * 1024 * 1024;
+      if (req.file.size > maxBytes) {
+        fs.unlinkSync(req.file.path);
+        return error(res, `File too large. Max: ${assignment.maxFileSize}MB`);
+      }
+
+      // Move to submissions directory
+      const destDir = path.join(UPLOAD_DIR, 'submissions', assignmentId, studentId);
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+      const destPath = path.join(destDir, req.file.filename);
+      fs.renameSync(req.file.path, destPath);
+
+      filePath = destPath;
+      fileName = req.file.originalname;
+      fileSize = req.file.size;
+
+      // Delete old file on resubmit
+      const existing = await prisma.submission.findUnique({
+        where: { assignmentId_studentId: { assignmentId, studentId } },
+      });
+      if (existing?.filePath && existing.filePath !== destPath && fs.existsSync(existing.filePath)) {
+        fs.unlinkSync(existing.filePath);
+      }
     }
+
+    // Compute late status
+    const now = new Date();
+    const isLate = assignment.dueDate ? now > assignment.dueDate : false;
 
     const submission = await prisma.submission.upsert({
       where: { assignmentId_studentId: { assignmentId, studentId } },
-      update: { status: 'SUBMITTED', date: new Date() },
-      create: { assignmentId, studentId, status: 'SUBMITTED', date: new Date() },
+      update: {
+        status: 'SUBMITTED',
+        date: now,
+        submittedAt: now,
+        isLate,
+        comment: comment || null,
+        ...(filePath ? { filePath, fileName, fileSize } : {}),
+      },
+      create: {
+        assignmentId,
+        studentId,
+        status: 'SUBMITTED',
+        date: now,
+        submittedAt: now,
+        isLate,
+        comment: comment || null,
+        filePath,
+        fileName,
+        fileSize,
+      },
     });
 
     return success(res, submission, 201);
   } catch (err) {
     console.error('Create submission error:', err);
     return error(res, 'Failed to create submission', 500);
+  }
+});
+
+// GET /api/submissions/:id/file — serve student's submitted file
+router.get('/:id/file', async (req: AuthRequest, res) => {
+  try {
+    const submission = await prisma.submission.findUnique({
+      where: { id: req.params.id },
+      include: { assignment: { select: { courseId: true } } },
+    });
+
+    if (!submission?.filePath) return error(res, 'No file found', 404);
+
+    // Auth check: students can only see their own, teachers/admin can see all
+    const { role, userId } = req.user!;
+    if (role === 'STUDENT' && submission.studentId !== userId) {
+      return error(res, 'Not authorized', 403);
+    }
+
+    if (!fs.existsSync(submission.filePath)) return error(res, 'File not found on disk', 404);
+
+    res.setHeader('Content-Disposition', `inline; filename="${submission.fileName || 'submission'}"`);
+    res.sendFile(path.resolve(submission.filePath));
+  } catch (err) {
+    console.error('Serve submission file error:', err);
+    return error(res, 'Failed to serve file', 500);
+  }
+});
+
+// DELETE /api/submissions/:id/file — remove own file (only if not graded)
+router.delete('/:id/file', async (req: AuthRequest, res) => {
+  try {
+    const submission = await prisma.submission.findUnique({ where: { id: req.params.id } });
+    if (!submission) return error(res, 'Submission not found', 404);
+
+    if (req.user!.role === 'STUDENT' && submission.studentId !== req.user!.userId) {
+      return error(res, 'Not authorized', 403);
+    }
+
+    if (submission.status === 'GRADED') {
+      return error(res, 'Cannot delete file from a graded submission');
+    }
+
+    if (submission.filePath && fs.existsSync(submission.filePath)) {
+      fs.unlinkSync(submission.filePath);
+    }
+
+    await prisma.submission.update({
+      where: { id: req.params.id },
+      data: { filePath: null, fileName: null, fileSize: null, status: 'MISSING' },
+    });
+
+    return success(res, { message: 'File removed' });
+  } catch (err) {
+    console.error('Delete submission file error:', err);
+    return error(res, 'Failed to delete file', 500);
   }
 });
 

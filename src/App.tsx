@@ -8,14 +8,15 @@ import {
   LayoutDashboard, Book, Calendar, Inbox, Clock, HelpCircle,
   ChevronLeft, Plus, NotebookPen, MoreVertical, ChevronRight,
   Megaphone, FileText, Folder,
-  Menu, Eye, Check, Search, Reply, Archive, Trash2, Shield
+  Menu, Eye, Check, Search, Reply, Archive, Trash2, Shield, Upload, X, AlertCircle, CheckCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from './context/AuthContext';
 import { useApi } from './hooks/useApi';
+import { api } from './api/client';
 import type {
   StudentDashboard, TeacherDashboard, AdminDashboard,
-  Course, Submission, Message
+  Course, Assignment, Submission, Message
 } from './types';
 
 // --- Shared Components ---
@@ -1277,8 +1278,102 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
 
 function CourseView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
-  const { data: course, loading } = useApi<any>(`/courses/${courseId}`);
+  const { data: course, loading, refetch: refetchCourse } = useApi<any>(`/courses/${courseId}`);
   const [activeSection, setActiveSection] = useState('Home');
+
+  // Assignment module state
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [showCreateAssignment, setShowCreateAssignment] = useState(false);
+  const [assignmentDetail, setAssignmentDetail] = useState<any>(null);
+  const [assignmentDetailLoading, setAssignmentDetailLoading] = useState(false);
+
+  // Student submission state
+  const [submissionFile, setSubmissionFile] = useState<File | null>(null);
+  const [submissionComment, setSubmissionComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // Teacher create assignment state
+  const [newAssignTitle, setNewAssignTitle] = useState('');
+  const [newAssignDesc, setNewAssignDesc] = useState('');
+  const [newAssignInstructions, setNewAssignInstructions] = useState('');
+  const [newAssignPoints, setNewAssignPoints] = useState(100);
+  const [newAssignDueDate, setNewAssignDueDate] = useState('');
+  const [newAssignFormats, setNewAssignFormats] = useState('.pdf,.doc,.docx');
+  const [newAssignPublished, setNewAssignPublished] = useState(true);
+  const [newAssignFile, setNewAssignFile] = useState<File | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  // Teacher grading state
+  const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
+  const [gradeScore, setGradeScore] = useState<number>(0);
+  const [gradeFeedback, setGradeFeedback] = useState('');
+  const [savingGrade, setSavingGrade] = useState(false);
+
+  const loadAssignmentDetail = async (id: string) => {
+    setAssignmentDetailLoading(true);
+    setSelectedAssignmentId(id);
+    const res = await api<any>(`/assignments/${id}`);
+    if (res.success) {
+      setAssignmentDetail(res.data);
+    }
+    setAssignmentDetailLoading(false);
+  };
+
+  const handleSubmitWork = async () => {
+    if (!submissionFile || !selectedAssignmentId) return;
+    setSubmitting(true);
+    const formData = new FormData();
+    formData.append('file', submissionFile);
+    formData.append('assignmentId', selectedAssignmentId);
+    if (submissionComment) formData.append('comment', submissionComment);
+    const res = await api<any>('/submissions', { method: 'POST', body: formData });
+    if (res.success) {
+      setSubmissionFile(null);
+      setSubmissionComment('');
+      await loadAssignmentDetail(selectedAssignmentId);
+    }
+    setSubmitting(false);
+  };
+
+  const handleCreateAssignment = async () => {
+    if (!newAssignTitle || !newAssignPoints) return;
+    setCreating(true);
+    const formData = new FormData();
+    formData.append('courseId', courseId);
+    formData.append('title', newAssignTitle);
+    formData.append('description', newAssignDesc);
+    formData.append('instructions', newAssignInstructions);
+    formData.append('points', String(newAssignPoints));
+    if (newAssignDueDate) formData.append('dueDate', newAssignDueDate);
+    formData.append('allowedFormats', newAssignFormats);
+    formData.append('published', String(newAssignPublished));
+    if (newAssignFile) formData.append('file', newAssignFile);
+    const res = await api<any>('/assignments', { method: 'POST', body: formData });
+    if (res.success) {
+      setShowCreateAssignment(false);
+      setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
+      setNewAssignPoints(100); setNewAssignDueDate(''); setNewAssignFormats('.pdf,.doc,.docx');
+      setNewAssignPublished(true); setNewAssignFile(null);
+      refetchCourse();
+    }
+    setCreating(false);
+  };
+
+  const handleSaveGrade = async () => {
+    if (!gradingSubmissionId) return;
+    setSavingGrade(true);
+    const res = await api<any>(`/submissions/${gradingSubmissionId}/grade`, {
+      method: 'PATCH',
+      body: JSON.stringify({ score: gradeScore, feedback: gradeFeedback }),
+    });
+    if (res.success && selectedAssignmentId) {
+      setGradingSubmissionId(null);
+      setGradeScore(0);
+      setGradeFeedback('');
+      await loadAssignmentDetail(selectedAssignmentId);
+    }
+    setSavingGrade(false);
+  };
 
   if (loading || !course) return <LoadingSpinner />;
 
@@ -1367,24 +1462,381 @@ function CourseView({ courseId }: { courseId: string }) {
             </div>
           ) : activeSection === 'Assignments' ? (
             <div className="max-w-6xl">
-              <div className="border border-[#E1E1E1] rounded-sm overflow-hidden">
-                <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center">
-                  <span className="font-bold text-[15px]">Assignments ({course.assignments?.length || 0})</span>
-                </div>
-                <div className="bg-white divide-y divide-[#E1E1E1]">
-                  {course.assignments?.map((a: any) => (
-                    <div key={a.id} className="px-4 py-4 flex items-center hover:bg-gray-50 group cursor-pointer">
-                      <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-[15px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
-                        <p className="text-[12px] text-gray-500 mt-0.5">
-                          {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
-                        </p>
+              {/* Assignment Creation Form */}
+              {showCreateAssignment ? (
+                <div>
+                  <button onClick={() => setShowCreateAssignment(false)} className="flex items-center text-[#008EE2] text-sm mb-6 hover:underline">
+                    <ChevronLeft size={16} className="mr-1" /> Back to Assignments
+                  </button>
+                  <h2 className="text-[28px] font-medium text-[#2D3B45] mb-6">New Assignment</h2>
+                  <div className="border border-[#E1E1E1] rounded-sm bg-white p-6 space-y-5">
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Title *</label>
+                      <input type="text" value={newAssignTitle} onChange={e => setNewAssignTitle(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                        placeholder="Assignment title" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Description</label>
+                      <textarea value={newAssignDesc} onChange={e => setNewAssignDesc(e.target.value)} rows={3}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                        placeholder="Brief description" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Instructions</label>
+                      <textarea value={newAssignInstructions} onChange={e => setNewAssignInstructions(e.target.value)} rows={5}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                        placeholder="Detailed instructions for students..." />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Points *</label>
+                        <input type="number" value={newAssignPoints} onChange={e => setNewAssignPoints(Number(e.target.value))}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={0} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Due Date</label>
+                        <input type="datetime-local" value={newAssignDueDate} onChange={e => setNewAssignDueDate(e.target.value)}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
                       </div>
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Allowed Formats</label>
+                      <input type="text" value={newAssignFormats} onChange={e => setNewAssignFormats(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                        placeholder=".pdf,.doc,.docx" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Attachment (PDF)</label>
+                      <div className="flex items-center space-x-3">
+                        <label className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                          <Upload size={16} />
+                          <span>{newAssignFile ? newAssignFile.name : 'Choose file...'}</span>
+                          <input type="file" accept=".pdf" className="hidden" onChange={e => setNewAssignFile(e.target.files?.[0] || null)} />
+                        </label>
+                        {newAssignFile && (
+                          <button onClick={() => setNewAssignFile(null)} className="text-gray-400 hover:text-red-500"><X size={16} /></button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <label className="flex items-center space-x-2 text-sm text-[#2D3B45]">
+                        <input type="checkbox" checked={newAssignPublished} onChange={e => setNewAssignPublished(e.target.checked)} className="rounded border-gray-300" />
+                        <span>Published</span>
+                      </label>
+                    </div>
+                    <div className="flex items-center space-x-3 pt-4 border-t border-[#E1E1E1]">
+                      <button onClick={handleCreateAssignment} disabled={!newAssignTitle || creating}
+                        className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                        {creating ? 'Creating...' : 'Create Assignment'}
+                      </button>
+                      <button onClick={() => setShowCreateAssignment(false)} className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+              ) : selectedAssignmentId ? (
+                /* Assignment Detail View */
+                <div>
+                  <button onClick={() => { setSelectedAssignmentId(null); setAssignmentDetail(null); }} className="flex items-center text-[#008EE2] text-sm mb-6 hover:underline">
+                    <ChevronLeft size={16} className="mr-1" /> Back to Assignments
+                  </button>
+                  {assignmentDetailLoading ? <LoadingSpinner /> : assignmentDetail ? (
+                    <div>
+                      {/* Assignment Header */}
+                      <div className="border-b border-[#E1E1E1] pb-6 mb-6">
+                        <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">{assignmentDetail.title}</h2>
+                        <div className="flex items-center space-x-4 text-[13px] text-gray-500">
+                          <span className="font-bold text-[#2D3B45]">{assignmentDetail.points} pts</span>
+                          {assignmentDetail.dueDate && <span>Due: {new Date(assignmentDetail.dueDate).toLocaleString()}</span>}
+                          {!assignmentDetail.published && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[11px] font-bold rounded-full">UNPUBLISHED</span>}
+                        </div>
+                      </div>
+
+                      {/* Description & Instructions */}
+                      {assignmentDetail.description && (
+                        <div className="mb-4">
+                          <p className="text-[15px] text-[#2D3B45]">{assignmentDetail.description}</p>
+                        </div>
+                      )}
+                      {assignmentDetail.instructions && (
+                        <div className="bg-[#F5F5F5] border border-[#E1E1E1] rounded p-4 mb-6">
+                          <h3 className="font-bold text-sm text-[#2D3B45] mb-2">Instructions</h3>
+                          <p className="text-[14px] text-[#2D3B45] whitespace-pre-wrap">{assignmentDetail.instructions}</p>
+                        </div>
+                      )}
+
+                      {/* Attachment PDF Viewer */}
+                      {assignmentDetail.attachmentPath && (
+                        <div className="mb-6">
+                          <h3 className="font-bold text-sm text-[#2D3B45] mb-2">
+                            Attachment: {assignmentDetail.attachmentName || 'Document'}
+                          </h3>
+                          <iframe
+                            src={`/api/assignments/${assignmentDetail.id}/attachment`}
+                            className="w-full h-[500px] border border-[#E1E1E1] rounded"
+                            title="Assignment attachment"
+                          />
+                        </div>
+                      )}
+
+                      {/* Student Submission Section */}
+                      {user?.role === 'STUDENT' && (
+                        <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
+                          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                            <span className="font-bold text-[15px]">Your Submission</span>
+                          </div>
+                          <div className="p-6">
+                            {(() => {
+                              const mySubmission = assignmentDetail.submissions?.find((s: any) => s.studentId === user?.id);
+                              if (mySubmission && mySubmission.status === 'GRADED') {
+                                return (
+                                  <div>
+                                    <div className="flex items-center space-x-3 mb-4">
+                                      <span className="px-3 py-1 bg-green-100 text-green-700 text-[12px] font-bold rounded-full">GRADED</span>
+                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">LATE</span>}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 mb-4">
+                                      <div className="bg-green-50 rounded-lg p-4">
+                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Score</div>
+                                        <div className="text-2xl font-bold text-green-700">{mySubmission.score} / {assignmentDetail.points}</div>
+                                      </div>
+                                      <div className="bg-gray-50 rounded-lg p-4">
+                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Submitted</div>
+                                        <div className="text-sm font-medium text-[#2D3B45]">{mySubmission.submittedAt ? new Date(mySubmission.submittedAt).toLocaleString() : 'N/A'}</div>
+                                        {mySubmission.fileName && <div className="text-[12px] text-gray-500 mt-1">{mySubmission.fileName}</div>}
+                                      </div>
+                                    </div>
+                                    {mySubmission.feedback && (
+                                      <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                                        <h4 className="font-bold text-sm text-[#2D3B45] mb-1">Feedback</h4>
+                                        <p className="text-[14px] text-[#2D3B45] whitespace-pre-wrap">{mySubmission.feedback}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              if (mySubmission && mySubmission.status === 'SUBMITTED') {
+                                return (
+                                  <div>
+                                    <div className="flex items-center space-x-3 mb-4">
+                                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[12px] font-bold rounded-full">SUBMITTED</span>
+                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">LATE</span>}
+                                    </div>
+                                    <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                      <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">File</div>
+                                      <div className="text-sm font-medium text-[#2D3B45]">{mySubmission.fileName || 'Submitted file'}</div>
+                                      <div className="text-[12px] text-gray-500 mt-1">{mySubmission.submittedAt ? new Date(mySubmission.submittedAt).toLocaleString() : ''}</div>
+                                    </div>
+                                    {mySubmission.comment && (
+                                      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Your Comment</div>
+                                        <p className="text-[14px] text-[#2D3B45]">{mySubmission.comment}</p>
+                                      </div>
+                                    )}
+                                    <p className="text-sm text-gray-500">Your submission is being reviewed. You can resubmit below.</p>
+                                    <div className="mt-4 space-y-3">
+                                      <div>
+                                        <label className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-50 transition-colors w-fit">
+                                          <Upload size={16} />
+                                          <span>{submissionFile ? submissionFile.name : 'Choose file to resubmit...'}</span>
+                                          <input type="file" accept={assignmentDetail.allowedFormats || undefined} className="hidden"
+                                            onChange={e => setSubmissionFile(e.target.files?.[0] || null)} />
+                                        </label>
+                                      </div>
+                                      <textarea value={submissionComment} onChange={e => setSubmissionComment(e.target.value)} rows={2}
+                                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                        placeholder="Add a comment (optional)" />
+                                      <button onClick={handleSubmitWork} disabled={!submissionFile || submitting}
+                                        className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                        {submitting ? 'Submitting...' : 'Resubmit'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              // MISSING - no submission yet
+                              return (
+                                <div>
+                                  <div className="flex items-center space-x-3 mb-4">
+                                    <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">MISSING</span>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div>
+                                      <label className="flex items-center space-x-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-sm cursor-pointer hover:bg-gray-50 hover:border-[#008EE2] transition-colors w-full justify-center">
+                                        <Upload size={20} className="text-gray-400" />
+                                        <span className="text-gray-500">{submissionFile ? submissionFile.name : 'Click to upload your file'}</span>
+                                        <input type="file" accept={assignmentDetail.allowedFormats || undefined} className="hidden"
+                                          onChange={e => setSubmissionFile(e.target.files?.[0] || null)} />
+                                      </label>
+                                      {assignmentDetail.allowedFormats && (
+                                        <p className="text-[11px] text-gray-400 mt-1">Accepted formats: {assignmentDetail.allowedFormats}</p>
+                                      )}
+                                    </div>
+                                    <textarea value={submissionComment} onChange={e => setSubmissionComment(e.target.value)} rows={3}
+                                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                      placeholder="Add a comment (optional)" />
+                                    <button onClick={handleSubmitWork} disabled={!submissionFile || submitting}
+                                      className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                      {submitting ? 'Submitting...' : 'Submit Assignment'}
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Teacher Grading Interface */}
+                      {(user?.role === 'TEACHER' || user?.role === 'ADMIN') && (
+                        <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
+                          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
+                            <span className="font-bold text-[15px]">Submissions ({assignmentDetail.submissions?.length || 0})</span>
+                          </div>
+                          <div className="bg-white">
+                            {!assignmentDetail.submissions?.length ? (
+                              <div className="p-8 text-center text-gray-400 text-sm">No submissions yet.</div>
+                            ) : (
+                              <table className="w-full text-left text-[14px]">
+                                <thead>
+                                  <tr className="bg-gray-50 text-[#2D3B45] font-bold text-[13px]">
+                                    <th className="py-3 px-4">Student</th>
+                                    <th className="py-3 px-4">Status</th>
+                                    <th className="py-3 px-4">Submitted</th>
+                                    <th className="py-3 px-4">Late</th>
+                                    <th className="py-3 px-4">Score</th>
+                                    <th className="py-3 px-4">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#E1E1E1]">
+                                  {assignmentDetail.submissions.map((sub: any) => (
+                                    <React.Fragment key={sub.id}>
+                                      <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setGradingSubmissionId(gradingSubmissionId === sub.id ? null : sub.id)}>
+                                        <td className="py-3 px-4">
+                                          <div className="flex items-center space-x-2">
+                                            <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
+                                              {sub.student?.firstName?.[0]}{sub.student?.lastName?.[0]}
+                                            </div>
+                                            <span className="font-medium">{sub.student?.firstName} {sub.student?.lastName}</span>
+                                          </div>
+                                        </td>
+                                        <td className="py-3 px-4">
+                                          <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
+                                            sub.status === 'GRADED' ? 'bg-green-100 text-green-700' :
+                                            sub.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-red-100 text-red-600'
+                                          }`}>{sub.status}</span>
+                                        </td>
+                                        <td className="py-3 px-4 text-[13px] text-gray-500">
+                                          {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '-'}
+                                        </td>
+                                        <td className="py-3 px-4">
+                                          {sub.isLate ? <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600">LATE</span> : <span className="text-gray-400 text-[12px]">On time</span>}
+                                        </td>
+                                        <td className="py-3 px-4 font-bold">
+                                          {sub.score !== null ? `${sub.score} / ${assignmentDetail.points}` : '-'}
+                                        </td>
+                                        <td className="py-3 px-4">
+                                          <button className="text-[#008EE2] text-sm hover:underline">
+                                            {gradingSubmissionId === sub.id ? 'Close' : 'Grade'}
+                                          </button>
+                                        </td>
+                                      </tr>
+                                      {/* Inline Grading Panel */}
+                                      {gradingSubmissionId === sub.id && (
+                                        <tr>
+                                          <td colSpan={6} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
+                                            <div className="space-y-4">
+                                              {/* Student file viewer */}
+                                              {sub.filePath && (
+                                                <div>
+                                                  <h4 className="font-bold text-sm text-[#2D3B45] mb-2">Student File: {sub.fileName || 'Submission'}</h4>
+                                                  <iframe
+                                                    src={`/api/submissions/${sub.id}/file`}
+                                                    className="w-full h-[400px] border border-[#E1E1E1] rounded bg-white"
+                                                    title="Student submission"
+                                                  />
+                                                </div>
+                                              )}
+                                              {sub.comment && (
+                                                <div className="bg-white border border-[#E1E1E1] rounded p-3">
+                                                  <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Student Comment</div>
+                                                  <p className="text-[14px] text-[#2D3B45]">{sub.comment}</p>
+                                                </div>
+                                              )}
+                                              <div className="grid grid-cols-2 gap-4">
+                                                <div>
+                                                  <label className="block text-sm font-bold text-[#2D3B45] mb-1">Score (max {assignmentDetail.points})</label>
+                                                  <input type="number" value={gradeScore} onChange={e => setGradeScore(Number(e.target.value))}
+                                                    max={assignmentDetail.points} min={0}
+                                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+                                                </div>
+                                              </div>
+                                              <div>
+                                                <label className="block text-sm font-bold text-[#2D3B45] mb-1">Feedback</label>
+                                                <textarea value={gradeFeedback} onChange={e => setGradeFeedback(e.target.value)} rows={3}
+                                                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                                  placeholder="Feedback for the student..." />
+                                              </div>
+                                              <div className="flex items-center space-x-3">
+                                                <button onClick={handleSaveGrade} disabled={savingGrade}
+                                                  className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                                  {savingGrade ? 'Saving...' : 'Save Grade'}
+                                                </button>
+                                                <button onClick={() => setGradingSubmissionId(null)} className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                    </React.Fragment>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : <div className="text-center text-gray-400 py-12">Assignment not found.</div>}
+                </div>
+
+              ) : (
+                /* Assignment List */
+                <div className="border border-[#E1E1E1] rounded-sm overflow-hidden">
+                  <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
+                    <span className="font-bold text-[15px]">Assignments ({course.assignments?.length || 0})</span>
+                    {(user?.role === 'TEACHER' || user?.role === 'ADMIN') && (
+                      <button onClick={() => setShowCreateAssignment(true)}
+                        className="flex items-center space-x-1 bg-[#008EE2] text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
+                        <Plus size={16} /> <span>New Assignment</span>
+                      </button>
+                    )}
+                  </div>
+                  <div className="bg-white divide-y divide-[#E1E1E1]">
+                    {!course.assignments?.length ? (
+                      <div className="p-8 text-center text-gray-400 text-sm">No assignments yet.</div>
+                    ) : course.assignments.map((a: any) => (
+                      <div key={a.id} className="px-4 py-4 flex items-center hover:bg-gray-50 group cursor-pointer"
+                        onClick={() => loadAssignmentDetail(a.id)}>
+                        <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
+                        <div className="flex-1">
+                          <h4 className="font-bold text-[15px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
+                          <p className="text-[12px] text-gray-500 mt-0.5">
+                            {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <ChevronRight size={18} className="text-gray-300 group-hover:text-[#008EE2]" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : activeSection === 'Grades' ? (
             (() => {
@@ -2027,6 +2479,125 @@ function InboxView() {
   );
 }
 
+// --- All Assignments View (Top-Level Sidebar) ---
+
+function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCourse }: {
+  user: any;
+  allAssignments: any[];
+  loading: boolean;
+  onLoad: () => void;
+  onSelectCourse: (courseId: string) => void;
+}) {
+  const [loaded, setLoaded] = useState(false);
+
+  React.useEffect(() => {
+    if (!loaded) {
+      onLoad();
+      setLoaded(true);
+    }
+  }, [loaded]);
+
+  if (loading) return <LoadingSpinner />;
+
+  // Group assignments by course
+  const byCourse = new Map<string, { course: any; assignments: any[] }>();
+  for (const a of allAssignments) {
+    const courseId = a.courseId || a.course?.id || 'unknown';
+    if (!byCourse.has(courseId)) {
+      byCourse.set(courseId, {
+        course: a.course || { id: courseId, name: 'Unknown Course', color: '#2D3B45' },
+        assignments: [],
+      });
+    }
+    byCourse.get(courseId)!.assignments.push(a);
+  }
+
+  const getStatusBadge = (a: any) => {
+    if (user.role === 'STUDENT') {
+      const sub = a.submissions?.find((s: any) => s.studentId === user.id);
+      if (!sub || sub.status === 'MISSING') return <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600">MISSING</span>;
+      if (sub.status === 'SUBMITTED') return <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>;
+      if (sub.status === 'GRADED') return <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700">GRADED ({sub.score}/{a.points})</span>;
+    }
+    if (user.role === 'TEACHER' || user.role === 'ADMIN') {
+      const total = a.submissions?.length || 0;
+      const needsGrading = a.submissions?.filter((s: any) => s.status === 'SUBMITTED').length || 0;
+      return (
+        <div className="flex items-center space-x-2">
+          <span className="text-[12px] text-gray-500">{total} submitted</span>
+          {needsGrading > 0 && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-100 text-amber-700">{needsGrading} to grade</span>}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-white">
+      <header className="h-16 border-b border-[#E1E1E1] flex items-center justify-between px-8 bg-white shrink-0">
+        <h1 className="text-3xl font-bold tracking-tight">Assignments</h1>
+        <span className="text-sm text-gray-500">{allAssignments.length} total</span>
+      </header>
+      <div className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-6xl mx-auto">
+          {allAssignments.length === 0 ? (
+            <div className="text-center py-20 text-gray-400">
+              <NotebookPen size={48} className="mx-auto mb-4 opacity-40" />
+              <p>No assignments found.</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {Array.from(byCourse.values()).map(({ course, assignments }) => (
+                <div key={course.id}>
+                  {/* Course Section Header */}
+                  <div className="flex items-center space-x-3 mb-3 pb-2 border-b-2" style={{ borderColor: course.color || '#2D3B45' }}>
+                    <div className="w-3 h-6 rounded" style={{ backgroundColor: course.color || '#2D3B45' }} />
+                    <h2 className="text-lg font-bold text-[#2D3B45] cursor-pointer hover:underline" onClick={() => onSelectCourse(course.id)}>
+                      {course.name}
+                    </h2>
+                    <span className="text-[12px] text-gray-400">{course.code}</span>
+                    <span className="text-[12px] text-gray-400 ml-auto">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</span>
+                  </div>
+
+                  {/* Assignment Rows */}
+                  <div className="border border-[#E1E1E1] rounded-sm overflow-hidden">
+                    <div className="bg-white divide-y divide-[#E1E1E1]">
+                      {assignments.map((a: any) => {
+                        const isPastDue = a.dueDate && new Date(a.dueDate) < new Date();
+                        return (
+                          <div key={a.id} className="px-4 py-3 flex items-center hover:bg-gray-50 group cursor-pointer"
+                            onClick={() => onSelectCourse(course.id)}>
+                            <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={18} /></div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-[14px] text-[#2D3B45] group-hover:underline truncate">{a.title}</h4>
+                              <p className="text-[12px] text-gray-500 mt-0.5">
+                                {a.points} pts
+                                {a.dueDate && (
+                                  <span className={isPastDue ? 'text-red-500 font-medium' : ''}>
+                                    {' '}• Due {new Date(a.dueDate).toLocaleDateString()}
+                                    {isPastDue && ' (Past due)'}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                            <div className="ml-4 shrink-0">
+                              {getStatusBadge(a)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // --- Main App ---
 
 export default function App() {
@@ -2039,6 +2610,8 @@ export default function App() {
   const [isCoursesDrawerOpen, setIsCoursesDrawerOpen] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [dyslexiaFont, setDyslexiaFont] = useState(false);
+  const [allAssignments, setAllAssignments] = useState<any[]>([]);
+  const [allAssignmentsLoading, setAllAssignmentsLoading] = useState(false);
 
   // Fetch user's courses for the drawer
   const { data: coursesData } = useApi<{ courses: Course[] }>(isLoggedIn ? '/courses' : null);
@@ -2088,6 +2661,8 @@ export default function App() {
           <SidebarItem icon={Book} label="Courses"
             active={isCoursesDrawerOpen || activeTab === 'Courses'}
             onClick={() => { setIsCoursesDrawerOpen(!isCoursesDrawerOpen); setIsAccountDrawerOpen(false); }} />
+          <SidebarItem icon={NotebookPen} label="Assignments" active={activeTab === 'Assignments'}
+            onClick={() => { setActiveTab('Assignments'); setSelectedCourseId(null); closeDrawers(); }} />
           <SidebarItem icon={Calendar} label="Calendar" active={activeTab === 'Calendar'}
             onClick={() => { setActiveTab('Calendar'); setSelectedCourseId(null); closeDrawers(); }} />
           <SidebarItem icon={Inbox} label="Inbox" active={activeTab === 'Inbox'}
@@ -2200,6 +2775,19 @@ export default function App() {
           <CalendarView />
         ) : activeTab === 'Inbox' ? (
           <InboxView />
+        ) : activeTab === 'Assignments' ? (
+          <AllAssignmentsView
+            user={user!}
+            allAssignments={allAssignments}
+            loading={allAssignmentsLoading}
+            onLoad={async () => {
+              setAllAssignmentsLoading(true);
+              const res = await api<any>('/assignments');
+              if (res.success) setAllAssignments(res.data || []);
+              setAllAssignmentsLoading(false);
+            }}
+            onSelectCourse={(courseId: string) => { setSelectedCourseId(courseId); setActiveTab('Courses'); }}
+          />
         ) : selectedCourseId ? (
           <CourseView courseId={selectedCourseId} />
         ) : activeTab === 'Dashboard' ? (

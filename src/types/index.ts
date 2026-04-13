@@ -54,7 +54,14 @@ export interface Assignment {
   points: number;
   dueDate: string | null;
   published: boolean;
+  instructions: string | null;
+  attachmentPath: string | null;
+  attachmentName: string | null;
+  allowedFormats: string;
+  maxFileSize: number;
   course?: { id: string; name: string; code: string; color: string };
+  submissions?: Submission[];
+  _count?: { submissions: number };
 }
 
 export interface Submission {
@@ -65,8 +72,15 @@ export interface Submission {
   score: number | null;
   date: string | null;
   feedback: string | null;
+  filePath: string | null;
+  fileName: string | null;
+  fileSize: number | null;
+  comment: string | null;
+  submittedAt: string | null;
+  isLate: boolean;
   assignment?: Assignment & { course?: { id: string; name: string; code: string; color: string } };
   student?: { id: string; firstName: string; lastName: string; email: string };
+  gradedBy?: { id: string; firstName: string; lastName: string };
 }
 
 export interface Message {

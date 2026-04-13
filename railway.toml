@@ -2,6 +2,10 @@
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
+[[mounts]]
+source = "uploads"
+destination = "/app/uploads"
+
 [deploy]
 healthcheckPath = "/api/health"
 healthcheckTimeout = 60

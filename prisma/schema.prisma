@@ -239,16 +239,21 @@ enum AssignmentType {
 }
 
 model Assignment {
-  id          String         @id @default(cuid())
-  courseId     String         @map("course_id")
-  title       String
-  description String?
-  type        AssignmentType @default(ASSIGNMENT)
-  points      Float          @default(0)
-  dueDate     DateTime?      @map("due_date") // single date — from Excel
-  published   Boolean        @default(true)
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
+  id             String         @id @default(cuid())
+  courseId        String         @map("course_id")
+  title          String
+  description    String?
+  type           AssignmentType @default(ASSIGNMENT)
+  points         Float          @default(0)
+  dueDate        DateTime?      @map("due_date")
+  published      Boolean        @default(true)
+  instructions   String?
+  attachmentPath String?        @map("attachment_path")
+  attachmentName String?        @map("attachment_name")
+  allowedFormats String         @default("pdf,doc,docx") @map("allowed_formats")
+  maxFileSize    Int            @default(10) @map("max_file_size") // MB
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
   course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   submissions Submission[]
@@ -270,9 +275,15 @@ model Submission {
   studentId    String           @map("student_id")
   status       SubmissionStatus @default(MISSING)
   score        Float?
-  date         DateTime?        // single date — from Excel
+  date         DateTime?        // from Excel import
   gradedById   String?          @map("graded_by_id")
   feedback     String?
+  filePath     String?          @map("file_path")
+  fileName     String?          @map("file_name")
+  fileSize     Int?             @map("file_size") // bytes
+  comment      String?
+  submittedAt  DateTime?        @map("submitted_at")
+  isLate       Boolean          @default(false) @map("is_late")
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   student    User       @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
