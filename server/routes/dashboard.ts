@@ -46,7 +46,7 @@ async function getStudentDashboard(req: AuthRequest, res: any) {
           select: {
             id: true, name: true, code: true, color: true,
             _count: { select: { assignments: true } },
-            modules: { orderBy: { position: 'asc' }, select: { id: true, name: true, position: true, weight: true } },
+            modules: { orderBy: { position: 'asc' }, select: { id: true, name: true, position: true, weight: true, startDate: true, hours: true } },
           },
         },
         studentProgress: { orderBy: { moduleId: 'asc' } },

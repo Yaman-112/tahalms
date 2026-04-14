@@ -295,12 +295,31 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
             <div className="space-y-6 mb-8">
               {enrollments.map((e: any) => {
                 const modules = e.course?.modules || [];
-                const progressList = e.studentProgress || [];
-                const completedCount = progressList.filter((p: any) => p.status === 'COMPLETED').length;
-                const inProgressMod = progressList.find((p: any) => p.status === 'IN_PROGRESS');
-                const currentModule = inProgressMod ? modules.find((m: any) => m.id === inProgressMod.moduleId) : null;
                 const totalMods = modules.length;
-                const progress = e.overallProgress || (totalMods > 0 ? (completedCount / totalMods) * 100 : 0);
+                const now = new Date();
+
+                // Compute progress based on module start dates
+                const completedModules = modules.filter((m: any) => {
+                  if (!m.startDate) return false;
+                  const mStart = new Date(m.startDate);
+                  // Find next module's start to determine end
+                  const idx = modules.indexOf(m);
+                  const nextMod = modules[idx + 1];
+                  const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                  return now >= mEnd; // Module is complete when we've passed its end
+                });
+                const completedCount = completedModules.length;
+
+                // Find current module (started but not yet ended)
+                const currentModule = modules.find((m: any, idx: number) => {
+                  if (!m.startDate) return false;
+                  const mStart = new Date(m.startDate);
+                  const nextMod = modules[idx + 1];
+                  const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                  return now >= mStart && now < mEnd;
+                });
+
+                const progress = totalMods > 0 ? (completedCount / totalMods) * 100 : 0;
 
                 return (
                   <div key={e.id} className="border border-[#E1E1E1] rounded-lg overflow-hidden">
@@ -338,18 +357,23 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     {modules.length > 0 && (
                       <div className="px-4 pb-4">
                         <div className="flex items-center space-x-1 mt-2">
-                          {modules.map((mod: any) => {
-                            const mp = progressList.find((p: any) => p.moduleId === mod.id);
-                            const status = mp?.status || 'NOT_STARTED';
-                            const joinPos = e.joinedModulePosition || 1;
-                            const isSkipped = mod.position < joinPos && status === 'NOT_STARTED';
+                          {modules.map((mod: any, idx: number) => {
+                            // Determine status from dates
+                            let status = 'NOT_STARTED';
+                            if (mod.startDate) {
+                              const mStart = new Date(mod.startDate);
+                              const nextMod = modules[idx + 1];
+                              const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                              if (now >= mEnd) status = 'COMPLETED';
+                              else if (now >= mStart) status = 'IN_PROGRESS';
+                            }
+                            const isCurrentMod = currentModule?.id === mod.id;
 
                             return (
-                              <div key={mod.id} className="group relative flex-1" title={`${mod.name} — ${status}`}>
+                              <div key={mod.id} className="group relative flex-1" title={`${mod.name} — ${status}${mod.startDate ? ' (starts ' + new Date(mod.startDate).toLocaleDateString() + ')' : ''}`}>
                                 <div className={`h-3 rounded-sm ${
                                   status === 'COMPLETED' ? 'bg-green-500' :
                                   status === 'IN_PROGRESS' ? 'bg-[#008EE2] animate-pulse' :
-                                  isSkipped ? 'bg-gray-300' :
                                   'bg-gray-200'
                                 }`} />
                                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#2D3B45] text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
@@ -363,7 +387,6 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-green-500" /><span>Completed</span></div>
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-[#008EE2]" /><span>Current</span></div>
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-gray-200" /><span>Upcoming</span></div>
-                          {e.joinedModulePosition > 1 && <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-gray-300" /><span>Before join</span></div>}
                         </div>
                       </div>
                     )}
