@@ -768,8 +768,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <th className="py-4 px-4">Email</th>
                           <th className="py-4 px-4">Role</th>
                           <th className="py-4 px-4">Status</th>
-                          <th className="py-4 px-4">Joined</th>
-                          <th className="py-4 px-4">Joined</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -799,12 +797,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               ) : (
                                 <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>
                               )}
-                            </td>
-                            <td className="py-4 px-4 text-[13px] text-gray-500">
-                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
-                            </td>
-                            <td className="py-4 px-4 text-[13px] text-gray-500">
-                              {new Date(u.createdAt).toLocaleDateString()}
                             </td>
                           </tr>
                         ))}
