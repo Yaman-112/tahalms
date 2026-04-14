@@ -768,7 +768,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <th className="py-4 px-4">Email</th>
                           <th className="py-4 px-4">Role</th>
                           <th className="py-4 px-4">Status</th>
-                          <th className="py-4 px-4">Last Login</th>
+                          <th className="py-4 px-4">Joined</th>
                           <th className="py-4 px-4">Joined</th>
                         </tr>
                       </thead>
@@ -801,7 +801,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               )}
                             </td>
                             <td className="py-4 px-4 text-[13px] text-gray-500">
-                              {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString() : 'Never'}
+                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
                             </td>
                             <td className="py-4 px-4 text-[13px] text-gray-500">
                               {new Date(u.createdAt).toLocaleDateString()}
@@ -884,7 +884,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           { label: 'Finish Date', value: userProfile.finishDate ? new Date(userProfile.finishDate).toLocaleDateString() : null },
                           { label: 'Status', value: userProfile.campusStatus },
                           { label: 'Admission Rep', value: userProfile.admissionRep },
-                          { label: 'Last Login', value: userProfile.lastLoginAt ? new Date(userProfile.lastLoginAt).toLocaleString() : 'Never' },
                         ].filter(f => f.value).map(f => (
                           <div key={f.label} className="bg-gray-50 rounded-lg p-3">
                             <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">{f.label}</div>
@@ -4060,7 +4059,6 @@ export default function App() {
                       <div><span className="text-gray-500">Name:</span> <span className="font-medium">{user!.firstName} {user!.lastName}</span></div>
                       <div><span className="text-gray-500">Email:</span> <span className="font-medium">{user!.email}</span></div>
                       <div><span className="text-gray-500">Role:</span> <span className="font-medium">{userRole}</span></div>
-                      <div><span className="text-gray-500">Last Login:</span> <span className="font-medium">{user!.lastLoginAt ? new Date(user!.lastLoginAt).toLocaleString() : '—'}</span></div>
                     </div>
                   </div>
                 </div>
