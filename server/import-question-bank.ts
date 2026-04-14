@@ -9,32 +9,50 @@ const pool = new pg.Pool({ connectionString: dbUrl });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// Parse a question bank txt file
+// Parse a question bank txt file — supports two formats:
+// Format 1 (MD): "1. Question\nA) Option\nAnswer: A"
+// Format 2 (ECA): "Q1. Question\n   A) Option\n  *B) Correct option"
 function parseQuestionBank(content: string) {
-  const lines = content.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = content.split('\n');
   const questions: any[] = [];
   let current: any = null;
 
-  for (const line of lines) {
-    // Skip header lines
-    if (line.startsWith('Module ') || line.startsWith('Final Exam') || line.startsWith('Midterm')) continue;
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
 
-    // New question: starts with "1." "2." etc.
-    const qMatch = line.match(/^(\d+)\.\s+(.+)/);
+    // Skip comment/header lines
+    if (line.startsWith('#') || line.startsWith('Module ') || line.startsWith('Final Exam') || line.startsWith('Midterm')) continue;
+    // Skip point info lines
+    if (/^\d+ Questions/.test(line)) continue;
+
+    // New question: "1. Question" or "Q1. Question" or "Q1) Question"
+    const qMatch = line.match(/^Q?(\d+)[\.\)]\s+(.+)/);
     if (qMatch) {
       if (current) questions.push(current);
-      current = { text: qMatch[2], options: [], correctIndex: -1 };
+      let text = qMatch[2];
+      // Remove [GEN] tag
+      text = text.replace(/^\[GEN\]\s*/, '');
+      current = { text, options: [], correctIndex: -1 };
       continue;
     }
 
-    // Option: starts with A) B) C) D) E) F)
-    const optMatch = line.match(/^([A-F])\)\s+(.+)/);
+    // Option with * prefix (correct answer): "  *A) Option text"
+    const starOptMatch = rawLine.match(/^\s*\*([A-F])\)\s+(.+)/);
+    if (starOptMatch && current) {
+      current.correctIndex = current.options.length;
+      current.options.push({ label: starOptMatch[1], text: starOptMatch[2] });
+      continue;
+    }
+
+    // Regular option: "A) Option" or "   A) Option"
+    const optMatch = rawLine.match(/^\s*([A-F])\)\s+(.+)/);
     if (optMatch && current) {
       current.options.push({ label: optMatch[1], text: optMatch[2] });
       continue;
     }
 
-    // Answer line
+    // Answer line: "Answer: A"
     const ansMatch = line.match(/^Answer:\s*([A-F])/);
     if (ansMatch && current) {
       const correctLabel = ansMatch[1];
