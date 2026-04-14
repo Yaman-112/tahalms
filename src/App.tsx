@@ -1,6 +1,7 @@
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
+ * TAHA Canvas LMS v2.0
  */
 
 import React, { useState } from 'react';
