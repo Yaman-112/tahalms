@@ -3945,9 +3945,10 @@ export default function App() {
 
         <div className="flex-1 overflow-y-auto px-6 py-4 border-t border-[#E1E1E1]">
           <nav className="flex flex-col space-y-3">
-            {['Notifications', 'Files', 'Settings'].map(link => (
+            {['Notifications', 'Files'].map(link => (
               <a key={link} href="#" className="text-[#008EE2] text-sm hover:underline">{link}</a>
             ))}
+            <a className="text-[#008EE2] text-sm hover:underline cursor-pointer" onClick={() => { setActiveTab('Settings'); setSelectedCourseId(null); closeDrawers(); }}>Settings</a>
           </nav>
 
           <div className="mt-10 pt-6 border-t border-[#E1E1E1]">
@@ -4031,6 +4032,160 @@ export default function App() {
           <CourseView courseId={selectedCourseId} />
         ) : activeTab === 'Dashboard' ? (
           <StudentDashboardView onCourseSelect={id => setSelectedCourseId(id)} />
+        ) : activeTab === 'Settings' ? (
+          <div className="flex-1 flex flex-col overflow-hidden bg-white">
+            <header className="h-16 border-b border-[#E1E1E1] flex items-center px-8 bg-white shrink-0">
+              <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            </header>
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="max-w-4xl mx-auto space-y-6">
+
+                {/* Profile Settings */}
+                <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                  <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Profile</h2>
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center space-x-6 mb-6">
+                      <div className="w-20 h-20 rounded-full border-2 border-[#E1E1E1] flex items-center justify-center bg-gray-100">
+                        <span className="text-3xl text-[#008EE2] font-light">{user!.firstName[0]}{user!.lastName[0]}</span>
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-[#2D3B45]">{user!.firstName} {user!.lastName}</h3>
+                        <p className="text-sm text-gray-500">{user!.email}</p>
+                        <span className={`inline-block mt-1 px-2 py-0.5 text-[11px] font-bold rounded-full ${userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userRole === 'TEACHER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{userRole}</span>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div><span className="text-gray-500">Name:</span> <span className="font-medium">{user!.firstName} {user!.lastName}</span></div>
+                      <div><span className="text-gray-500">Email:</span> <span className="font-medium">{user!.email}</span></div>
+                      <div><span className="text-gray-500">Role:</span> <span className="font-medium">{userRole}</span></div>
+                      <div><span className="text-gray-500">Last Login:</span> <span className="font-medium">{user!.lastLoginAt ? new Date(user!.lastLoginAt).toLocaleString() : '—'}</span></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notification Preferences */}
+                <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                  <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Notification Preferences</h2>
+                  </div>
+                  <div className="p-6 space-y-3">
+                    {[
+                      { label: 'Assignment due date reminders', desc: 'Get notified before assignments are due' },
+                      { label: 'Grade posted notifications', desc: 'Get notified when a grade is posted' },
+                      { label: 'Course announcements', desc: 'Receive course announcement notifications' },
+                      ...(userRole === 'TEACHER' || userRole === 'ADMIN' ? [
+                        { label: 'New submission alerts', desc: 'Get notified when students submit work' },
+                      ] : []),
+                    ].map((item, i) => (
+                      <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div>
+                          <p className="text-[14px] font-medium text-[#2D3B45]">{item.label}</p>
+                          <p className="text-[12px] text-gray-500">{item.desc}</p>
+                        </div>
+                        <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">On</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Display Settings */}
+                <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                  <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Display Settings</h2>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[14px] font-medium text-[#2D3B45]">High Contrast Mode</p>
+                        <p className="text-[12px] text-gray-500">Increase contrast for better readability</p>
+                      </div>
+                      <button onClick={() => setHighContrast(!highContrast)}
+                        className={`w-12 h-6 rounded-full transition-colors ${highContrast ? 'bg-[#008EE2]' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${highContrast ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[14px] font-medium text-[#2D3B45]">Dyslexia-Friendly Font</p>
+                        <p className="text-[12px] text-gray-500">Use a monospace font for easier reading</p>
+                      </div>
+                      <button onClick={() => setDyslexiaFont(!dyslexiaFont)}
+                        className={`w-12 h-6 rounded-full transition-colors ${dyslexiaFont ? 'bg-[#008EE2]' : 'bg-gray-300'}`}>
+                        <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${dyslexiaFont ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[14px] font-medium text-[#2D3B45]">Language</p>
+                        <p className="text-[12px] text-gray-500">Interface language</p>
+                      </div>
+                      <span className="text-[14px] font-medium text-[#2D3B45]">English (EN)</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[14px] font-medium text-[#2D3B45]">Time Zone</p>
+                        <p className="text-[12px] text-gray-500">Used for due dates and scheduling</p>
+                      </div>
+                      <span className="text-[14px] font-medium text-[#2D3B45]">Eastern Time (ET)</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Admin-specific settings */}
+                {userRole === 'ADMIN' && (
+                  <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                    <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                      <h2 className="font-bold text-[15px] text-[#2D3B45]">Administration</h2>
+                    </div>
+                    <div className="p-6 space-y-3">
+                      {[
+                        { label: 'Allow student self-enrollment', desc: 'Students can enroll themselves in published courses' },
+                        { label: 'Require email verification', desc: 'New accounts must verify email before accessing courses' },
+                        { label: 'Enable course evaluations', desc: 'Allow students to evaluate courses at the end of term' },
+                        { label: 'Auto-grade MCQ quizzes', desc: 'Automatically grade and show results for MCQ-only quizzes' },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                          <div>
+                            <p className="text-[14px] font-medium text-[#2D3B45]">{item.label}</p>
+                            <p className="text-[12px] text-gray-500">{item.desc}</p>
+                          </div>
+                          <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">Enabled</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Teacher-specific settings */}
+                {userRole === 'TEACHER' && (
+                  <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                    <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                      <h2 className="font-bold text-[15px] text-[#2D3B45]">Teaching Preferences</h2>
+                    </div>
+                    <div className="p-6 space-y-3">
+                      {[
+                        { label: 'Show quiz results to students immediately', desc: 'Students see their MCQ scores right after submission' },
+                        { label: 'Allow late submissions', desc: 'Accept submissions after the due date (marked as late)' },
+                        { label: 'Enable negative marking for MCQs', desc: 'Deduct points for wrong MCQ answers' },
+                        { label: 'Auto-publish assignments', desc: 'New assignments are published by default' },
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                          <div>
+                            <p className="text-[14px] font-medium text-[#2D3B45]">{item.label}</p>
+                            <p className="text-[12px] text-gray-500">{item.desc}</p>
+                          </div>
+                          <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">On</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400">
             <p>{activeTab} — coming soon</p>
