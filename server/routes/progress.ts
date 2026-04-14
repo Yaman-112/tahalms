@@ -343,4 +343,114 @@ router.post('/recalculate/:batchCode', requireRole('ADMIN', 'TEACHER'), async (r
   }
 });
 
+// GET /api/progress/overview — admin overview of all student progress
+router.get('/overview', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+  try {
+    const now = new Date();
+
+    // Get all courses with modules (ordered by date)
+    const courses = await prisma.course.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        modules: { orderBy: { startDate: 'asc' } },
+        _count: { select: { enrollments: true, assignments: true } },
+      },
+    });
+
+    // Get all enrollments with student info
+    const enrollments = await prisma.enrollment.findMany({
+      where: { role: 'STUDENT' },
+      include: {
+        user: { select: { id: true, firstName: true, lastName: true, email: true, vNumber: true, campus: true, program: true } },
+        course: { select: { id: true, name: true, code: true, color: true } },
+      },
+    });
+
+    // Get submission counts per student per course
+    const submissions = await prisma.submission.groupBy({
+      by: ['studentId', 'assignmentId'],
+      where: { status: { in: ['SUBMITTED', 'GRADED'] } },
+    });
+
+    // Get assignments per course
+    const assignments = await prisma.assignment.findMany({
+      select: { id: true, courseId: true },
+    });
+    const assignmentsByCourse = new Map<string, string[]>();
+    for (const a of assignments) {
+      if (!assignmentsByCourse.has(a.courseId)) assignmentsByCourse.set(a.courseId, []);
+      assignmentsByCourse.get(a.courseId)!.push(a.id);
+    }
+
+    // Build submission lookup: studentId -> Set of assignmentIds submitted
+    const submissionLookup = new Map<string, Set<string>>();
+    for (const s of submissions) {
+      if (!submissionLookup.has(s.studentId)) submissionLookup.set(s.studentId, new Set());
+      submissionLookup.get(s.studentId)!.add(s.assignmentId);
+    }
+
+    // Compute per-course progress summary
+    const courseProgress = courses.map(course => {
+      const totalModules = course.modules.length;
+      const completedModules = course.modules.filter(m => m.startDate && new Date(m.startDate) < now).length;
+      const currentModule = course.modules.find(m => {
+        if (!m.startDate) return false;
+        const mStart = new Date(m.startDate);
+        const idx = course.modules.indexOf(m);
+        const nextMod = course.modules[idx + 1];
+        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+        return now >= mStart && now < mEnd;
+      });
+
+      const courseEnrollments = enrollments.filter(e => e.courseId === course.id);
+      const courseAssignmentIds = assignmentsByCourse.get(course.id) || [];
+      const totalAssignments = courseAssignmentIds.length;
+
+      const students = courseEnrollments.map(e => {
+        const studentSubs = submissionLookup.get(e.userId) || new Set();
+        const completedAssignments = courseAssignmentIds.filter(aid => studentSubs.has(aid)).length;
+        const progressPct = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
+
+        return {
+          id: e.userId,
+          firstName: e.user.firstName,
+          lastName: e.user.lastName,
+          email: e.user.email,
+          vNumber: e.user.vNumber,
+          campus: e.user.campus,
+          batchCode: e.batchCode,
+          enrolledAt: e.enrolledAt,
+          startDate: e.startDate,
+          completedAssignments,
+          totalAssignments,
+          progressPct,
+        };
+      });
+
+      return {
+        id: course.id,
+        name: course.name,
+        code: course.code,
+        color: course.color,
+        totalModules,
+        completedModules,
+        currentModule: currentModule?.name || null,
+        progressPct: totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0,
+        totalStudents: courseEnrollments.length,
+        totalAssignments,
+        students,
+      };
+    });
+
+    return success(res, {
+      totalStudents: enrollments.length,
+      totalCourses: courses.length,
+      courseProgress,
+    });
+  } catch (err: any) {
+    console.error('Progress overview error:', err);
+    return error(res, 'Failed to get progress overview', 500);
+  }
+});
+
 export default router;

@@ -1263,13 +1263,205 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
             </div>
           )}
 
-          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && (
+          {adminActiveSection === 'Statistics' && (
+            <AdminStatisticsView />
+          )}
+
+          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && adminActiveSection !== 'Statistics' && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <p>{adminActiveSection} — coming soon</p>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// --- Admin Statistics View ---
+
+function AdminStatisticsView() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'name' | 'progress'>('name');
+
+  React.useEffect(() => {
+    api<any>('/progress/overview').then(res => {
+      if (res.success) setData(res.data);
+      setLoading(false);
+    });
+  }, []);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <div className="p-8 text-gray-400">Failed to load progress data.</div>;
+
+  const courseProgress = data.courseProgress || [];
+  const activeCourse = selectedCourse ? courseProgress.find((c: any) => c.id === selectedCourse) : null;
+
+  const filteredStudents = activeCourse ? activeCourse.students
+    .filter((s: any) => {
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return `${s.firstName} ${s.lastName}`.toLowerCase().includes(term) ||
+        s.email?.toLowerCase().includes(term) ||
+        s.vNumber?.toLowerCase().includes(term) ||
+        s.batchCode?.toLowerCase().includes(term);
+    })
+    .sort((a: any, b: any) => {
+      if (sortBy === 'progress') return b.progressPct - a.progressPct;
+      return `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`);
+    }) : [];
+
+  return (
+    <div className="max-w-7xl">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 gap-4 mb-8">
+        <div className="bg-[#008EE2] text-white rounded-lg p-5">
+          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Total Students</div>
+          <div className="text-3xl font-bold">{data.totalStudents.toLocaleString()}</div>
+        </div>
+        <div className="bg-[#2D3B45] text-white rounded-lg p-5">
+          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Total Courses</div>
+          <div className="text-3xl font-bold">{data.totalCourses}</div>
+        </div>
+        <div className="bg-[#008744] text-white rounded-lg p-5">
+          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Avg Course Progress</div>
+          <div className="text-3xl font-bold">
+            {courseProgress.length > 0
+              ? Math.round(courseProgress.reduce((s: number, c: any) => s + c.progressPct, 0) / courseProgress.length)
+              : 0}%
+          </div>
+        </div>
+        <div className="bg-[#C23C2D] text-white rounded-lg p-5">
+          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Active Modules Today</div>
+          <div className="text-3xl font-bold">
+            {courseProgress.filter((c: any) => c.currentModule).length}
+          </div>
+        </div>
+      </div>
+
+      {/* Course Progress Overview */}
+      <h2 className="text-lg font-bold text-[#2D3B45] mb-4">Course Progress</h2>
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        {courseProgress.map((course: any) => (
+          <div
+            key={course.id}
+            onClick={() => setSelectedCourse(selectedCourse === course.id ? null : course.id)}
+            className={`border rounded-lg overflow-hidden cursor-pointer transition-all ${selectedCourse === course.id ? 'ring-2 ring-[#008EE2] shadow-lg' : 'hover:shadow-md'}`}
+          >
+            <div className="h-2" style={{ backgroundColor: course.color || '#2D3B45' }} />
+            <div className="p-4">
+              <h3 className="font-bold text-sm text-[#2D3B45] mb-1">{course.name}</h3>
+              <p className="text-[11px] text-gray-500 mb-3">{course.code} &middot; {course.totalStudents} students &middot; {course.totalModules} modules</p>
+
+              {/* Progress bar */}
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="flex-1 bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="h-2.5 rounded-full transition-all"
+                    style={{ width: `${course.progressPct}%`, backgroundColor: course.color || '#008EE2' }}
+                  />
+                </div>
+                <span className="text-sm font-bold text-[#2D3B45]">{course.progressPct}%</span>
+              </div>
+
+              <div className="flex justify-between text-[11px] text-gray-500">
+                <span>{course.completedModules}/{course.totalModules} modules done</span>
+                {course.currentModule && (
+                  <span className="text-[#008EE2] font-medium">Now: {course.currentModule}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Student Detail Table (when a course is selected) */}
+      {activeCourse && (
+        <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: activeCourse.color }} />
+              <span className="font-bold text-[15px]">{activeCourse.name} — Student Progress ({activeCourse.students.length})</span>
+            </div>
+            <div className="flex items-center space-x-3">
+              <input
+                type="text" placeholder="Search students..."
+                value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className="border border-[#E1E1E1] rounded px-3 py-1.5 text-sm w-64"
+              />
+              <select
+                value={sortBy} onChange={e => setSortBy(e.target.value as any)}
+                className="border border-[#E1E1E1] rounded px-3 py-1.5 text-sm"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="progress">Sort by Progress</option>
+              </select>
+            </div>
+          </div>
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-[#F5F5F5] sticky top-0">
+                <tr>
+                  <th className="text-left px-4 py-2.5 font-bold text-[#2D3B45]">Student</th>
+                  <th className="text-left px-4 py-2.5 font-bold text-[#2D3B45]">ID</th>
+                  <th className="text-left px-4 py-2.5 font-bold text-[#2D3B45]">Batch</th>
+                  <th className="text-left px-4 py-2.5 font-bold text-[#2D3B45]">Campus</th>
+                  <th className="text-center px-4 py-2.5 font-bold text-[#2D3B45]">Assignments</th>
+                  <th className="text-center px-4 py-2.5 font-bold text-[#2D3B45]">Progress</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#E1E1E1]">
+                {filteredStudents.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No students found.</td></tr>
+                ) : filteredStudents.map((s: any) => (
+                  <tr key={s.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-[11px] font-bold text-gray-600">
+                          {s.firstName?.[0]}{s.lastName?.[0]}
+                        </div>
+                        <div>
+                          <div className="font-medium">{s.firstName} {s.lastName}</div>
+                          <div className="text-[11px] text-gray-400">{s.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500">{s.vNumber || '—'}</td>
+                    <td className="px-4 py-2.5">
+                      {s.batchCode ? (
+                        <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-gray-100 text-gray-700">{s.batchCode}</span>
+                      ) : '—'}
+                    </td>
+                    <td className="px-4 py-2.5 text-gray-500">{s.campus || '—'}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className="text-sm">{s.completedAssignments}/{s.totalAssignments}</span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[80px]">
+                          <div
+                            className="h-2 rounded-full transition-all"
+                            style={{
+                              width: `${s.progressPct}%`,
+                              backgroundColor: s.progressPct >= 75 ? '#008744' : s.progressPct >= 40 ? '#F5A623' : '#C23C2D',
+                            }}
+                          />
+                        </div>
+                        <span className={`text-sm font-bold min-w-[36px] text-right ${s.progressPct >= 75 ? 'text-green-600' : s.progressPct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                          {s.progressPct}%
+                        </span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
