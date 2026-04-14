@@ -1283,6 +1283,7 @@ function CourseView({ courseId }: { courseId: string }) {
 
   // Assignment module state
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [viewAsStudent, setViewAsStudent] = useState(false);
   const [showCreateAssignment, setShowCreateAssignment] = useState(false);
   const [assignmentDetail, setAssignmentDetail] = useState<any>(null);
   const [assignmentDetailLoading, setAssignmentDetailLoading] = useState(false);
@@ -1354,7 +1355,7 @@ function CourseView({ courseId }: { courseId: string }) {
           setAssignmentQuestions(qRes.data || []);
         }
         // Start timer if time limit exists and student hasn't submitted
-        if (res.data?.timeLimit && user?.role === 'STUDENT') {
+        if (res.data?.timeLimit && (user?.role === 'STUDENT' || viewAsStudent)) {
           const mySubmission = res.data.submissions?.find((s: any) => s.studentId === user?.id);
           if (!mySubmission) {
             setQuizTimeLeft(res.data.timeLimit * 60);
@@ -1579,7 +1580,8 @@ function CourseView({ courseId }: { courseId: string }) {
     { label: 'Quizzes' }, { label: 'Modules' }, { label: 'Settings' }
   ];
 
-  const navItems = user?.role === 'TEACHER' ? teacherNavItems : studentNavItems;
+  const effectiveRole = viewAsStudent ? 'STUDENT' : user?.role;
+  const navItems = effectiveRole === 'TEACHER' ? teacherNavItems : studentNavItems;
 
   return (
     <div className="flex flex-col h-full bg-white">
@@ -1589,11 +1591,20 @@ function CourseView({ courseId }: { courseId: string }) {
           <span className="text-[#008EE2] hover:underline cursor-pointer text-lg font-medium">{course.code}</span>
         </div>
         {user?.role === 'TEACHER' && (
-          <button className="flex items-center px-4 py-2 border border-gray-300 rounded text-sm font-medium hover:bg-gray-50 transition-colors">
-            <Eye size={18} className="mr-2" /> View as Student
+          <button
+            onClick={() => setViewAsStudent(!viewAsStudent)}
+            className={`flex items-center px-4 py-2 border rounded text-sm font-medium transition-colors ${viewAsStudent ? 'bg-[#008EE2] text-white border-[#008EE2] hover:bg-[#0077BE]' : 'border-gray-300 hover:bg-gray-50'}`}
+          >
+            <Eye size={18} className="mr-2" /> {viewAsStudent ? 'Return to Teacher View' : 'View as Student'}
           </button>
         )}
       </header>
+
+      {viewAsStudent && (
+        <div className="bg-[#008EE2] text-white text-center py-1.5 text-sm font-medium">
+          Viewing as Student &mdash; Click "Return to Teacher View" to go back.
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-52 border-r border-[#E1E1E1] overflow-y-auto py-4 shrink-0">
@@ -1970,7 +1981,7 @@ function CourseView({ courseId }: { courseId: string }) {
                       )}
 
                       {/* Student Submission Section */}
-                      {user?.role === 'STUDENT' && (
+                      {(effectiveRole === 'STUDENT') && (
                         <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
                           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
                             <span className="font-bold text-[15px]">Your Submission</span>
@@ -2253,7 +2264,7 @@ function CourseView({ courseId }: { courseId: string }) {
                       )}
 
                       {/* Teacher Grading Interface */}
-                      {(user?.role === 'TEACHER' || user?.role === 'ADMIN') && (
+                      {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
                         <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
                           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
                             <span className="font-bold text-[15px]">Submissions ({assignmentDetail.submissions?.length || 0})</span>
@@ -2529,7 +2540,7 @@ function CourseView({ courseId }: { courseId: string }) {
                 <div className="border border-[#E1E1E1] rounded-sm overflow-hidden">
                   <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
                     <span className="font-bold text-[15px]">Assignments ({course.assignments?.length || 0})</span>
-                    {(user?.role === 'TEACHER' || user?.role === 'ADMIN') && (
+                    {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
                       <button onClick={() => setShowCreateAssignment(true)}
                         className="flex items-center space-x-1 bg-[#008EE2] text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
                         <Plus size={16} /> <span>New Assignment</span>
