@@ -2219,8 +2219,8 @@ function CourseView({ courseId }: { courseId: string }) {
                         </div>
                       )}
 
-                      {/* Student File Submission Section (FILE format only) */}
-                      {(effectiveRole === 'STUDENT') && (!assignmentDetail.format || assignmentDetail.format === 'FILE') && (
+                      {/* Student Submission Section */}
+                      {(effectiveRole === 'STUDENT') && (
                         <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
                           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
                             <span className="font-bold text-[15px]">Your Submission</span>
