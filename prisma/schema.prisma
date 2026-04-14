@@ -52,6 +52,7 @@ model User {
   auditLogs         AuditLog[]
   importBatches     ImportBatch[]
   refreshTokens     RefreshToken[]
+  studentAnswers    StudentAnswer[]
 
   @@map("users")
 }
@@ -238,27 +239,95 @@ enum AssignmentType {
   ASSIGNMENT
 }
 
+enum AssignmentFormat {
+  FILE       // File-based (PDF upload)
+  MCQ        // Multiple choice only
+  THEORY     // Subjective/theory only
+  MIXED      // Both MCQ and theory
+}
+
+enum QuestionType {
+  MCQ
+  THEORY
+}
+
 model Assignment {
-  id             String         @id @default(cuid())
-  courseId        String         @map("course_id")
+  id             String           @id @default(cuid())
+  courseId        String           @map("course_id")
   title          String
   description    String?
-  type           AssignmentType @default(ASSIGNMENT)
-  points         Float          @default(0)
-  dueDate        DateTime?      @map("due_date")
-  published      Boolean        @default(true)
+  type           AssignmentType   @default(ASSIGNMENT)
+  format         AssignmentFormat @default(FILE)
+  points         Float            @default(0)
+  dueDate        DateTime?        @map("due_date")
+  published      Boolean          @default(true)
   instructions   String?
-  attachmentPath String?        @map("attachment_path")
-  attachmentName String?        @map("attachment_name")
-  allowedFormats String         @default("pdf,doc,docx") @map("allowed_formats")
-  maxFileSize    Int            @default(10) @map("max_file_size") // MB
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
+  attachmentPath String?          @map("attachment_path")
+  attachmentName String?          @map("attachment_name")
+  allowedFormats String           @default("pdf,doc,docx") @map("allowed_formats")
+  maxFileSize    Int              @default(10) @map("max_file_size")
+  timeLimit      Int?             @map("time_limit") // minutes, null = no limit
+  shuffleQuestions Boolean        @default(false) @map("shuffle_questions")
+  showResults    Boolean          @default(true) @map("show_results") // show score after submit
+  negativeMarking Float           @default(0) @map("negative_marking") // points deducted per wrong MCQ
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
 
   course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   submissions Submission[]
+  questions   Question[]
 
   @@map("assignments")
+}
+
+model Question {
+  id           String       @id @default(cuid())
+  assignmentId String       @map("assignment_id")
+  type         QuestionType
+  text         String
+  points       Float        @default(1)
+  position     Int          @default(0)
+  required     Boolean      @default(true)
+  explanation  String?      // Shown after grading
+  wordLimit    Int?         @map("word_limit") // For theory questions
+
+  assignment Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  options    QuestionOption[]
+  answers    StudentAnswer[]
+
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String  @id @default(cuid())
+  questionId String  @map("question_id")
+  text       String
+  isCorrect  Boolean @default(false) @map("is_correct")
+  position   Int     @default(0)
+
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@map("question_options")
+}
+
+model StudentAnswer {
+  id              String   @id @default(cuid())
+  questionId      String   @map("question_id")
+  studentId       String   @map("student_id")
+  submissionId    String   @map("submission_id")
+  selectedOptionId String? @map("selected_option_id") // For MCQ
+  textAnswer      String?  @map("text_answer")         // For theory
+  isCorrect       Boolean? @map("is_correct")          // Auto-graded for MCQ
+  pointsAwarded   Float?   @map("points_awarded")
+  feedback        String?                               // Teacher feedback on theory
+  answeredAt      DateTime @default(now()) @map("answered_at")
+
+  question   Question   @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  student    User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([questionId, studentId, submissionId])
+  @@map("student_answers")
 }
 
 // ─── SUBMISSIONS (Student work + grades) ────────────────
@@ -285,9 +354,10 @@ model Submission {
   submittedAt  DateTime?        @map("submitted_at")
   isLate       Boolean          @default(false) @map("is_late")
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student    User       @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
-  gradedBy   User?      @relation("GradedByTeacher", fields: [gradedById], references: [id], onDelete: SetNull)
+  assignment Assignment     @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student    User           @relation("StudentSubmissions", fields: [studentId], references: [id], onDelete: Cascade)
+  gradedBy   User?          @relation("GradedByTeacher", fields: [gradedById], references: [id], onDelete: SetNull)
+  answers    StudentAnswer[]
 
   @@unique([assignmentId, studentId])
   @@map("submissions")

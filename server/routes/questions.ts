@@ -1,0 +1,267 @@
+import { Router } from 'express';
+import prisma from '../db';
+import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { success, error } from '../utils/response';
+
+const router = Router();
+router.use(authenticate);
+
+// GET /api/questions?assignmentId= — get questions for an assignment
+router.get('/', async (req: AuthRequest, res) => {
+  try {
+    const assignmentId = req.query.assignmentId as string;
+    if (!assignmentId) return error(res, 'assignmentId is required');
+
+    const assignment = await prisma.assignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment) return error(res, 'Assignment not found', 404);
+
+    const { role, userId } = req.user!;
+
+    const questions = await prisma.question.findMany({
+      where: { assignmentId },
+      orderBy: { position: 'asc' },
+      include: {
+        options: { orderBy: { position: 'asc' } },
+        // Include student's own answers if student
+        ...(role === 'STUDENT' ? {
+          answers: { where: { studentId: userId } },
+        } : {
+          answers: true,
+        }),
+      },
+    });
+
+    // For students: hide correct answers if assignment hasn't been graded
+    if (role === 'STUDENT') {
+      const submission = await prisma.submission.findUnique({
+        where: { assignmentId_studentId: { assignmentId, studentId: userId } },
+      });
+      const isGraded = submission?.status === 'GRADED';
+
+      const sanitized = questions.map(q => ({
+        ...q,
+        options: q.options.map(o => ({
+          ...o,
+          // Only show isCorrect after grading if showResults is on
+          isCorrect: (isGraded && assignment.showResults) ? o.isCorrect : undefined,
+        })),
+        explanation: (isGraded && assignment.showResults) ? q.explanation : undefined,
+      }));
+
+      return success(res, sanitized);
+    }
+
+    return success(res, questions);
+  } catch (err) {
+    console.error('Get questions error:', err);
+    return error(res, 'Failed to get questions', 500);
+  }
+});
+
+// POST /api/questions — create/update questions for an assignment (teacher/admin)
+router.post('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const { assignmentId, questions } = req.body;
+    if (!assignmentId || !questions || !Array.isArray(questions)) {
+      return error(res, 'assignmentId and questions array are required');
+    }
+
+    // Delete existing questions and recreate (simpler than diffing)
+    await prisma.question.deleteMany({ where: { assignmentId } });
+
+    const created = [];
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const question = await prisma.question.create({
+        data: {
+          assignmentId,
+          type: q.type === 'THEORY' ? 'THEORY' : 'MCQ',
+          text: q.text,
+          points: parseFloat(q.points) || 1,
+          position: i + 1,
+          required: q.required !== false,
+          explanation: q.explanation || null,
+          wordLimit: q.wordLimit ? parseInt(q.wordLimit) : null,
+          options: q.type === 'MCQ' && q.options ? {
+            create: q.options.map((opt: any, j: number) => ({
+              text: opt.text,
+              isCorrect: !!opt.isCorrect,
+              position: j + 1,
+            })),
+          } : undefined,
+        },
+        include: { options: true },
+      });
+      created.push(question);
+    }
+
+    // Update assignment total points
+    const totalPoints = created.reduce((sum, q) => sum + q.points, 0);
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { points: totalPoints },
+    });
+
+    return success(res, created, 201);
+  } catch (err) {
+    console.error('Create questions error:', err);
+    return error(res, 'Failed to create questions', 500);
+  }
+});
+
+// POST /api/questions/submit — student submits answers
+router.post('/submit', async (req: AuthRequest, res) => {
+  try {
+    const { assignmentId, answers } = req.body;
+    const studentId = req.user!.userId;
+
+    if (!assignmentId || !answers || !Array.isArray(answers)) {
+      return error(res, 'assignmentId and answers array are required');
+    }
+
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      include: { questions: { include: { options: true } } },
+    });
+    if (!assignment) return error(res, 'Assignment not found', 404);
+
+    // Create or get submission
+    const now = new Date();
+    const isLate = assignment.dueDate ? now > assignment.dueDate : false;
+
+    const submission = await prisma.submission.upsert({
+      where: { assignmentId_studentId: { assignmentId, studentId } },
+      update: { status: 'SUBMITTED', submittedAt: now, date: now, isLate },
+      create: { assignmentId, studentId, status: 'SUBMITTED', submittedAt: now, date: now, isLate },
+    });
+
+    // Delete old answers for this submission
+    await prisma.studentAnswer.deleteMany({
+      where: { submissionId: submission.id, studentId },
+    });
+
+    // Process each answer
+    let mcqScore = 0;
+    let mcqTotal = 0;
+    let theoryTotal = 0;
+    const savedAnswers = [];
+
+    for (const ans of answers) {
+      const question = assignment.questions.find(q => q.id === ans.questionId);
+      if (!question) continue;
+
+      let isCorrect: boolean | null = null;
+      let pointsAwarded: number | null = null;
+
+      if (question.type === 'MCQ') {
+        mcqTotal += question.points;
+        const correctOption = question.options.find(o => o.isCorrect);
+        isCorrect = correctOption?.id === ans.selectedOptionId;
+
+        if (isCorrect) {
+          pointsAwarded = question.points;
+          mcqScore += question.points;
+        } else {
+          pointsAwarded = -(assignment.negativeMarking || 0);
+          mcqScore -= (assignment.negativeMarking || 0);
+        }
+      } else {
+        // Theory — will be graded manually
+        theoryTotal += question.points;
+        pointsAwarded = null;
+      }
+
+      const saved = await prisma.studentAnswer.create({
+        data: {
+          questionId: ans.questionId,
+          studentId,
+          submissionId: submission.id,
+          selectedOptionId: ans.selectedOptionId || null,
+          textAnswer: ans.textAnswer || null,
+          isCorrect,
+          pointsAwarded,
+        },
+      });
+      savedAnswers.push(saved);
+    }
+
+    // If all questions are MCQ, auto-grade the submission
+    if (theoryTotal === 0 && mcqTotal > 0) {
+      const finalScore = Math.max(0, mcqScore);
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { score: finalScore, status: 'GRADED', feedback: `Auto-graded: ${finalScore}/${mcqTotal} points` },
+      });
+    } else if (mcqTotal > 0) {
+      // Mixed: set partial score from MCQ, status stays SUBMITTED for theory grading
+      await prisma.submission.update({
+        where: { id: submission.id },
+        data: { score: Math.max(0, mcqScore) },
+      });
+    }
+
+    return success(res, {
+      submission,
+      answers: savedAnswers,
+      mcqScore: Math.max(0, mcqScore),
+      mcqTotal,
+      theoryTotal,
+      autoGraded: theoryTotal === 0,
+    }, 201);
+  } catch (err) {
+    console.error('Submit answers error:', err);
+    return error(res, 'Failed to submit answers', 500);
+  }
+});
+
+// PATCH /api/questions/grade-theory — teacher grades theory answers
+router.patch('/grade-theory', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const { submissionId, grades } = req.body;
+    // grades: [{ answerId, pointsAwarded, feedback }]
+
+    if (!submissionId || !grades || !Array.isArray(grades)) {
+      return error(res, 'submissionId and grades array are required');
+    }
+
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      include: { answers: true },
+    });
+    if (!submission) return error(res, 'Submission not found', 404);
+
+    // Update each theory answer
+    for (const g of grades) {
+      await prisma.studentAnswer.update({
+        where: { id: g.answerId },
+        data: {
+          pointsAwarded: parseFloat(g.pointsAwarded) || 0,
+          feedback: g.feedback || null,
+        },
+      });
+    }
+
+    // Recalculate total score
+    const allAnswers = await prisma.studentAnswer.findMany({
+      where: { submissionId },
+    });
+    const totalScore = allAnswers.reduce((sum, a) => sum + (a.pointsAwarded || 0), 0);
+
+    await prisma.submission.update({
+      where: { id: submissionId },
+      data: {
+        score: Math.max(0, totalScore),
+        status: 'GRADED',
+        gradedById: req.user!.userId,
+        feedback: `Total: ${Math.max(0, totalScore)} points`,
+      },
+    });
+
+    return success(res, { totalScore: Math.max(0, totalScore) });
+  } catch (err) {
+    console.error('Grade theory error:', err);
+    return error(res, 'Failed to grade theory answers', 500);
+  }
+});
+
+export default router;

@@ -16,6 +16,7 @@ import batchRoutes from './routes/batches';
 import enrollmentRoutes from './routes/enrollments';
 import progressRoutes from './routes/progress';
 import dashboardRoutes from './routes/dashboard';
+import questionRoutes from './routes/questions';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -43,6 +44,7 @@ app.use('/api/batches', batchRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/questions', questionRoutes);
 
 // Health check
 app.get('/api/health', (_req, res) => {

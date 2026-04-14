@@ -45,12 +45,47 @@ export interface Module {
   published: boolean;
 }
 
+export interface QuestionOption {
+  id: string;
+  questionId: string;
+  text: string;
+  isCorrect?: boolean;
+  position: number;
+}
+
+export interface StudentAnswer {
+  id: string;
+  questionId: string;
+  studentId: string;
+  submissionId: string;
+  selectedOptionId: string | null;
+  textAnswer: string | null;
+  isCorrect: boolean | null;
+  pointsAwarded: number | null;
+  feedback: string | null;
+}
+
+export interface Question {
+  id: string;
+  assignmentId: string;
+  type: 'MCQ' | 'THEORY';
+  text: string;
+  points: number;
+  position: number;
+  required: boolean;
+  explanation: string | null;
+  wordLimit: number | null;
+  options: QuestionOption[];
+  answers?: StudentAnswer[];
+}
+
 export interface Assignment {
   id: string;
   courseId: string;
   title: string;
   description: string | null;
   type: 'QUIZ' | 'ASSIGNMENT';
+  format: 'FILE' | 'MCQ' | 'THEORY' | 'MIXED';
   points: number;
   dueDate: string | null;
   published: boolean;
@@ -59,8 +94,13 @@ export interface Assignment {
   attachmentName: string | null;
   allowedFormats: string;
   maxFileSize: number;
+  timeLimit: number | null;
+  shuffleQuestions: boolean;
+  showResults: boolean;
+  negativeMarking: number;
   course?: { id: string; name: string; code: string; color: string };
   submissions?: Submission[];
+  questions?: Question[];
   _count?: { submissions: number };
 }
 

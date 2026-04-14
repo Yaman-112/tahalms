@@ -1309,12 +1309,58 @@ function CourseView({ courseId }: { courseId: string }) {
   const [gradeFeedback, setGradeFeedback] = useState('');
   const [savingGrade, setSavingGrade] = useState(false);
 
+  // Quiz / Question builder state
+  const [newAssignFormat, setNewAssignFormat] = useState<'FILE' | 'MCQ' | 'THEORY' | 'MIXED'>('FILE');
+  const [newAssignTimeLimit, setNewAssignTimeLimit] = useState<number>(0);
+  const [newAssignNegativeMarking, setNewAssignNegativeMarking] = useState<number>(0);
+  const [newAssignShuffleQuestions, setNewAssignShuffleQuestions] = useState(false);
+  const [newAssignShowResults, setNewAssignShowResults] = useState(true);
+  const [builderQuestions, setBuilderQuestions] = useState<Array<{
+    type: 'MCQ' | 'THEORY';
+    text: string;
+    points: number;
+    explanation: string;
+    wordLimit: number;
+    options: Array<{ text: string; isCorrect: boolean }>;
+  }>>([]);
+
+  // Quiz state (questions loaded for assignment detail)
+  const [assignmentQuestions, setAssignmentQuestions] = useState<any[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, { selectedOptionId?: string; textAnswer?: string }>>({});
+  const [quizSubmitting, setQuizSubmitting] = useState(false);
+  const [quizTimeLeft, setQuizTimeLeft] = useState<number | null>(null);
+  const [quizSubmitted, setQuizSubmitted] = useState(false);
+
+  // Theory grading state (for quiz-based assignments)
+  const [theoryGrades, setTheoryGrades] = useState<Record<string, { pointsAwarded: number; feedback: string }>>({});
+  const [savingTheoryGrades, setSavingTheoryGrades] = useState(false);
+  const [gradingQuizSubmissionId, setGradingQuizSubmissionId] = useState<string | null>(null);
+
   const loadAssignmentDetail = async (id: string) => {
     setAssignmentDetailLoading(true);
     setSelectedAssignmentId(id);
+    setQuizSubmitted(false);
+    setQuizAnswers({});
+    setQuizTimeLeft(null);
+    setAssignmentQuestions([]);
     const res = await api<any>(`/assignments/${id}`);
     if (res.success) {
       setAssignmentDetail(res.data);
+      // Fetch questions for non-FILE formats
+      const format = res.data?.format || 'FILE';
+      if (format !== 'FILE') {
+        const qRes = await api<any>(`/questions?assignmentId=${id}`);
+        if (qRes.success) {
+          setAssignmentQuestions(qRes.data || []);
+        }
+        // Start timer if time limit exists and student hasn't submitted
+        if (res.data?.timeLimit && user?.role === 'STUDENT') {
+          const mySubmission = res.data.submissions?.find((s: any) => s.studentId === user?.id);
+          if (!mySubmission) {
+            setQuizTimeLeft(res.data.timeLimit * 60);
+          }
+        }
+      }
     }
     setAssignmentDetailLoading(false);
   };
@@ -1338,26 +1384,169 @@ function CourseView({ courseId }: { courseId: string }) {
   const handleCreateAssignment = async () => {
     if (!newAssignTitle || !newAssignPoints) return;
     setCreating(true);
-    const formData = new FormData();
-    formData.append('courseId', courseId);
-    formData.append('title', newAssignTitle);
-    formData.append('description', newAssignDesc);
-    formData.append('instructions', newAssignInstructions);
-    formData.append('points', String(newAssignPoints));
-    if (newAssignDueDate) formData.append('dueDate', newAssignDueDate);
-    formData.append('allowedFormats', newAssignFormats);
-    formData.append('published', String(newAssignPublished));
-    if (newAssignFile) formData.append('file', newAssignFile);
-    const res = await api<any>('/assignments', { method: 'POST', body: formData });
-    if (res.success) {
-      setShowCreateAssignment(false);
-      setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
-      setNewAssignPoints(100); setNewAssignDueDate(''); setNewAssignFormats('.pdf,.doc,.docx');
-      setNewAssignPublished(true); setNewAssignFile(null);
-      refetchCourse();
+
+    if (newAssignFormat === 'FILE') {
+      // Existing FILE-based creation
+      const formData = new FormData();
+      formData.append('courseId', courseId);
+      formData.append('title', newAssignTitle);
+      formData.append('description', newAssignDesc);
+      formData.append('instructions', newAssignInstructions);
+      formData.append('points', String(newAssignPoints));
+      formData.append('format', 'FILE');
+      if (newAssignDueDate) formData.append('dueDate', newAssignDueDate);
+      formData.append('allowedFormats', newAssignFormats);
+      formData.append('published', String(newAssignPublished));
+      if (newAssignFile) formData.append('file', newAssignFile);
+      const res = await api<any>('/assignments', { method: 'POST', body: formData });
+      if (res.success) {
+        resetCreateForm();
+        refetchCourse();
+      }
+    } else {
+      // Quiz-based creation: create assignment, then POST questions
+      const formData = new FormData();
+      formData.append('courseId', courseId);
+      formData.append('title', newAssignTitle);
+      formData.append('description', newAssignDesc);
+      formData.append('instructions', newAssignInstructions);
+      formData.append('points', String(newAssignPoints));
+      formData.append('format', newAssignFormat);
+      if (newAssignDueDate) formData.append('dueDate', newAssignDueDate);
+      formData.append('published', String(newAssignPublished));
+      if (newAssignTimeLimit > 0) formData.append('timeLimit', String(newAssignTimeLimit));
+      formData.append('negativeMarking', String(newAssignNegativeMarking));
+      formData.append('shuffleQuestions', String(newAssignShuffleQuestions));
+      formData.append('showResults', String(newAssignShowResults));
+
+      const res = await api<any>('/assignments', { method: 'POST', body: formData });
+      if (res.success && res.data?.id) {
+        // Now create questions
+        if (builderQuestions.length > 0) {
+          await api<any>('/questions', {
+            method: 'POST',
+            body: JSON.stringify({
+              assignmentId: res.data.id,
+              questions: builderQuestions.map((q, idx) => ({
+                type: q.type,
+                text: q.text,
+                points: q.points,
+                position: idx + 1,
+                explanation: q.explanation || undefined,
+                wordLimit: q.type === 'THEORY' && q.wordLimit > 0 ? q.wordLimit : undefined,
+                options: q.type === 'MCQ' ? q.options.map((o, oi) => ({
+                  text: o.text,
+                  isCorrect: o.isCorrect,
+                  position: oi + 1,
+                })) : undefined,
+              })),
+            }),
+          });
+        }
+        resetCreateForm();
+        refetchCourse();
+      }
     }
     setCreating(false);
   };
+
+  const resetCreateForm = () => {
+    setShowCreateAssignment(false);
+    setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
+    setNewAssignPoints(100); setNewAssignDueDate(''); setNewAssignFormats('.pdf,.doc,.docx');
+    setNewAssignPublished(true); setNewAssignFile(null);
+    setNewAssignFormat('FILE'); setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
+    setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
+    setBuilderQuestions([]);
+  };
+
+  const addBuilderQuestion = (type: 'MCQ' | 'THEORY') => {
+    setBuilderQuestions(prev => [...prev, {
+      type,
+      text: '',
+      points: 10,
+      explanation: '',
+      wordLimit: 0,
+      options: type === 'MCQ' ? [
+        { text: '', isCorrect: true },
+        { text: '', isCorrect: false },
+      ] : [],
+    }]);
+  };
+
+  const updateBuilderQuestion = (index: number, updates: Partial<typeof builderQuestions[0]>) => {
+    setBuilderQuestions(prev => prev.map((q, i) => i === index ? { ...q, ...updates } : q));
+  };
+
+  const removeBuilderQuestion = (index: number) => {
+    setBuilderQuestions(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const moveBuilderQuestion = (index: number, direction: -1 | 1) => {
+    const newIdx = index + direction;
+    if (newIdx < 0 || newIdx >= builderQuestions.length) return;
+    setBuilderQuestions(prev => {
+      const copy = [...prev];
+      [copy[index], copy[newIdx]] = [copy[newIdx], copy[index]];
+      return copy;
+    });
+  };
+
+  const handleQuizSubmit = async () => {
+    if (!selectedAssignmentId) return;
+    setQuizSubmitting(true);
+    const answers = Object.entries(quizAnswers).map(([questionId, ans]) => ({
+      questionId,
+      selectedOptionId: ans.selectedOptionId || undefined,
+      textAnswer: ans.textAnswer || undefined,
+    }));
+    const res = await api<any>('/questions/submit', {
+      method: 'POST',
+      body: JSON.stringify({ assignmentId: selectedAssignmentId, answers }),
+    });
+    if (res.success) {
+      setQuizSubmitted(true);
+      setQuizTimeLeft(null);
+      await loadAssignmentDetail(selectedAssignmentId);
+    }
+    setQuizSubmitting(false);
+  };
+
+  const handleGradeTheory = async (submissionId: string) => {
+    setSavingTheoryGrades(true);
+    const grades = Object.entries(theoryGrades).map(([answerId, g]) => ({
+      answerId,
+      pointsAwarded: g.pointsAwarded,
+      feedback: g.feedback,
+    }));
+    const res = await api<any>('/questions/grade-theory', {
+      method: 'PATCH',
+      body: JSON.stringify({ submissionId, grades }),
+    });
+    if (res.success && selectedAssignmentId) {
+      setTheoryGrades({});
+      setGradingQuizSubmissionId(null);
+      await loadAssignmentDetail(selectedAssignmentId);
+    }
+    setSavingTheoryGrades(false);
+  };
+
+  // Timer effect for quiz countdown
+  React.useEffect(() => {
+    if (quizTimeLeft === null || quizTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setQuizTimeLeft(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timer);
+          // Auto-submit when time runs out
+          if (prev === 1) handleQuizSubmit();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [quizTimeLeft !== null && quizTimeLeft > 0]);
 
   const handleSaveGrade = async () => {
     if (!gradingSubmissionId) return;
@@ -1465,11 +1654,31 @@ function CourseView({ courseId }: { courseId: string }) {
               {/* Assignment Creation Form */}
               {showCreateAssignment ? (
                 <div>
-                  <button onClick={() => setShowCreateAssignment(false)} className="flex items-center text-[#008EE2] text-sm mb-6 hover:underline">
+                  <button onClick={() => { resetCreateForm(); }} className="flex items-center text-[#008EE2] text-sm mb-6 hover:underline">
                     <ChevronLeft size={16} className="mr-1" /> Back to Assignments
                   </button>
                   <h2 className="text-[28px] font-medium text-[#2D3B45] mb-6">New Assignment</h2>
                   <div className="border border-[#E1E1E1] rounded-sm bg-white p-6 space-y-5">
+                    {/* Format Selector */}
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-2">Format *</label>
+                      <div className="flex items-center space-x-2">
+                        {(['FILE', 'MCQ', 'THEORY', 'MIXED'] as const).map(fmt => (
+                          <button key={fmt} onClick={() => setNewAssignFormat(fmt)}
+                            className={`px-4 py-2 rounded text-sm font-medium transition-colors border ${
+                              newAssignFormat === fmt
+                                ? fmt === 'FILE' ? 'bg-gray-600 text-white border-gray-600'
+                                : fmt === 'MCQ' ? 'bg-[#008EE2] text-white border-[#008EE2]'
+                                : fmt === 'THEORY' ? 'bg-purple-600 text-white border-purple-600'
+                                : 'bg-amber-500 text-white border-amber-500'
+                                : 'bg-white text-[#2D3B45] border-gray-300 hover:bg-gray-50'
+                            }`}>
+                            {fmt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div>
                       <label className="block text-sm font-bold text-[#2D3B45] mb-1">Title *</label>
                       <input type="text" value={newAssignTitle} onChange={e => setNewAssignTitle(e.target.value)}
@@ -1500,25 +1709,194 @@ function CourseView({ courseId }: { courseId: string }) {
                           className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Allowed Formats</label>
-                      <input type="text" value={newAssignFormats} onChange={e => setNewAssignFormats(e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
-                        placeholder=".pdf,.doc,.docx" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Attachment (PDF)</label>
-                      <div className="flex items-center space-x-3">
-                        <label className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-50 transition-colors">
-                          <Upload size={16} />
-                          <span>{newAssignFile ? newAssignFile.name : 'Choose file...'}</span>
-                          <input type="file" accept=".pdf" className="hidden" onChange={e => setNewAssignFile(e.target.files?.[0] || null)} />
-                        </label>
-                        {newAssignFile && (
-                          <button onClick={() => setNewAssignFile(null)} className="text-gray-400 hover:text-red-500"><X size={16} /></button>
-                        )}
-                      </div>
-                    </div>
+
+                    {/* FILE-specific fields */}
+                    {newAssignFormat === 'FILE' && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-bold text-[#2D3B45] mb-1">Allowed Formats</label>
+                          <input type="text" value={newAssignFormats} onChange={e => setNewAssignFormats(e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                            placeholder=".pdf,.doc,.docx" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-[#2D3B45] mb-1">Attachment (PDF)</label>
+                          <div className="flex items-center space-x-3">
+                            <label className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded text-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                              <Upload size={16} />
+                              <span>{newAssignFile ? newAssignFile.name : 'Choose file...'}</span>
+                              <input type="file" accept=".pdf" className="hidden" onChange={e => setNewAssignFile(e.target.files?.[0] || null)} />
+                            </label>
+                            {newAssignFile && (
+                              <button onClick={() => setNewAssignFile(null)} className="text-gray-400 hover:text-red-500"><X size={16} /></button>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Quiz-specific fields */}
+                    {newAssignFormat !== 'FILE' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-bold text-[#2D3B45] mb-1">Time Limit (minutes, 0 = no limit)</label>
+                            <input type="number" value={newAssignTimeLimit} onChange={e => setNewAssignTimeLimit(Number(e.target.value))}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={0} />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-bold text-[#2D3B45] mb-1">Negative Marking (points deducted per wrong MCQ)</label>
+                            <input type="number" value={newAssignNegativeMarking} onChange={e => setNewAssignNegativeMarking(Number(e.target.value))}
+                              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={0} step={0.5} />
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-6">
+                          <label className="flex items-center space-x-2 text-sm text-[#2D3B45]">
+                            <input type="checkbox" checked={newAssignShuffleQuestions} onChange={e => setNewAssignShuffleQuestions(e.target.checked)} className="rounded border-gray-300" />
+                            <span>Shuffle Questions</span>
+                          </label>
+                          <label className="flex items-center space-x-2 text-sm text-[#2D3B45]">
+                            <input type="checkbox" checked={newAssignShowResults} onChange={e => setNewAssignShowResults(e.target.checked)} className="rounded border-gray-300" />
+                            <span>Show Results After Submission</span>
+                          </label>
+                        </div>
+
+                        {/* Question Builder */}
+                        <div className="border-t border-[#E1E1E1] pt-5">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="font-bold text-[#2D3B45]">Questions ({builderQuestions.length})</h3>
+                            <div className="flex items-center space-x-2">
+                              {(newAssignFormat === 'MCQ' || newAssignFormat === 'MIXED') && (
+                                <button onClick={() => addBuilderQuestion('MCQ')}
+                                  className="flex items-center space-x-1 px-3 py-1.5 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
+                                  <Plus size={14} /> <span>MCQ</span>
+                                </button>
+                              )}
+                              {(newAssignFormat === 'THEORY' || newAssignFormat === 'MIXED') && (
+                                <button onClick={() => addBuilderQuestion('THEORY')}
+                                  className="flex items-center space-x-1 px-3 py-1.5 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition-colors">
+                                  <Plus size={14} /> <span>Theory</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {builderQuestions.length === 0 && (
+                            <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                              No questions yet. Click the button above to add questions.
+                            </div>
+                          )}
+
+                          <div className="space-y-4">
+                            {builderQuestions.map((q, qIdx) => (
+                              <div key={qIdx} className={`border rounded-lg overflow-hidden ${q.type === 'MCQ' ? 'border-[#008EE2]' : 'border-purple-400'}`}>
+                                <div className={`px-4 py-2 flex items-center justify-between ${q.type === 'MCQ' ? 'bg-blue-50' : 'bg-purple-50'}`}>
+                                  <div className="flex items-center space-x-3">
+                                    <span className={`px-2 py-0.5 text-[11px] font-bold rounded ${q.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{q.type}</span>
+                                    <span className="text-sm font-bold text-[#2D3B45]">Question {qIdx + 1}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1">
+                                    <button onClick={() => moveBuilderQuestion(qIdx, -1)} disabled={qIdx === 0}
+                                      className="p-1 hover:bg-white rounded disabled:opacity-30 transition-colors text-gray-500" title="Move up">
+                                      <ChevronLeft size={16} className="rotate-90" />
+                                    </button>
+                                    <button onClick={() => moveBuilderQuestion(qIdx, 1)} disabled={qIdx === builderQuestions.length - 1}
+                                      className="p-1 hover:bg-white rounded disabled:opacity-30 transition-colors text-gray-500" title="Move down">
+                                      <ChevronRight size={16} className="rotate-90" />
+                                    </button>
+                                    <button onClick={() => removeBuilderQuestion(qIdx)}
+                                      className="p-1 hover:bg-red-100 rounded transition-colors text-red-400 hover:text-red-600 ml-2" title="Delete">
+                                      <Trash2 size={16} />
+                                    </button>
+                                  </div>
+                                </div>
+                                <div className="p-4 space-y-3">
+                                  <div>
+                                    <label className="block text-[12px] font-bold text-gray-500 mb-1">Question Text *</label>
+                                    <textarea value={q.text} onChange={e => updateBuilderQuestion(qIdx, { text: e.target.value })} rows={2}
+                                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                      placeholder="Enter question text..." />
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                      <label className="block text-[12px] font-bold text-gray-500 mb-1">Points</label>
+                                      <input type="number" value={q.points} onChange={e => updateBuilderQuestion(qIdx, { points: Number(e.target.value) })}
+                                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={1} />
+                                    </div>
+                                    {q.type === 'THEORY' && (
+                                      <div>
+                                        <label className="block text-[12px] font-bold text-gray-500 mb-1">Word Limit (0 = no limit)</label>
+                                        <input type="number" value={q.wordLimit} onChange={e => updateBuilderQuestion(qIdx, { wordLimit: Number(e.target.value) })}
+                                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={0} />
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div>
+                                    <label className="block text-[12px] font-bold text-gray-500 mb-1">Explanation (shown after submission)</label>
+                                    <input type="text" value={q.explanation} onChange={e => updateBuilderQuestion(qIdx, { explanation: e.target.value })}
+                                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                      placeholder="Optional explanation..." />
+                                  </div>
+
+                                  {/* MCQ Options */}
+                                  {q.type === 'MCQ' && (
+                                    <div>
+                                      <label className="block text-[12px] font-bold text-gray-500 mb-2">Options (select correct answer)</label>
+                                      <div className="space-y-2">
+                                        {q.options.map((opt, oIdx) => (
+                                          <div key={oIdx} className="flex items-center space-x-2">
+                                            <input type="radio" name={`q-${qIdx}-correct`} checked={opt.isCorrect}
+                                              onChange={() => {
+                                                const newOptions = q.options.map((o, i) => ({ ...o, isCorrect: i === oIdx }));
+                                                updateBuilderQuestion(qIdx, { options: newOptions });
+                                              }}
+                                              className="text-[#008EE2]" />
+                                            <input type="text" value={opt.text}
+                                              onChange={e => {
+                                                const newOptions = [...q.options];
+                                                newOptions[oIdx] = { ...newOptions[oIdx], text: e.target.value };
+                                                updateBuilderQuestion(qIdx, { options: newOptions });
+                                              }}
+                                              className="flex-1 border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                              placeholder={`Option ${oIdx + 1}`} />
+                                            {q.options.length > 2 && (
+                                              <button onClick={() => {
+                                                const newOptions = q.options.filter((_, i) => i !== oIdx);
+                                                if (opt.isCorrect && newOptions.length > 0) newOptions[0].isCorrect = true;
+                                                updateBuilderQuestion(qIdx, { options: newOptions });
+                                              }}
+                                                className="text-gray-400 hover:text-red-500 transition-colors"><X size={16} /></button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                      {q.options.length < 6 && (
+                                        <button onClick={() => {
+                                          updateBuilderQuestion(qIdx, { options: [...q.options, { text: '', isCorrect: false }] });
+                                        }}
+                                          className="mt-2 text-[#008EE2] text-sm hover:underline flex items-center space-x-1">
+                                          <Plus size={14} /> <span>Add Option</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {builderQuestions.length > 0 && (
+                            <div className="mt-3 text-sm text-gray-500">
+                              Total question points: <span className="font-bold">{builderQuestions.reduce((s, q) => s + q.points, 0)}</span>
+                              {builderQuestions.reduce((s, q) => s + q.points, 0) !== newAssignPoints && (
+                                <span className="text-amber-600 ml-2">(does not match assignment points: {newAssignPoints})</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+
                     <div className="flex items-center space-x-3">
                       <label className="flex items-center space-x-2 text-sm text-[#2D3B45]">
                         <input type="checkbox" checked={newAssignPublished} onChange={e => setNewAssignPublished(e.target.checked)} className="rounded border-gray-300" />
@@ -1526,11 +1904,11 @@ function CourseView({ courseId }: { courseId: string }) {
                       </label>
                     </div>
                     <div className="flex items-center space-x-3 pt-4 border-t border-[#E1E1E1]">
-                      <button onClick={handleCreateAssignment} disabled={!newAssignTitle || creating}
+                      <button onClick={handleCreateAssignment} disabled={!newAssignTitle || creating || (newAssignFormat !== 'FILE' && builderQuestions.length === 0)}
                         className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
                         {creating ? 'Creating...' : 'Create Assignment'}
                       </button>
-                      <button onClick={() => setShowCreateAssignment(false)} className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                      <button onClick={() => resetCreateForm()} className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
                         Cancel
                       </button>
                     </div>
@@ -1550,7 +1928,16 @@ function CourseView({ courseId }: { courseId: string }) {
                         <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">{assignmentDetail.title}</h2>
                         <div className="flex items-center space-x-4 text-[13px] text-gray-500">
                           <span className="font-bold text-[#2D3B45]">{assignmentDetail.points} pts</span>
+                          {assignmentDetail.format && (
+                            <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
+                              assignmentDetail.format === 'FILE' ? 'bg-gray-200 text-gray-700' :
+                              assignmentDetail.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
+                              assignmentDetail.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
+                              'bg-amber-100 text-amber-700'
+                            }`}>{assignmentDetail.format}</span>
+                          )}
                           {assignmentDetail.dueDate && <span>Due: {new Date(assignmentDetail.dueDate).toLocaleString()}</span>}
+                          {assignmentDetail.timeLimit && <span>{assignmentDetail.timeLimit} min</span>}
                           {!assignmentDetail.published && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[11px] font-bold rounded-full">UNPUBLISHED</span>}
                         </div>
                       </div>
@@ -1585,12 +1972,187 @@ function CourseView({ courseId }: { courseId: string }) {
                       {/* Student Submission Section */}
                       {user?.role === 'STUDENT' && (
                         <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
-                          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
                             <span className="font-bold text-[15px]">Your Submission</span>
+                            {/* Quiz timer */}
+                            {quizTimeLeft !== null && quizTimeLeft > 0 && (assignmentDetail.format !== 'FILE') && (
+                              <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-bold ${quizTimeLeft < 60 ? 'bg-red-100 text-red-700 animate-pulse' : quizTimeLeft < 300 ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                <Clock size={14} />
+                                <span>{Math.floor(quizTimeLeft / 60)}:{String(quizTimeLeft % 60).padStart(2, '0')}</span>
+                              </div>
+                            )}
                           </div>
                           <div className="p-6">
                             {(() => {
                               const mySubmission = assignmentDetail.submissions?.find((s: any) => s.studentId === user?.id);
+                              const isQuizFormat = assignmentDetail.format && assignmentDetail.format !== 'FILE';
+
+                              // If quiz format and already submitted/graded, show results
+                              if (isQuizFormat && mySubmission && (mySubmission.status === 'GRADED' || mySubmission.status === 'SUBMITTED')) {
+                                return (
+                                  <div>
+                                    <div className="flex items-center space-x-3 mb-4">
+                                      <span className={`px-3 py-1 text-[12px] font-bold rounded-full ${mySubmission.status === 'GRADED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{mySubmission.status}</span>
+                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">LATE</span>}
+                                    </div>
+                                    {mySubmission.score !== null && (
+                                      <div className="bg-green-50 rounded-lg p-4 mb-4">
+                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Score</div>
+                                        <div className="text-2xl font-bold text-green-700">{mySubmission.score} / {assignmentDetail.points}</div>
+                                      </div>
+                                    )}
+                                    {mySubmission.feedback && (
+                                      <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
+                                        <h4 className="font-bold text-sm text-[#2D3B45] mb-1">Feedback</h4>
+                                        <p className="text-[14px] text-[#2D3B45] whitespace-pre-wrap">{mySubmission.feedback}</p>
+                                      </div>
+                                    )}
+                                    {/* Show answer results if showResults is enabled */}
+                                    {assignmentDetail.showResults && assignmentQuestions.length > 0 && (
+                                      <div className="space-y-4 mt-4">
+                                        <h4 className="font-bold text-sm text-[#2D3B45]">Your Answers</h4>
+                                        {assignmentQuestions.map((question: any, qIdx: number) => {
+                                          const answer = question.answers?.find((a: any) => a.studentId === user?.id);
+                                          return (
+                                            <div key={question.id} className={`border rounded-lg p-4 ${
+                                              question.type === 'MCQ'
+                                                ? answer?.isCorrect ? 'border-green-300 bg-green-50/50' : 'border-red-300 bg-red-50/50'
+                                                : 'border-gray-200'
+                                            }`}>
+                                              <div className="flex items-center justify-between mb-2">
+                                                <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}. {question.text}</span>
+                                                <div className="flex items-center space-x-2">
+                                                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
+                                                  {answer?.pointsAwarded !== null && (
+                                                    <span className="text-sm font-bold">{answer.pointsAwarded}/{question.points}</span>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              {question.type === 'MCQ' && question.options && (
+                                                <div className="space-y-1 mt-2">
+                                                  {question.options.map((opt: any) => {
+                                                    const isSelected = answer?.selectedOptionId === opt.id;
+                                                    const isCorrectOption = opt.isCorrect;
+                                                    return (
+                                                      <div key={opt.id} className={`px-3 py-2 rounded text-sm flex items-center space-x-2 ${
+                                                        isCorrectOption ? 'bg-green-100 border border-green-300' :
+                                                        isSelected && !isCorrectOption ? 'bg-red-100 border border-red-300' :
+                                                        'bg-white border border-gray-200'
+                                                      }`}>
+                                                        {isSelected && <span className="font-bold">{isCorrectOption ? <CheckCircle size={16} className="text-green-600" /> : <X size={16} className="text-red-600" />}</span>}
+                                                        {!isSelected && isCorrectOption && <CheckCircle size={16} className="text-green-600" />}
+                                                        {!isSelected && !isCorrectOption && <span className="w-4" />}
+                                                        <span>{opt.text}</span>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              )}
+                                              {question.type === 'THEORY' && answer && (
+                                                <div className="mt-2">
+                                                  <div className="bg-white border border-gray-200 rounded p-3 text-sm text-[#2D3B45] whitespace-pre-wrap">{answer.textAnswer || '(no answer)'}</div>
+                                                  {answer.feedback && (
+                                                    <div className="mt-2 bg-blue-50 border border-blue-200 rounded p-3 text-sm">
+                                                      <span className="font-bold text-[#2D3B45]">Feedback: </span>{answer.feedback}
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              )}
+                                              {question.explanation && (
+                                                <div className="mt-2 text-[12px] text-gray-500 italic">Explanation: {question.explanation}</div>
+                                              )}
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              // Quiz format - not yet submitted: show quiz interface
+                              if (isQuizFormat && !mySubmission) {
+                                return (
+                                  <div>
+                                    <div className="flex items-center space-x-3 mb-4">
+                                      <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">NOT STARTED</span>
+                                    </div>
+                                    {assignmentQuestions.length === 0 ? (
+                                      <div className="text-center py-8 text-gray-400 text-sm">No questions available for this assignment.</div>
+                                    ) : (
+                                      <div className="space-y-6">
+                                        {assignmentQuestions.map((question: any, qIdx: number) => (
+                                          <div key={question.id} className="border border-gray-200 rounded-lg p-4">
+                                            <div className="flex items-center justify-between mb-3">
+                                              <div className="flex items-center space-x-2">
+                                                <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}.</span>
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
+                                              </div>
+                                              <span className="text-[12px] text-gray-500">{question.points} pts</span>
+                                            </div>
+                                            <p className="text-[14px] text-[#2D3B45] mb-3">{question.text}</p>
+
+                                            {question.type === 'MCQ' && question.options && (
+                                              <div className="space-y-2">
+                                                {question.options.map((opt: any) => (
+                                                  <label key={opt.id}
+                                                    className={`flex items-center space-x-3 px-4 py-3 rounded-lg border cursor-pointer transition-colors ${
+                                                      quizAnswers[question.id]?.selectedOptionId === opt.id
+                                                        ? 'border-[#008EE2] bg-blue-50'
+                                                        : 'border-gray-200 hover:bg-gray-50'
+                                                    }`}>
+                                                    <input type="radio" name={`quiz-q-${question.id}`}
+                                                      checked={quizAnswers[question.id]?.selectedOptionId === opt.id}
+                                                      onChange={() => setQuizAnswers(prev => ({ ...prev, [question.id]: { selectedOptionId: opt.id } }))}
+                                                      className="text-[#008EE2]" />
+                                                    <span className="text-sm text-[#2D3B45]">{opt.text}</span>
+                                                  </label>
+                                                ))}
+                                              </div>
+                                            )}
+
+                                            {question.type === 'THEORY' && (
+                                              <div>
+                                                <textarea
+                                                  value={quizAnswers[question.id]?.textAnswer || ''}
+                                                  onChange={e => setQuizAnswers(prev => ({ ...prev, [question.id]: { textAnswer: e.target.value } }))}
+                                                  rows={4}
+                                                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                                  placeholder="Write your answer here..." />
+                                                {question.wordLimit > 0 && (
+                                                  <div className="flex items-center justify-between mt-1">
+                                                    <span className="text-[11px] text-gray-400">Word limit: {question.wordLimit}</span>
+                                                    <span className={`text-[11px] ${
+                                                      (quizAnswers[question.id]?.textAnswer || '').split(/\s+/).filter(Boolean).length > question.wordLimit
+                                                        ? 'text-red-500 font-bold' : 'text-gray-400'
+                                                    }`}>
+                                                      {(quizAnswers[question.id]?.textAnswer || '').split(/\s+/).filter(Boolean).length} words
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        ))}
+
+                                        <div className="pt-4 border-t border-[#E1E1E1]">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <span className="text-sm text-gray-500">
+                                              Answered: {Object.keys(quizAnswers).length} / {assignmentQuestions.length}
+                                            </span>
+                                          </div>
+                                          <button onClick={handleQuizSubmit} disabled={quizSubmitting || Object.keys(quizAnswers).length === 0}
+                                            className="px-8 py-3 bg-[#008EE2] text-white rounded text-sm font-bold hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                            {quizSubmitting ? 'Submitting...' : 'Submit Quiz'}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+
+                              // FILE format: existing behavior
                               if (mySubmission && mySubmission.status === 'GRADED') {
                                 return (
                                   <div>
@@ -1657,7 +2219,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                   </div>
                                 );
                               }
-                              // MISSING - no submission yet
+                              // MISSING - no submission yet (FILE format)
                               return (
                                 <div>
                                   <div className="flex items-center space-x-3 mb-4">
@@ -1696,6 +2258,27 @@ function CourseView({ courseId }: { courseId: string }) {
                           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
                             <span className="font-bold text-[15px]">Submissions ({assignmentDetail.submissions?.length || 0})</span>
                           </div>
+
+                          {/* Teacher: Show questions overview for quiz formats */}
+                          {assignmentDetail.format && assignmentDetail.format !== 'FILE' && assignmentQuestions.length > 0 && (
+                            <div className="bg-blue-50/50 border-b border-[#E1E1E1] px-4 py-3">
+                              <div className="flex items-center space-x-2 mb-2">
+                                <span className="text-sm font-bold text-[#2D3B45]">Questions ({assignmentQuestions.length})</span>
+                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                                  assignmentDetail.format === 'MCQ' ? 'bg-[#008EE2] text-white' :
+                                  assignmentDetail.format === 'THEORY' ? 'bg-purple-600 text-white' :
+                                  'bg-amber-500 text-white'
+                                }`}>{assignmentDetail.format}</span>
+                              </div>
+                              <div className="text-[12px] text-gray-500 space-x-4">
+                                <span>MCQ: {assignmentQuestions.filter((q: any) => q.type === 'MCQ').length}</span>
+                                <span>Theory: {assignmentQuestions.filter((q: any) => q.type === 'THEORY').length}</span>
+                                <span>Total Points: {assignmentQuestions.reduce((s: number, q: any) => s + q.points, 0)}</span>
+                                {assignmentDetail.timeLimit && <span>Time: {assignmentDetail.timeLimit} min</span>}
+                              </div>
+                            </div>
+                          )}
+
                           <div className="bg-white">
                             {!assignmentDetail.submissions?.length ? (
                               <div className="p-8 text-center text-gray-400 text-sm">No submissions yet.</div>
@@ -1712,9 +2295,20 @@ function CourseView({ courseId }: { courseId: string }) {
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E1E1E1]">
-                                  {assignmentDetail.submissions.map((sub: any) => (
+                                  {assignmentDetail.submissions.map((sub: any) => {
+                                    const isQuizFormat = assignmentDetail.format && assignmentDetail.format !== 'FILE';
+                                    const isExpandedFile = gradingSubmissionId === sub.id;
+                                    const isExpandedQuiz = gradingQuizSubmissionId === sub.id;
+                                    return (
                                     <React.Fragment key={sub.id}>
-                                      <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setGradingSubmissionId(gradingSubmissionId === sub.id ? null : sub.id)}>
+                                      <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => {
+                                        if (isQuizFormat) {
+                                          setGradingQuizSubmissionId(isExpandedQuiz ? null : sub.id);
+                                          setTheoryGrades({});
+                                        } else {
+                                          setGradingSubmissionId(isExpandedFile ? null : sub.id);
+                                        }
+                                      }}>
                                         <td className="py-3 px-4">
                                           <div className="flex items-center space-x-2">
                                             <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
@@ -1741,16 +2335,16 @@ function CourseView({ courseId }: { courseId: string }) {
                                         </td>
                                         <td className="py-3 px-4">
                                           <button className="text-[#008EE2] text-sm hover:underline">
-                                            {gradingSubmissionId === sub.id ? 'Close' : 'Grade'}
+                                            {(isExpandedFile || isExpandedQuiz) ? 'Close' : 'Grade'}
                                           </button>
                                         </td>
                                       </tr>
-                                      {/* Inline Grading Panel */}
-                                      {gradingSubmissionId === sub.id && (
+
+                                      {/* Inline Grading Panel for FILE format */}
+                                      {isExpandedFile && !isQuizFormat && (
                                         <tr>
                                           <td colSpan={6} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
                                             <div className="space-y-4">
-                                              {/* Student file viewer */}
                                               {sub.filePath && (
                                                 <div>
                                                   <h4 className="font-bold text-sm text-[#2D3B45] mb-2">Student File: {sub.fileName || 'Submission'}</h4>
@@ -1794,8 +2388,132 @@ function CourseView({ courseId }: { courseId: string }) {
                                           </td>
                                         </tr>
                                       )}
+
+                                      {/* Inline Quiz Grading Panel for MCQ/THEORY/MIXED */}
+                                      {isExpandedQuiz && isQuizFormat && (
+                                        <tr>
+                                          <td colSpan={6} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
+                                            <div className="space-y-4">
+                                              <h4 className="font-bold text-sm text-[#2D3B45]">Student Answers</h4>
+                                              {assignmentQuestions.map((question: any, qIdx: number) => {
+                                                const answer = question.answers?.find((a: any) => a.submissionId === sub.id);
+                                                const isMCQ = question.type === 'MCQ';
+                                                return (
+                                                  <div key={question.id} className={`border rounded-lg p-4 bg-white ${
+                                                    isMCQ
+                                                      ? answer?.isCorrect ? 'border-green-300' : answer?.isCorrect === false ? 'border-red-300' : 'border-gray-200'
+                                                      : 'border-gray-200'
+                                                  }`}>
+                                                    <div className="flex items-center justify-between mb-2">
+                                                      <div className="flex items-center space-x-2">
+                                                        <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}. {question.text}</span>
+                                                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${isMCQ ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
+                                                      </div>
+                                                      <span className="text-sm text-gray-500">{question.points} pts</span>
+                                                    </div>
+
+                                                    {isMCQ && question.options && (
+                                                      <div className="space-y-1 mt-2">
+                                                        {question.options.map((opt: any) => {
+                                                          const isSelected = answer?.selectedOptionId === opt.id;
+                                                          const isCorrectOption = opt.isCorrect;
+                                                          return (
+                                                            <div key={opt.id} className={`px-3 py-2 rounded text-sm flex items-center space-x-2 ${
+                                                              isCorrectOption ? 'bg-green-100 border border-green-300' :
+                                                              isSelected && !isCorrectOption ? 'bg-red-100 border border-red-300' :
+                                                              'bg-gray-50 border border-gray-200'
+                                                            }`}>
+                                                              {isSelected && <span className="font-bold">{isCorrectOption ? <CheckCircle size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}</span>}
+                                                              {!isSelected && isCorrectOption && <CheckCircle size={14} className="text-green-600" />}
+                                                              {!isSelected && !isCorrectOption && <span className="w-3.5" />}
+                                                              <span>{opt.text}</span>
+                                                            </div>
+                                                          );
+                                                        })}
+                                                        <div className="mt-1 text-[12px] font-bold">
+                                                          {answer?.isCorrect ? (
+                                                            <span className="text-green-600">Correct (+{answer.pointsAwarded ?? question.points})</span>
+                                                          ) : answer?.isCorrect === false ? (
+                                                            <span className="text-red-600">Wrong {assignmentDetail.negativeMarking > 0 ? `(-${assignmentDetail.negativeMarking})` : '(0 pts)'}</span>
+                                                          ) : (
+                                                            <span className="text-gray-400">Not answered</span>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    )}
+
+                                                    {!isMCQ && (
+                                                      <div className="mt-2 space-y-2">
+                                                        <div className="bg-gray-50 border border-gray-200 rounded p-3 text-sm text-[#2D3B45] whitespace-pre-wrap">
+                                                          {answer?.textAnswer || '(no answer)'}
+                                                        </div>
+                                                        {/* Theory grading inputs */}
+                                                        {answer && (
+                                                          <div className="grid grid-cols-2 gap-3 mt-2">
+                                                            <div>
+                                                              <label className="block text-[12px] font-bold text-gray-500 mb-1">Points (max {question.points})</label>
+                                                              <input type="number"
+                                                                value={theoryGrades[answer.id]?.pointsAwarded ?? answer.pointsAwarded ?? 0}
+                                                                onChange={e => setTheoryGrades(prev => ({
+                                                                  ...prev,
+                                                                  [answer.id]: {
+                                                                    pointsAwarded: Math.min(Number(e.target.value), question.points),
+                                                                    feedback: prev[answer.id]?.feedback ?? answer.feedback ?? '',
+                                                                  }
+                                                                }))}
+                                                                max={question.points} min={0}
+                                                                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+                                                            </div>
+                                                            <div>
+                                                              <label className="block text-[12px] font-bold text-gray-500 mb-1">Feedback</label>
+                                                              <input type="text"
+                                                                value={theoryGrades[answer.id]?.feedback ?? answer.feedback ?? ''}
+                                                                onChange={e => setTheoryGrades(prev => ({
+                                                                  ...prev,
+                                                                  [answer.id]: {
+                                                                    pointsAwarded: prev[answer.id]?.pointsAwarded ?? answer.pointsAwarded ?? 0,
+                                                                    feedback: e.target.value,
+                                                                  }
+                                                                }))}
+                                                                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
+                                                                placeholder="Feedback..." />
+                                                            </div>
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })}
+
+                                              {/* Grade All button for theory questions */}
+                                              {assignmentQuestions.some((q: any) => q.type === 'THEORY') && (
+                                                <div className="flex items-center space-x-3 pt-2">
+                                                  <button onClick={() => handleGradeTheory(sub.id)} disabled={savingTheoryGrades || Object.keys(theoryGrades).length === 0}
+                                                    className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                                    {savingTheoryGrades ? 'Saving...' : 'Save Theory Grades'}
+                                                  </button>
+                                                  <button onClick={() => { setGradingQuizSubmissionId(null); setTheoryGrades({}); }}
+                                                    className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                                                    Cancel
+                                                  </button>
+                                                </div>
+                                              )}
+
+                                              {/* If pure MCQ, just show close */}
+                                              {!assignmentQuestions.some((q: any) => q.type === 'THEORY') && (
+                                                <button onClick={() => setGradingQuizSubmissionId(null)}
+                                                  className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+                                                  Close
+                                                </button>
+                                              )}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
                                     </React.Fragment>
-                                  ))}
+                                    );
+                                  })}
                                 </tbody>
                               </table>
                             )}
@@ -1826,9 +2544,19 @@ function CourseView({ courseId }: { courseId: string }) {
                         onClick={() => loadAssignmentDetail(a.id)}>
                         <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
                         <div className="flex-1">
-                          <h4 className="font-bold text-[15px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-bold text-[15px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
+                            {a.format && a.format !== 'FILE' && (
+                              <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                                a.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
+                                a.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
+                                'bg-amber-100 text-amber-700'
+                              }`}>{a.format}</span>
+                            )}
+                          </div>
                           <p className="text-[12px] text-gray-500 mt-0.5">
                             {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
+                            {a.timeLimit ? ` • ${a.timeLimit} min` : ''}
                           </p>
                         </div>
                         <ChevronRight size={18} className="text-gray-300 group-hover:text-[#008EE2]" />
