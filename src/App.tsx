@@ -1034,68 +1034,114 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                   )}
 
                   {batchStudentsLoading ? <LoadingSpinner /> : (
-                    <div className="border-t border-gray-200">
-                      <table className="w-full text-left text-[14px]">
-                        <thead>
-                          <tr className="text-[#008EE2] font-bold">
-                            <th className="py-3 px-4">Student</th>
-                            <th className="py-3 px-4">Email</th>
-                            <th className="py-3 px-4">Student ID</th>
-                            <th className="py-3 px-4">Joined Module</th>
-                            <th className="py-3 px-4">Current Module</th>
-                            <th className="py-3 px-4">Progress</th>
-                            <th className="py-3 px-4">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {(batchStudents?.enrollments || []).map((e: any) => {
-                            const joinPos = e.joinedModulePosition || 1;
-                            const modules = e.course?.modules || [];
-                            const currentMod = e.currentModuleId ? modules.find((m: any) => m.id === e.currentModuleId) : null;
-                            const progress = e.overallProgress || 0;
-                            return (
-                            <tr key={e.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedUserId(e.user.id)}>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
-                                    {e.user.firstName?.[0]}{e.user.lastName?.[0]}
-                                  </div>
-                                  <span className="font-medium text-[#008EE2] hover:underline">{e.user.firstName} {e.user.lastName}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-gray-500 text-[13px]">{e.user.email}</td>
-                              <td className="py-3 px-4 text-gray-500 text-[13px]">{e.user.vNumber || '-'}</td>
-                              <td className="py-3 px-4 text-[13px]">
-                                {joinPos > 1 ? (
-                                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[11px] font-medium rounded-full">Module {joinPos}</span>
-                                ) : (
-                                  <span className="text-gray-400 text-[12px]">From start</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4 text-[13px]">
-                                {currentMod ? (
-                                  <span className="text-[#2D3B45] font-medium">{currentMod.name}</span>
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                              <td className="py-3 px-4">
-                                <div className="flex items-center space-x-2">
-                                  <div className="w-20 bg-gray-200 rounded-full h-2">
-                                    <div className="bg-[#008EE2] h-2 rounded-full" style={{ width: `${Math.min(progress, 100)}%` }} />
-                                  </div>
-                                  <span className="text-[12px] font-medium text-gray-600">{Math.round(progress)}%</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4">
-                                {e.lastStatus ? <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') || e.lastStatus.includes('Registered') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span> : '-'}
-                              </td>
+                    <>
+                      {/* Batch Progress Summary */}
+                      {(() => {
+                        const enrolls = batchStudents?.enrollments || [];
+                        if (enrolls.length === 0) return null;
+                        const firstE = enrolls[0];
+                        const p = firstE?.progress;
+                        const avgAssignProg = enrolls.length > 0 ? Math.round(enrolls.reduce((s: number, e: any) => s + (e.progress?.assignmentProgress || 0), 0) / enrolls.length) : 0;
+                        const avgGrade = (() => {
+                          const graded = enrolls.filter((e: any) => e.progress?.gradePct !== null);
+                          return graded.length > 0 ? Math.round(graded.reduce((s: number, e: any) => s + e.progress.gradePct, 0) / graded.length) : null;
+                        })();
+                        return (
+                          <div className="grid grid-cols-5 gap-3 mb-6">
+                            <div className="bg-[#2D3B45] text-white rounded-lg p-3 text-center">
+                              <div className="text-[10px] uppercase tracking-wider opacity-70">Students</div>
+                              <div className="text-xl font-bold">{enrolls.length}</div>
+                            </div>
+                            <div className="bg-[#008EE2] text-white rounded-lg p-3 text-center">
+                              <div className="text-[10px] uppercase tracking-wider opacity-70">Module Progress</div>
+                              <div className="text-xl font-bold">{p?.completedModules || 0}/{p?.totalModules || 0}</div>
+                            </div>
+                            <div className="bg-[#008744] text-white rounded-lg p-3 text-center">
+                              <div className="text-[10px] uppercase tracking-wider opacity-70">Avg Assignment</div>
+                              <div className="text-xl font-bold">{avgAssignProg}%</div>
+                            </div>
+                            <div className="bg-[#6B3FA0] text-white rounded-lg p-3 text-center">
+                              <div className="text-[10px] uppercase tracking-wider opacity-70">Avg Grade</div>
+                              <div className="text-xl font-bold">{avgGrade !== null ? `${avgGrade}%` : '—'}</div>
+                            </div>
+                            <div className="bg-[#C23C2D] text-white rounded-lg p-3 text-center">
+                              <div className="text-[10px] uppercase tracking-wider opacity-70">Current Module</div>
+                              <div className="text-sm font-bold mt-0.5 truncate">{p?.currentModuleName || '—'}</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      <div className="border border-gray-200 rounded-lg overflow-hidden">
+                        <table className="w-full text-left text-[14px]">
+                          <thead className="bg-[#F5F5F5]">
+                            <tr className="text-[#2D3B45] font-bold text-[13px]">
+                              <th className="py-3 px-4">Student</th>
+                              <th className="py-3 px-4">Student ID</th>
+                              <th className="py-3 px-4">Campus</th>
+                              <th className="py-3 px-4 text-center">Assignments</th>
+                              <th className="py-3 px-4 text-center">Grade</th>
+                              <th className="py-3 px-4">Progress</th>
+                              <th className="py-3 px-4">Current Module</th>
+                              <th className="py-3 px-4">Status</th>
                             </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {(batchStudents?.enrollments || []).map((e: any) => {
+                              const p = e.progress || {};
+                              const assignProg = p.assignmentProgress || 0;
+                              return (
+                              <tr key={e.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedUserId(e.user.id)}>
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
+                                      {e.user.firstName?.[0]}{e.user.lastName?.[0]}
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-[#008EE2] hover:underline">{e.user.firstName} {e.user.lastName}</span>
+                                      <div className="text-[11px] text-gray-400">{e.user.email}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-gray-500 text-[13px]">{e.user.vNumber || '—'}</td>
+                                <td className="py-3 px-4 text-gray-500 text-[13px]">{e.user.campus || '—'}</td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className="text-[13px]">{p.completedAssignments || 0}<span className="text-gray-400">/{p.totalAssignments || 0}</span></span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  {p.gradePct !== null && p.gradePct !== undefined ? (
+                                    <span className={`text-[13px] font-bold ${p.gradePct >= 70 ? 'text-green-600' : p.gradePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{p.gradePct}%</span>
+                                  ) : <span className="text-gray-400 text-[12px]">—</span>}
+                                </td>
+                                <td className="py-3 px-4">
+                                  <div className="flex items-center space-x-2">
+                                    <div className="w-24 bg-gray-200 rounded-full h-2">
+                                      <div
+                                        className="h-2 rounded-full transition-all"
+                                        style={{
+                                          width: `${Math.min(assignProg, 100)}%`,
+                                          backgroundColor: assignProg >= 75 ? '#008744' : assignProg >= 40 ? '#F5A623' : '#C23C2D',
+                                        }}
+                                      />
+                                    </div>
+                                    <span className={`text-[12px] font-bold ${assignProg >= 75 ? 'text-green-600' : assignProg >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{assignProg}%</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-[13px]">
+                                  {p.currentModuleName ? (
+                                    <span className="text-[#2D3B45] font-medium">{p.currentModuleName}</span>
+                                  ) : <span className="text-gray-400">—</span>}
+                                </td>
+                                <td className="py-3 px-4">
+                                  {e.lastStatus ? <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') || e.lastStatus.includes('Registered') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span> : '—'}
+                                </td>
+                              </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
 

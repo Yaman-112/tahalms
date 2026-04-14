@@ -26,14 +26,97 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
         take: limit,
         orderBy: { enrolledAt: 'desc' },
         include: {
-          user: { select: { id: true, firstName: true, lastName: true, email: true, vNumber: true } },
-          course: { select: { id: true, name: true, code: true, modules: { select: { id: true, name: true, position: true }, orderBy: { position: 'asc' } } } },
+          user: { select: { id: true, firstName: true, lastName: true, email: true, vNumber: true, campus: true } },
+          course: {
+            select: {
+              id: true, name: true, code: true,
+              modules: { select: { id: true, name: true, position: true, startDate: true, weight: true, hours: true }, orderBy: { position: 'asc' } },
+            },
+          },
         },
       }),
       prisma.enrollment.count({ where }),
     ]);
 
-    return success(res, { enrollments, total, page, limit, totalPages: Math.ceil(total / limit) });
+    // Get submission stats for these students in this course
+    const userIds = enrollments.map(e => e.userId);
+    const courseIds = [...new Set(enrollments.map(e => e.courseId))];
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        studentId: { in: userIds },
+        assignment: { courseId: { in: courseIds } },
+        status: { in: ['SUBMITTED', 'GRADED'] },
+      },
+      select: { studentId: true, assignmentId: true, status: true, score: true },
+    });
+
+    const assignments = await prisma.assignment.findMany({
+      where: { courseId: { in: courseIds } },
+      select: { id: true, courseId: true, points: true },
+    });
+
+    // Build lookups
+    const assignmentsByCourse = new Map<string, typeof assignments>();
+    for (const a of assignments) {
+      if (!assignmentsByCourse.has(a.courseId)) assignmentsByCourse.set(a.courseId, []);
+      assignmentsByCourse.get(a.courseId)!.push(a);
+    }
+
+    const subsByStudent = new Map<string, typeof submissions>();
+    for (const s of submissions) {
+      if (!subsByStudent.has(s.studentId)) subsByStudent.set(s.studentId, []);
+      subsByStudent.get(s.studentId)!.push(s);
+    }
+
+    const now = new Date();
+
+    // Enrich enrollments with progress
+    const enriched = enrollments.map(e => {
+      const courseAssignments = assignmentsByCourse.get(e.courseId) || [];
+      const studentSubs = subsByStudent.get(e.userId) || [];
+      const studentAssignmentIds = new Set(studentSubs.map(s => s.assignmentId));
+
+      const completedAssignments = courseAssignments.filter(a => studentAssignmentIds.has(a.id)).length;
+      const totalAssignments = courseAssignments.length;
+      const assignmentProgress = totalAssignments > 0 ? Math.round((completedAssignments / totalAssignments) * 100) : 0;
+
+      // Grade from graded submissions
+      const gradedSubs = studentSubs.filter(s => s.status === 'GRADED' && s.score !== null);
+      const totalScore = gradedSubs.reduce((sum, s) => sum + (s.score || 0), 0);
+      const maxScore = courseAssignments
+        .filter(a => gradedSubs.some(s => s.assignmentId === a.id))
+        .reduce((sum, a) => sum + a.points, 0);
+      const gradePct = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : null;
+
+      // Module progress based on dates
+      const modules = e.course.modules || [];
+      const totalModules = modules.length;
+      const completedModules = modules.filter((m: any) => m.startDate && new Date(m.startDate) < now).length;
+      const currentModule = modules.find((m: any, idx: number) => {
+        if (!m.startDate) return false;
+        const mStart = new Date(m.startDate);
+        const nextMod = modules[idx + 1] as any;
+        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+        return now >= mStart && now < mEnd;
+      });
+
+      return {
+        ...e,
+        progress: {
+          completedAssignments,
+          totalAssignments,
+          assignmentProgress,
+          gradePct,
+          totalModules,
+          completedModules,
+          moduleProgress: totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0,
+          currentModuleName: (currentModule as any)?.name || null,
+        },
+      };
+    });
+
+    return success(res, { enrollments: enriched, total, page, limit, totalPages: Math.ceil(total / limit) });
   } catch (err) {
     console.error('List enrollments error:', err);
     return error(res, 'Failed to list enrollments', 500);
