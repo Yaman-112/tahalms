@@ -1,6 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+dockerfileNoCache = true
 
 [[mounts]]
 source = "uploads"
