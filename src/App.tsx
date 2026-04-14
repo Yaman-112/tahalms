@@ -3802,18 +3802,7 @@ export default function App() {
         {/* Footer */}
         <footer className="h-16 border-t border-[#E1E1E1] flex items-center justify-between px-8 bg-white text-[11px] text-gray-500 shrink-0">
           <div className="flex items-center space-x-4">
-            <div className="flex items-center grayscale opacity-60">
-              <div className="w-4 h-4 bg-black rounded-sm mr-1 flex items-center justify-center">
-                <div className="w-2 h-2 bg-white transform rotate-45" />
-              </div>
-              <span className="font-bold tracking-widest text-black">INSTRUCTURE</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-4 h-4 bg-orange-500 rounded-sm mr-1 flex items-center justify-center">
-                <div className="w-2 h-2 bg-white transform rotate-45" />
-              </div>
-              <span className="font-bold tracking-widest text-[#2D3B45]">TAHA Canvas</span>
-            </div>
+            <span className="font-bold tracking-widest text-[#2D3B45]">TAHA Canvas</span>
           </div>
           <div className="flex items-center space-x-4">
             <a href="#" className="hover:underline">Privacy Policy</a>
