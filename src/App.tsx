@@ -3116,6 +3116,147 @@ function CourseView({ courseId }: { courseId: string }) {
                 </div>
               );
             })()
+          ) : activeSection === 'Syllabus' ? (
+            <div className="max-w-6xl">
+              <h1 className="text-[28px] font-medium text-[#2D3B45] mb-2">{course.name} — Syllabus</h1>
+              <p className="text-[14px] text-gray-500 mb-6">{course.description || ''}</p>
+
+              {/* Course Overview */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
+                <div className="bg-[#2D3B45] text-white px-6 py-4">
+                  <h2 className="text-lg font-bold">Course Overview</h2>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="bg-[#F5F5F5] rounded-lg p-4 text-center">
+                      <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-1">Total Modules</div>
+                      <div className="text-2xl font-bold text-[#2D3B45]">{course.modules?.length || 0}</div>
+                    </div>
+                    <div className="bg-[#F5F5F5] rounded-lg p-4 text-center">
+                      <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-1">Total Hours</div>
+                      <div className="text-2xl font-bold text-[#2D3B45]">{(course.modules || []).reduce((s: number, m: any) => s + (m.hours || 0), 0).toLocaleString()}</div>
+                    </div>
+                    <div className="bg-[#F5F5F5] rounded-lg p-4 text-center">
+                      <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-1">Total Assessments</div>
+                      <div className="text-2xl font-bold text-[#2D3B45]">{course.assignments?.length || 0}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Module Breakdown */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
+                <div className="bg-[#008EE2] text-white px-6 py-4">
+                  <h2 className="text-lg font-bold">Module Breakdown</h2>
+                </div>
+                <table className="w-full text-sm">
+                  <thead className="bg-[#F5F5F5]">
+                    <tr>
+                      <th className="text-left px-6 py-3 font-bold text-[#2D3B45]">#</th>
+                      <th className="text-left px-6 py-3 font-bold text-[#2D3B45]">Module</th>
+                      <th className="text-center px-6 py-3 font-bold text-[#2D3B45]">Weight</th>
+                      <th className="text-center px-6 py-3 font-bold text-[#2D3B45]">Hours</th>
+                      <th className="text-center px-6 py-3 font-bold text-[#2D3B45]">Start Date</th>
+                      <th className="text-left px-6 py-3 font-bold text-[#2D3B45]">Assessments</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#E1E1E1]">
+                    {(course.modules || []).map((mod: any, idx: number) => {
+                      const modAssignments = (course.assignments || []).filter((a: any) =>
+                        a.title.startsWith(mod.name + ' - ') || a.title.startsWith(mod.name + ' -')
+                      );
+                      const now = new Date();
+                      let status = 'upcoming';
+                      if (mod.startDate) {
+                        const mStart = new Date(mod.startDate);
+                        const nextMod = (course.modules || [])[idx + 1];
+                        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                        if (now >= mEnd) status = 'completed';
+                        else if (now >= mStart) status = 'current';
+                      }
+                      return (
+                        <tr key={mod.id} className={`${status === 'current' ? 'bg-blue-50' : status === 'completed' ? 'bg-green-50/30' : ''}`}>
+                          <td className="px-6 py-3 text-gray-400 font-bold">{idx + 1}</td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-medium text-[#2D3B45]">{mod.name}</span>
+                              {status === 'current' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#008EE2] text-white animate-pulse">CURRENT</span>}
+                              {status === 'completed' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700">DONE</span>}
+                            </div>
+                          </td>
+                          <td className="px-6 py-3 text-center font-bold text-[#008EE2]">{mod.weight ? `${mod.weight}%` : '—'}</td>
+                          <td className="px-6 py-3 text-center text-gray-600">{mod.hours || '—'}</td>
+                          <td className="px-6 py-3 text-center text-gray-500">{mod.startDate ? new Date(mod.startDate).toLocaleDateString() : '—'}</td>
+                          <td className="px-6 py-3">
+                            {modAssignments.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {modAssignments.map((a: any) => {
+                                  const type = (a.title.split(' - ').pop() || '').trim();
+                                  return (
+                                    <span key={a.id} className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                                      /Final/i.test(type) ? 'bg-red-100 text-red-700' :
+                                      /Midterm/i.test(type) ? 'bg-amber-100 text-amber-700' :
+                                      /Quiz/i.test(type) ? 'bg-purple-100 text-purple-700' :
+                                      /Assignment/i.test(type) ? 'bg-blue-100 text-blue-700' :
+                                      /Participation/i.test(type) ? 'bg-green-100 text-green-700' :
+                                      /Practical/i.test(type) ? 'bg-teal-100 text-teal-700' :
+                                      'bg-gray-100 text-gray-600'
+                                    }`}>{type} ({a.points}pts)</span>
+                                  );
+                                })}
+                              </div>
+                            ) : <span className="text-gray-400 text-[12px]">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  {(course.modules || []).some((m: any) => m.weight) && (
+                    <tfoot>
+                      <tr className="bg-[#2D3B45] text-white font-bold">
+                        <td className="px-6 py-3" colSpan={2}>Total</td>
+                        <td className="px-6 py-3 text-center">{(course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0).toFixed(2)}%</td>
+                        <td className="px-6 py-3 text-center">{(course.modules || []).reduce((s: number, m: any) => s + (m.hours || 0), 0).toLocaleString()}</td>
+                        <td className="px-6 py-3" colSpan={2}>{course.assignments?.length || 0} assessments</td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+
+              {/* Assessment Summary */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                <div className="bg-[#008744] text-white px-6 py-4">
+                  <h2 className="text-lg font-bold">Grading Structure</h2>
+                </div>
+                <div className="p-6">
+                  <p className="text-sm text-gray-600 mb-4">Each module's assessments total 100 points. The module weight determines its contribution to the final course grade.</p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {(() => {
+                      const types: Record<string, number> = {};
+                      (course.assignments || []).forEach((a: any) => {
+                        const t = (a.title.split(' - ').pop() || '').trim().replace(/\s*\d+$/, '');
+                        types[t] = (types[t] || 0) + 1;
+                      });
+                      return Object.entries(types).map(([type, count]) => (
+                        <div key={type} className={`rounded-lg p-3 text-center ${
+                          /Final/i.test(type) ? 'bg-red-50 border border-red-200' :
+                          /Midterm/i.test(type) ? 'bg-amber-50 border border-amber-200' :
+                          /Quiz/i.test(type) ? 'bg-purple-50 border border-purple-200' :
+                          /Assignment/i.test(type) ? 'bg-blue-50 border border-blue-200' :
+                          /Participation/i.test(type) ? 'bg-green-50 border border-green-200' :
+                          /Practical/i.test(type) ? 'bg-teal-50 border border-teal-200' :
+                          'bg-gray-50 border border-gray-200'
+                        }`}>
+                          <div className="text-xl font-bold">{count}</div>
+                          <div className="text-[11px] text-gray-600">{type}</div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-400 py-20">
               <p>This section is currently empty or under construction.</p>
