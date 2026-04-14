@@ -158,18 +158,24 @@ function TeacherLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#3d4d5a] font-sans">
-      <header className="h-16 bg-white flex items-center px-6 shrink-0">
-        <img src="/taha-logo-full.png" alt="TAHA College" className="h-10 w-auto" />
+    <div className="min-h-screen flex flex-col font-sans relative">
+      {/* Background image with dark gradient overlay */}
+      <div className="absolute inset-0 z-0">
+        <img src="/teacher-login-bg.jpg" alt="" className="w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/80" />
+      </div>
+
+      <header className="h-16 flex items-center px-6 shrink-0 relative z-10">
+        <img src="/taha-logo-full.png" alt="TAHA College" className="h-10 w-auto drop-shadow-lg" />
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="bg-white w-full max-w-[500px] rounded-sm shadow-2xl p-12 flex flex-col items-center">
+      <main className="flex-1 flex items-center justify-center p-4 relative z-10">
+        <div className="bg-white/95 backdrop-blur-sm w-full max-w-[500px] rounded-lg shadow-2xl p-12 flex flex-col items-center">
           <div className="flex flex-col items-center mb-10">
             <img src="/taha-logo-full.png" alt="TAHA College" className="h-16 w-auto" />
           </div>
 
-          <h2 className="text-2xl text-gray-700 mb-8">Welcome to Canvas</h2>
+          <h2 className="text-2xl text-gray-700 mb-8">Welcome to TAHA Canvas</h2>
 
           {error && (
             <div className="w-full mb-6 p-3 bg-red-50 border border-red-200 text-red-600 rounded text-sm">
