@@ -3257,6 +3257,127 @@ function CourseView({ courseId }: { courseId: string }) {
                 </div>
               </div>
             </div>
+          ) : activeSection === 'Settings' ? (
+            <div className="max-w-4xl">
+              <h1 className="text-[28px] font-medium text-[#2D3B45] mb-6">{course.name} — Settings</h1>
+
+              {/* Course Details */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
+                <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Course Details</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Course Name</label>
+                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Course Code (SIS ID)</label>
+                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.code}</p>
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Term</label>
+                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.term || 'Default Term'}</p>
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Sub-Account</label>
+                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.subAccount || 'TAHA College'}</p>
+                    </div>
+                  </div>
+                  {course.description && (
+                    <div>
+                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Description</label>
+                      <p className="text-[14px] text-gray-600 mt-1">{course.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Grading Configuration */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
+                <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Grading</h2>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <p className="text-[14px] font-medium text-[#2D3B45]">Weighted Assignment Groups</p>
+                      <p className="text-[12px] text-gray-500">Weight final grade based on assignment groups (modules)</p>
+                    </div>
+                    <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">Enabled</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <p className="text-[14px] font-medium text-[#2D3B45]">Total Modules</p>
+                      <p className="text-[12px] text-gray-500">Number of assignment groups</p>
+                    </div>
+                    <span className="text-[14px] font-bold text-[#2D3B45]">{course.modules?.length || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <div>
+                      <p className="text-[14px] font-medium text-[#2D3B45]">Total Weight</p>
+                      <p className="text-[12px] text-gray-500">Sum of all module weights (should equal 100%)</p>
+                    </div>
+                    <span className={`text-[14px] font-bold ${Math.abs((course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0) - 100) < 1 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0).toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <div>
+                      <p className="text-[14px] font-medium text-[#2D3B45]">Points per Module</p>
+                      <p className="text-[12px] text-gray-500">Each module's assessments total 100 points</p>
+                    </div>
+                    <span className="text-[14px] font-bold text-[#2D3B45]">100 pts</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Course Statistics */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
+                <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Course Statistics</h2>
+                </div>
+                <div className="p-6">
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="bg-[#008EE2]/10 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#008EE2]">{course.enrollments?.filter((e: any) => e.role === 'STUDENT').length || 0}</div>
+                      <div className="text-[11px] text-gray-500 mt-1">Students</div>
+                    </div>
+                    <div className="bg-[#2D3B45]/10 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#2D3B45]">{course.enrollments?.filter((e: any) => e.role === 'TEACHER').length || 0}</div>
+                      <div className="text-[11px] text-gray-500 mt-1">Teachers</div>
+                    </div>
+                    <div className="bg-[#008744]/10 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#008744]">{course.assignments?.length || 0}</div>
+                      <div className="text-[11px] text-gray-500 mt-1">Assignments</div>
+                    </div>
+                    <div className="bg-[#C23C2D]/10 rounded-lg p-4 text-center">
+                      <div className="text-2xl font-bold text-[#C23C2D]">{(course.modules || []).reduce((s: number, m: any) => s + (m.hours || 0), 0)}</div>
+                      <div className="text-[11px] text-gray-500 mt-1">Total Hours</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Visibility */}
+              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Navigation</h2>
+                </div>
+                <div className="p-6">
+                  <p className="text-[13px] text-gray-500 mb-4">Course navigation items visible to students and teachers.</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Home', 'Announcements', 'Assignments', 'Grades', 'People', 'Pages', 'Files', 'Syllabus', 'Quizzes', 'Modules'].map(item => (
+                      <div key={item} className="flex items-center space-x-2 px-3 py-2 bg-[#F5F5F5] rounded">
+                        <Check size={14} className="text-green-600" />
+                        <span className="text-[13px] text-[#2D3B45]">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-400 py-20">
               <p>This section is currently empty or under construction.</p>
