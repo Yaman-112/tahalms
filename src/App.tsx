@@ -3787,8 +3787,6 @@ export default function App() {
             onClick={() => { setActiveTab('Calendar'); setSelectedCourseId(null); closeDrawers(); }} />
           <SidebarItem icon={Inbox} label="Inbox" active={activeTab === 'Inbox'}
             onClick={() => { setActiveTab('Inbox'); setSelectedCourseId(null); closeDrawers(); }} />
-          <SidebarItem icon={Clock} label="History" active={activeTab === 'History'}
-            onClick={() => { setActiveTab('History'); setSelectedCourseId(null); closeDrawers(); }} />
           <SidebarItem icon={HelpCircle} label="Help" active={activeTab === 'Help'}
             onClick={() => { setActiveTab('Help'); setSelectedCourseId(null); closeDrawers(); }} />
         </nav>
