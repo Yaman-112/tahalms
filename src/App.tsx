@@ -74,12 +74,7 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
   return (
     <div className="min-h-screen flex flex-col bg-white font-sans">
       <header className="h-24 bg-[#4A90E2] flex items-center px-12 shadow-md">
-        <div className="flex items-center">
-          <div className="w-10 h-10 bg-white rounded-sm mr-3 flex items-center justify-center">
-            <div className="w-6 h-6 bg-[#4A90E2] transform rotate-45" />
-          </div>
-          <h1 className="text-white text-4xl font-bold tracking-tight drop-shadow-sm">TAHA College</h1>
-        </div>
+        <img src="/taha-logo-full.png" alt="TAHA College" className="h-14 w-auto" />
       </header>
 
       <main className="flex-1 flex flex-col items-center pt-20 px-4">
@@ -132,14 +127,9 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
         </div>
       </main>
 
-      <footer className="h-24 bg-[#4A90E2] flex items-center justify-between px-12 text-white text-[13px]">
-        <div className="flex-1 text-center">© 2026 TAHA College</div>
-        <div className="flex items-center">
-          <div className="w-6 h-6 bg-white rounded-sm mr-2 flex items-center justify-center">
-            <div className="w-4 h-4 bg-[#4A90E2] transform rotate-45" />
-          </div>
-          <span className="font-bold">Taha College</span>
-        </div>
+      <footer className="h-20 bg-[#4A90E2] flex items-center justify-between px-12 text-white text-[13px]">
+        <div className="flex-1 text-center">© 2026 TAHA College — Beauty, Business, Health & Technology</div>
+        <img src="/taha-logo-full.png" alt="TAHA College" className="h-10 w-auto" />
       </footer>
 
       {/* Role switcher for demo */}
@@ -170,31 +160,13 @@ function TeacherLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
   return (
     <div className="min-h-screen flex flex-col bg-[#3d4d5a] font-sans">
       <header className="h-16 bg-white flex items-center px-6 shrink-0">
-        <div className="flex items-center">
-          <div className="w-8 h-8 bg-[#E02020] rounded-sm mr-2 flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-white rounded-full flex items-center justify-center">
-              <div className="w-2 h-2 bg-white rounded-full" />
-            </div>
-          </div>
-          <div className="flex flex-col leading-none">
-            <span className="text-[#E02020] font-bold text-sm tracking-tighter">TAHA</span>
-            <span className="text-gray-800 font-bold text-sm tracking-tighter">CANVAS</span>
-          </div>
-        </div>
+        <img src="/taha-logo-full.png" alt="TAHA College" className="h-10 w-auto" />
       </header>
 
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white w-full max-w-[500px] rounded-sm shadow-2xl p-12 flex flex-col items-center">
           <div className="flex flex-col items-center mb-10">
-            <div className="flex items-center">
-              <div className="w-12 h-12 border-2 border-[#008EE2] rounded-lg flex items-center justify-center mr-3">
-                <span className="text-[#008EE2] text-3xl font-bold italic">T</span>
-              </div>
-              <div className="flex flex-col">
-                <h1 className="text-[#008EE2] text-3xl font-bold tracking-tight">TAHACOLLEGE</h1>
-                <span className="text-[#008EE2] text-[8px] font-bold tracking-[0.2em] uppercase">Beauty. Business. Health & Technology</span>
-              </div>
-            </div>
+            <img src="/taha-logo-full.png" alt="TAHA College" className="h-16 w-auto" />
           </div>
 
           <h2 className="text-2xl text-gray-700 mb-8">Welcome to Canvas</h2>
@@ -3802,7 +3774,7 @@ export default function App() {
         {/* Footer */}
         <footer className="h-16 border-t border-[#E1E1E1] flex items-center justify-between px-8 bg-white text-[11px] text-gray-500 shrink-0">
           <div className="flex items-center space-x-4">
-            <span className="font-bold tracking-widest text-[#2D3B45]">TAHA Canvas</span>
+            <img src="/taha-logo-full.png" alt="TAHA College" className="h-8 w-auto" />
           </div>
           <div className="flex items-center space-x-4">
             <a href="#" className="hover:underline">Privacy Policy</a>
