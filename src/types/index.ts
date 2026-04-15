@@ -7,8 +7,6 @@ export interface User {
   lastName: string;
   role: Role;
   avatarUrl: string | null;
-  lastLoginAt: string | null;
-  createdAt: string;
 }
 
 export interface AuthTokens {

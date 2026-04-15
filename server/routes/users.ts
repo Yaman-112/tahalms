@@ -42,8 +42,7 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
           lastName: true,
           role: true,
           isActive: true,
-          lastLoginAt: true,
-          createdAt: true,
+          isActive: true,
         },
       }),
       prisma.user.count({ where }),
@@ -66,7 +65,6 @@ router.get('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
         role: true, isActive: true, vNumber: true, contactNo: true, address: true,
         campus: true, startDate: true, finishDate: true, program: true,
         campusStatus: true, shift: true, admissionRep: true,
-        lastLoginAt: true, createdAt: true,
         enrollments: {
           include: {
             course: { select: { id: true, name: true, code: true } },

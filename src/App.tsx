@@ -644,8 +644,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const adminNavItems = [
     'Courses', 'Batches', 'People', 'Statistics', 'Permissions', 'Outcomes',
     'Rubrics', 'Grading', 'Question Banks', 'Sub-Accounts',
-    'Account Calendars', 'Terms', 'Authentication', 'SIS Import',
-    'Themes', 'Developer Keys', 'Analytics Hub', 'Apps', 'Admin Analytics'
+    'Account Calendars', 'Terms', 'Authentication',
+    'Themes', 'Analytics Hub', 'Apps', 'Admin Analytics'
   ];
 
   const filteredCourses = data?.courses.filter(c =>

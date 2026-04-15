@@ -220,11 +220,7 @@ async function getAdminDashboard(req: AuthRequest, res: any) {
         },
       },
     }),
-    prisma.importBatch.findMany({
-      take: 5,
-      orderBy: { createdAt: 'desc' },
-      include: { uploadedBy: { select: { firstName: true, lastName: true } } },
-    }),
+    Promise.resolve([]), // imports hidden
     prisma.assignment.findMany({
       where: { dueDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) } },
       take: 10,

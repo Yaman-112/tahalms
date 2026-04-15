@@ -128,8 +128,6 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
         lastName: true,
         role: true,
         avatarUrl: true,
-        lastLoginAt: true,
-        createdAt: true,
       },
     });
 
