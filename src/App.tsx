@@ -72,7 +72,7 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-white font-sans">
+    <div className="min-h-screen flex flex-col bg-white">
       <header className="h-24 bg-[#4A90E2] flex items-center px-12 shadow-md">
         <img src="/taha-logo-full.png" alt="TAHA College" className="h-14 w-auto" />
       </header>
@@ -158,7 +158,7 @@ function TeacherLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
   };
 
   return (
-    <div className="min-h-screen flex flex-col font-sans relative">
+    <div className="min-h-screen flex flex-col relative">
       {/* Background image with dark gradient overlay */}
       <div className="absolute inset-0 z-0">
         <img src="/teacher-login-bg.jpg" alt="" className="w-full h-full object-cover" />
@@ -3919,7 +3919,7 @@ export default function App() {
   const userRole = user!.role;
 
   return (
-    <div className={`flex h-screen bg-white font-sans text-[#2D3B45] ${dyslexiaFont ? 'font-mono' : ''}`}>
+    <div className={`flex h-screen bg-white text-[#2D3B45] ${dyslexiaFont ? 'font-mono' : ''}`}>
       {/* Sidebar */}
       <aside className={`bg-[#2D3B45] flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'w-16' : 'w-24'} overflow-y-auto overflow-x-hidden border-r border-[#E1E1E1] z-50`}>
         <CanvasLogo />
