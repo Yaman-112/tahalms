@@ -32,12 +32,12 @@ const SidebarItem = ({
     <div className="relative">
       <Icon size={28} strokeWidth={1.5} />
       {badge > 0 && (
-        <span className="absolute -top-1 -right-1 bg-[#008EE2] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-[#2D3B45]">
+        <span className="absolute -top-1 -right-1 bg-[#008EE2] text-white text-[16px] font-bold rounded-full w-4 h-4 flex items-center justify-center border-2 border-[#2D3B45]">
           {badge}
         </span>
       )}
     </div>
-    <span className="text-[11px] mt-1 font-medium">{label}</span>
+    <span className="text-[16px] mt-1 font-medium">{label}</span>
     {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#008EE2]" />}
   </div>
 );
@@ -80,7 +80,7 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
       <main className="flex-1 flex flex-col items-center pt-20 px-4">
         <div className="max-w-4xl w-full">
           <h2 className="text-3xl font-bold text-black mb-10">Enter your username and password</h2>
-          <p className="text-[15px] text-black mb-12">
+          <p className="text-[16px] text-black mb-12">
             A service has requested you to authenticate yourself. Please enter your username and password in the form below.
           </p>
 
@@ -92,7 +92,7 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
 
           <div className="flex flex-col items-center space-y-4 max-w-md mx-auto">
             <div className="flex items-center w-full">
-              <label className="w-32 text-right pr-4 text-[15px]">Username</label>
+              <label className="w-32 text-right pr-4 text-[16px]">Username</label>
               <input
                 type="text" value={email} onChange={e => setEmail(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
@@ -100,7 +100,7 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
               />
             </div>
             <div className="flex items-center w-full">
-              <label className="w-32 text-right pr-4 text-[15px]">Password</label>
+              <label className="w-32 text-right pr-4 text-[16px]">Password</label>
               <input
                 type="password" value={password} onChange={e => setPassword(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSubmit()}
@@ -119,22 +119,22 @@ function StudentLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
           </div>
 
           <div className="mt-20">
-            <h3 className="font-bold text-gray-600 text-[15px] mb-2">Help! I don't remember my password.</h3>
-            <p className="text-[14px] text-gray-500 leading-relaxed">
+            <h3 className="font-bold text-gray-600 text-[16px] mb-2">Help! I don't remember my password.</h3>
+            <p className="text-[16px] text-gray-500 leading-relaxed">
               Without your username and password you cannot authenticate yourself for access to the service. There may be someone that can help you. Consult the help desk at your organization!
             </p>
           </div>
         </div>
       </main>
 
-      <footer className="h-20 bg-[#4A90E2] flex items-center justify-between px-12 text-white text-[13px]">
+      <footer className="h-20 bg-[#4A90E2] flex items-center justify-between px-12 text-white text-[16px]">
         <div className="flex-1 text-center">© 2026 TAHA College — Beauty, Business, Health & Technology</div>
         <img src="/taha-logo-full.png" alt="TAHA College" className="h-10 w-auto" />
       </footer>
 
       {/* Role switcher for demo */}
       <div className="fixed bottom-4 right-4 flex flex-col space-y-2">
-        <button onClick={() => onSwitchRole('teacher')} className="bg-[#4A90E2] hover:bg-[#357ABD] text-white text-[10px] px-2 py-1 rounded shadow-lg border border-white/20">
+        <button onClick={() => onSwitchRole('teacher')} className="bg-[#4A90E2] hover:bg-[#357ABD] text-white text-[16px] px-2 py-1 rounded shadow-lg border border-white/20">
           Switch to Teacher Login
         </button>
       </div>
@@ -208,7 +208,7 @@ function TeacherLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
       </main>
 
       <div className="fixed bottom-4 right-4 flex flex-col space-y-2">
-        <button onClick={() => onSwitchRole('student')} className="bg-white/10 hover:bg-white/20 text-white text-[10px] px-2 py-1 rounded border border-white/20">
+        <button onClick={() => onSwitchRole('student')} className="bg-white/10 hover:bg-white/20 text-white text-[16px] px-2 py-1 rounded border border-white/20">
           Switch to Student Login
         </button>
       </div>
@@ -244,7 +244,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                 <div className="flex-1">
                   <h2 className="text-xl font-bold">{profile.firstName} {profile.lastName}</h2>
                   <p className="text-white/70 text-sm">{profile.email}</p>
-                  <div className="flex items-center space-x-4 mt-2 text-[12px] text-white/60">
+                  <div className="flex items-center space-x-4 mt-2 text-[16px] text-white/60">
                     {profile.vNumber && <span>ID: {profile.vNumber}</span>}
                     {profile.program && <span>Program: {profile.program}</span>}
                     {profile.campus && <span>Campus: {profile.campus}</span>}
@@ -252,7 +252,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                   </div>
                 </div>
                 {profile.campusStatus && (
-                  <span className={`px-3 py-1 text-[12px] font-bold rounded-full ${profile.campusStatus === 'Start' || profile.campusStatus === 'Active' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}`}>
+                  <span className={`px-3 py-1 text-[16px] font-bold rounded-full ${profile.campusStatus === 'Start' || profile.campusStatus === 'Active' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'}`}>
                     {profile.campusStatus}
                   </span>
                 )}
@@ -307,8 +307,8 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         <div className="w-3 h-10 rounded" style={{ backgroundColor: e.course.color || '#2D3B45' }} />
                         <div>
                           <h3 className="font-bold text-[#2D3B45]">{e.course.name}</h3>
-                          <div className="flex items-center space-x-3 text-[12px] text-gray-500 mt-1">
-                            {e.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white text-[10px] font-bold rounded">{e.batchCode}</span>}
+                          <div className="flex items-center space-x-3 text-[16px] text-gray-500 mt-1">
+                            {e.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{e.batchCode}</span>}
                             {e.campus && <span>{e.campus}</span>}
                             {e.classTime && <span>{e.classTime}</span>}
                           </div>
@@ -316,7 +316,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-[#008EE2]">{Math.round(progress)}%</div>
-                        <div className="text-[11px] text-gray-400">progress</div>
+                        <div className="text-[16px] text-gray-400">progress</div>
                       </div>
                     </div>
 
@@ -325,7 +325,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div className="bg-[#008EE2] h-2 rounded-full transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
                       </div>
-                      <div className="flex items-center justify-between mt-1 text-[11px] text-gray-400">
+                      <div className="flex items-center justify-between mt-1 text-[16px] text-gray-400">
                         <span>{completedCount} of {totalMods} modules completed</span>
                         {currentModule && <span>Current: <span className="font-medium text-[#2D3B45]">{currentModule.name}</span></span>}
                       </div>
@@ -354,14 +354,14 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                                   status === 'IN_PROGRESS' ? 'bg-[#008EE2] animate-pulse' :
                                   'bg-gray-200'
                                 }`} />
-                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#2D3B45] text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#2D3B45] text-white text-[16px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                                   {mod.name}
                                 </div>
                               </div>
                             );
                           })}
                         </div>
-                        <div className="flex items-center space-x-4 mt-2 text-[10px] text-gray-400">
+                        <div className="flex items-center space-x-4 mt-2 text-[16px] text-gray-400">
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-green-500" /><span>Completed</span></div>
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-[#008EE2]" /><span>Current</span></div>
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-gray-200" /><span>Upcoming</span></div>
@@ -370,7 +370,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     )}
 
                     {/* Details row */}
-                    <div className="px-4 py-3 bg-gray-50 border-t border-[#E1E1E1] grid grid-cols-2 md:grid-cols-4 gap-2 text-[12px] text-gray-500">
+                    <div className="px-4 py-3 bg-gray-50 border-t border-[#E1E1E1] grid grid-cols-2 md:grid-cols-4 gap-2 text-[16px] text-gray-500">
                       {e.startDate && <span>Start: <span className="font-medium text-gray-700">{new Date(e.startDate).toLocaleDateString()}</span></span>}
                       {e.endDate && <span>End: <span className="font-medium text-gray-700">{new Date(e.endDate).toLocaleDateString()}</span></span>}
                       {e.totalFees && <span>Fees: <span className="font-medium text-gray-700">${e.totalFees.toLocaleString()}</span></span>}
@@ -434,16 +434,16 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     <div className="p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
-                          <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[11px] font-bold rounded">{b.batchCode}</span>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${status === 'ACTIVE' ? 'bg-green-100 text-green-700' : status === 'COMPLETED' ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'}`}>{status}</span>
+                          <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{b.batchCode}</span>
+                          <span className={`px-2 py-0.5 text-[16px] font-bold rounded-full ${status === 'ACTIVE' ? 'bg-green-100 text-green-700' : status === 'COMPLETED' ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'}`}>{status}</span>
                         </div>
-                        <span className="text-[12px] font-bold text-gray-600">{b.studentCount} students</span>
+                        <span className="text-[16px] font-bold text-gray-600">{b.studentCount} students</span>
                       </div>
                       <h3 className="font-bold text-[#2D3B45] text-sm">{b.course.name}</h3>
 
                       {/* Current module indicator */}
                       {b.currentModuleName && (
-                        <div className="mt-2 text-[12px]">
+                        <div className="mt-2 text-[16px]">
                           <span className="text-gray-400">Current Module:</span>{' '}
                           <span className="font-medium text-[#008EE2]">{b.currentModuleName}</span>
                           <span className="text-gray-300 ml-1">({b.currentModulePosition}/{b.totalModules})</span>
@@ -465,7 +465,7 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         </div>
                       )}
 
-                      <div className="flex items-center justify-between mt-2 text-[11px] text-gray-400">
+                      <div className="flex items-center justify-between mt-2 text-[16px] text-gray-400">
                         {b.startDate && <span>Start: {new Date(b.startDate).toLocaleDateString()}</span>}
                         {b.campus && <span>{b.campus}</span>}
                         {b.classTime && <span>{b.classTime}</span>}
@@ -565,7 +565,7 @@ function AdminDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) =
           <div className="mb-10">
             <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-4">
               <h3 className="text-lg font-medium text-[#2D3B45]">Coming Up</h3>
-              <a href="#" className="text-[#008EE2] text-[11px] flex items-center hover:underline">
+              <a href="#" className="text-[#008EE2] text-[16px] flex items-center hover:underline">
                 <Calendar size={12} className="mr-1" /> View Calendar
               </a>
             </div>
@@ -576,7 +576,7 @@ function AdminDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) =
                 <div className="mt-1 text-gray-400"><NotebookPen size={16} /></div>
                 <div className="flex-1 min-w-0">
                   <a href="#" className="text-[#008EE2] text-sm hover:underline block leading-tight">{a.title}</a>
-                  <p className="text-[11px] text-gray-400">{a.points} points • {a.dueDate && new Date(a.dueDate).toLocaleString()}</p>
+                  <p className="text-[16px] text-gray-400">{a.points} points • {a.dueDate && new Date(a.dueDate).toLocaleString()}</p>
                 </div>
               </div>
             ))}
@@ -668,7 +668,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
           {adminNavItems.map(item => (
             <div key={item} onClick={() => setAdminActiveSection(item)}
               className={`flex items-center px-4 py-1.5 cursor-pointer border-l-[3px] ${adminActiveSection === item ? 'border-black text-black font-bold' : 'border-transparent text-[#008EE2] hover:bg-gray-50'}`}>
-              <span className="text-[15px]">{item}</span>
+              <span className="text-[16px]">{item}</span>
             </div>
           ))}
         </aside>
@@ -686,7 +686,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
 
               {loading ? <LoadingSpinner /> : (
                 <div className="border-t border-gray-200">
-                  <table className="w-full text-left text-[14px]">
+                  <table className="w-full text-left text-[16px]">
                     <thead>
                       <tr className="text-[#008EE2] font-bold">
                         <th className="py-4 px-4 w-16">Status</th>
@@ -716,10 +716,10 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <td className="py-4 px-4">
                             {course.teachers?.map((t, idx) => (
                               <div key={idx} className="flex items-center space-x-2 mb-1">
-                                <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-white">
+                                <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-white">
                                   {t.initial}
                                 </div>
-                                <a href="#" className="text-[#008EE2] hover:underline text-[13px]">{t.name}</a>
+                                <a href="#" className="text-[#008EE2] hover:underline text-[16px]">{t.name}</a>
                               </div>
                             ))}
                           </td>
@@ -761,7 +761,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
               {peopleLoading ? <LoadingSpinner /> : (
                 <>
                   <div className="border-t border-gray-200">
-                    <table className="w-full text-left text-[14px]">
+                    <table className="w-full text-left text-[16px]">
                       <thead>
                         <tr className="text-[#008EE2] font-bold">
                           <th className="py-4 px-4">Name</th>
@@ -775,7 +775,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <tr key={u.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { setSelectedUserId(u.id); setAdminActiveSection('Batches'); }}>
                             <td className="py-4 px-4">
                               <div className="flex items-center space-x-3">
-                                <div className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-[12px] font-medium text-gray-600 bg-gray-50">
+                                <div className="w-9 h-9 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-gray-50">
                                   {u.firstName?.[0]}{u.lastName?.[0]}
                                 </div>
                                 <div>
@@ -783,9 +783,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 </div>
                               </div>
                             </td>
-                            <td className="py-4 px-4 text-gray-600 text-[13px]">{u.email}</td>
+                            <td className="py-4 px-4 text-gray-600 text-[16px]">{u.email}</td>
                             <td className="py-4 px-4">
-                              <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${
+                              <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${
                                 u.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' :
                                 u.role === 'TEACHER' ? 'bg-blue-100 text-blue-700' :
                                 'bg-gray-100 text-gray-600'
@@ -793,9 +793,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             </td>
                             <td className="py-4 px-4">
                               {u.isActive ? (
-                                <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-green-100 text-green-700">Active</span>
+                                <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-green-100 text-green-700">Active</span>
                               ) : (
-                                <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>
+                                <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>
                               )}
                             </td>
                           </tr>
@@ -856,8 +856,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <h1 className="text-2xl font-bold text-[#2D3B45]">{userProfile.firstName} {userProfile.lastName}</h1>
                           <p className="text-gray-500">{userProfile.email}</p>
                           <div className="flex items-center space-x-3 mt-2">
-                            <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${userProfile.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userProfile.role === 'TEACHER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{userProfile.role}</span>
-                            {userProfile.isActive ? <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-green-100 text-green-700">Active</span> : <span className="px-2 py-0.5 text-[11px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>}
+                            <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${userProfile.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userProfile.role === 'TEACHER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{userProfile.role}</span>
+                            {userProfile.isActive ? <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-green-100 text-green-700">Active</span> : <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>}
                           </div>
                         </div>
                       </div>
@@ -878,8 +878,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           { label: 'Admission Rep', value: userProfile.admissionRep },
                         ].filter(f => f.value).map(f => (
                           <div key={f.label} className="bg-gray-50 rounded-lg p-3">
-                            <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">{f.label}</div>
-                            <div className="text-[14px] font-medium text-[#2D3B45]">{f.value}</div>
+                            <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">{f.label}</div>
+                            <div className="text-[16px] font-medium text-[#2D3B45]">{f.value}</div>
                           </div>
                         ))}
                       </div>
@@ -893,12 +893,12 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               <div key={e.id} className="border border-[#E1E1E1] rounded-lg p-4 hover:bg-gray-50">
                                 <div className="flex items-center justify-between mb-2">
                                   <div className="flex items-center space-x-3">
-                                    {e.batchCode && <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[11px] font-bold rounded">{e.batchCode}</span>}
+                                    {e.batchCode && <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{e.batchCode}</span>}
                                     <span className="font-bold text-[#2D3B45]">{e.course.name}</span>
                                   </div>
-                                  {e.lastStatus && <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span>}
+                                  {e.lastStatus && <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span>}
                                 </div>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-[12px] text-gray-500">
+                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-[16px] text-gray-500">
                                   {e.campus && <span>Campus: <span className="font-medium text-gray-700">{e.campus}</span></span>}
                                   {e.classTime && <span>Time: <span className="font-medium text-gray-700">{e.classTime}</span></span>}
                                   {e.classDays && <span>Days: <span className="font-medium text-gray-700">{e.classDays}</span></span>}
@@ -932,11 +932,11 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                         const bType = batchInfo.batchType || 'PRIMARY';
                         return (
                           <>
-                            <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${bType === 'PRIMARY' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>
+                            <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${bType === 'PRIMARY' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>
                               {bType === 'PRIMARY' ? 'Primary' : 'Mid-Course'}
                             </span>
                             {batchInfo.parentBatchCode && (
-                              <button onClick={() => setSelectedBatchCode(batchInfo.parentBatchCode)} className="text-[11px] text-[#008EE2] hover:underline">
+                              <button onClick={() => setSelectedBatchCode(batchInfo.parentBatchCode)} className="text-[16px] text-[#008EE2] hover:underline">
                                 Parent: {batchInfo.parentBatchCode}
                               </button>
                             )}
@@ -962,7 +962,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           {subBatches.map((sb: any) => (
                             <button key={sb.id} onClick={() => setSelectedBatchCode(sb.batchCode)}
                               className="px-3 py-1 bg-white border border-amber-300 rounded text-sm text-amber-800 hover:bg-amber-100 transition-colors">
-                              {sb.batchCode} <span className="text-[11px] text-amber-500">({sb.studentCount} students)</span>
+                              {sb.batchCode} <span className="text-[16px] text-amber-500">({sb.studentCount} students)</span>
                             </button>
                           ))}
                         </div>
@@ -1007,7 +1007,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               }}
                               className="w-full px-3 py-2 text-left text-sm hover:bg-blue-50 border-b border-gray-100 last:border-0 flex items-center justify-between">
                               <span><strong>{u.firstName} {u.lastName}</strong> — {u.email}</span>
-                              {u.vNumber && <span className="text-[11px] text-gray-400">{u.vNumber}</span>}
+                              {u.vNumber && <span className="text-[16px] text-gray-400">{u.vNumber}</span>}
                             </button>
                           ))}
                         </div>
@@ -1019,7 +1019,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             Batch: <strong>{enrollResult.batchCode}</strong>
                             {enrollResult.parentBatchCode && <span className="text-green-500"> (sub-batch of {enrollResult.parentBatchCode})</span>}
                             {' '} — Starting at module {enrollResult.joinedModulePosition}
-                            {enrollResult.isMidCourseJoin && <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[11px] rounded">Mid-course join</span>}
+                            {enrollResult.isMidCourseJoin && <span className="ml-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[16px] rounded">Mid-course join</span>}
                           </p>
                         </div>
                       )}
@@ -1042,23 +1042,23 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                         return (
                           <div className="grid grid-cols-5 gap-3 mb-6">
                             <div className="bg-[#2D3B45] text-white rounded-lg p-3 text-center">
-                              <div className="text-[10px] uppercase tracking-wider opacity-70">Students</div>
+                              <div className="text-[16px] uppercase tracking-wider opacity-70">Students</div>
                               <div className="text-xl font-bold">{enrolls.length}</div>
                             </div>
                             <div className="bg-[#008EE2] text-white rounded-lg p-3 text-center">
-                              <div className="text-[10px] uppercase tracking-wider opacity-70">Module Progress</div>
+                              <div className="text-[16px] uppercase tracking-wider opacity-70">Module Progress</div>
                               <div className="text-xl font-bold">{p?.completedModules || 0}/{p?.totalModules || 0}</div>
                             </div>
                             <div className="bg-[#008744] text-white rounded-lg p-3 text-center">
-                              <div className="text-[10px] uppercase tracking-wider opacity-70">Avg Assignment</div>
+                              <div className="text-[16px] uppercase tracking-wider opacity-70">Avg Assignment</div>
                               <div className="text-xl font-bold">{avgAssignProg}%</div>
                             </div>
                             <div className="bg-[#6B3FA0] text-white rounded-lg p-3 text-center">
-                              <div className="text-[10px] uppercase tracking-wider opacity-70">Avg Grade</div>
+                              <div className="text-[16px] uppercase tracking-wider opacity-70">Avg Grade</div>
                               <div className="text-xl font-bold">{avgGrade !== null ? `${avgGrade}%` : '—'}</div>
                             </div>
                             <div className="bg-[#C23C2D] text-white rounded-lg p-3 text-center">
-                              <div className="text-[10px] uppercase tracking-wider opacity-70">Current Module</div>
+                              <div className="text-[16px] uppercase tracking-wider opacity-70">Current Module</div>
                               <div className="text-sm font-bold mt-0.5 truncate">{p?.currentModuleName || '—'}</div>
                             </div>
                           </div>
@@ -1066,9 +1066,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                       })()}
 
                       <div className="border border-gray-200 rounded-lg overflow-hidden">
-                        <table className="w-full text-left text-[14px]">
+                        <table className="w-full text-left text-[16px]">
                           <thead className="bg-[#F5F5F5]">
-                            <tr className="text-[#2D3B45] font-bold text-[13px]">
+                            <tr className="text-[#2D3B45] font-bold text-[16px]">
                               <th className="py-3 px-4">Student</th>
                               <th className="py-3 px-4">Student ID</th>
                               <th className="py-3 px-4">Campus</th>
@@ -1087,24 +1087,24 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               <tr key={e.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedUserId(e.user.id)}>
                                 <td className="py-3 px-4">
                                   <div className="flex items-center space-x-2">
-                                    <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
+                                    <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-gray-50">
                                       {e.user.firstName?.[0]}{e.user.lastName?.[0]}
                                     </div>
                                     <div>
                                       <span className="font-medium text-[#008EE2] hover:underline">{e.user.firstName} {e.user.lastName}</span>
-                                      <div className="text-[11px] text-gray-400">{e.user.email}</div>
+                                      <div className="text-[16px] text-gray-400">{e.user.email}</div>
                                     </div>
                                   </div>
                                 </td>
-                                <td className="py-3 px-4 text-gray-500 text-[13px]">{e.user.vNumber || '—'}</td>
-                                <td className="py-3 px-4 text-gray-500 text-[13px]">{e.user.campus || '—'}</td>
+                                <td className="py-3 px-4 text-gray-500 text-[16px]">{e.user.vNumber || '—'}</td>
+                                <td className="py-3 px-4 text-gray-500 text-[16px]">{e.user.campus || '—'}</td>
                                 <td className="py-3 px-4 text-center">
-                                  <span className="text-[13px]">{p.completedAssignments || 0}<span className="text-gray-400">/{p.totalAssignments || 0}</span></span>
+                                  <span className="text-[16px]">{p.completedAssignments || 0}<span className="text-gray-400">/{p.totalAssignments || 0}</span></span>
                                 </td>
                                 <td className="py-3 px-4 text-center">
                                   {p.gradePct !== null && p.gradePct !== undefined ? (
-                                    <span className={`text-[13px] font-bold ${p.gradePct >= 70 ? 'text-green-600' : p.gradePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{p.gradePct}%</span>
-                                  ) : <span className="text-gray-400 text-[12px]">—</span>}
+                                    <span className={`text-[16px] font-bold ${p.gradePct >= 70 ? 'text-green-600' : p.gradePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{p.gradePct}%</span>
+                                  ) : <span className="text-gray-400 text-[16px]">—</span>}
                                 </td>
                                 <td className="py-3 px-4">
                                   <div className="flex items-center space-x-2">
@@ -1117,16 +1117,16 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         }}
                                       />
                                     </div>
-                                    <span className={`text-[12px] font-bold ${assignProg >= 75 ? 'text-green-600' : assignProg >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{assignProg}%</span>
+                                    <span className={`text-[16px] font-bold ${assignProg >= 75 ? 'text-green-600' : assignProg >= 40 ? 'text-amber-600' : 'text-red-600'}`}>{assignProg}%</span>
                                   </div>
                                 </td>
-                                <td className="py-3 px-4 text-[13px]">
+                                <td className="py-3 px-4 text-[16px]">
                                   {p.currentModuleName ? (
                                     <span className="text-[#2D3B45] font-medium">{p.currentModuleName}</span>
                                   ) : <span className="text-gray-400">—</span>}
                                 </td>
                                 <td className="py-3 px-4">
-                                  {e.lastStatus ? <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') || e.lastStatus.includes('Registered') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span> : '—'}
+                                  {e.lastStatus ? <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') || e.lastStatus.includes('Registered') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span> : '—'}
                                 </td>
                               </tr>
                               );
@@ -1151,7 +1151,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                     <div className="flex items-center space-x-1">
                       {(['all', 'PRIMARY', 'MID_COURSE'] as const).map(t => (
                         <button key={t} onClick={() => setBatchTypeFilter(t)}
-                          className={`px-3 py-1.5 text-[12px] font-medium rounded transition-colors ${batchTypeFilter === t ? 'bg-[#008EE2] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                          className={`px-3 py-1.5 text-[16px] font-medium rounded transition-colors ${batchTypeFilter === t ? 'bg-[#008EE2] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                           {t === 'all' ? 'All' : t === 'PRIMARY' ? 'Primary' : 'Mid-Course'}
                         </button>
                       ))}
@@ -1182,7 +1182,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <span>{totalStudents} total students enrolled</span>
                         </div>
                         <div className="border-t border-gray-200">
-                          <table className="w-full text-left text-[14px]">
+                          <table className="w-full text-left text-[16px]">
                             <thead>
                               <tr className="text-[#008EE2] font-bold">
                                 <th className="py-3 px-4">Batch Code</th>
@@ -1200,18 +1200,18 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 return (
                                 <tr key={b.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedBatchCode(b.batchCode)}>
                                   <td className="py-3 px-4">
-                                    <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[12px] font-bold rounded">{b.batchCode}</span>
+                                    <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{b.batchCode}</span>
                                     {b.parentBatchCode && (
-                                      <span className="ml-2 text-[11px] text-gray-400">← {b.parentBatchCode}</span>
+                                      <span className="ml-2 text-[16px] text-gray-400">← {b.parentBatchCode}</span>
                                     )}
                                   </td>
                                   <td className="py-3 px-4">
-                                    <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${bType === 'PRIMARY' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>
+                                    <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${bType === 'PRIMARY' ? 'bg-gray-100 text-gray-600' : 'bg-amber-100 text-amber-700'}`}>
                                       {bType === 'PRIMARY' ? 'Primary' : 'Mid-Course'}
                                     </span>
                                   </td>
                                   <td className="py-3 px-4">
-                                    <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${bStatus === 'ACTIVE' ? 'bg-green-100 text-green-700' : bStatus === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${bStatus === 'ACTIVE' ? 'bg-green-100 text-green-700' : bStatus === 'COMPLETED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
                                       {bStatus}
                                     </span>
                                   </td>
@@ -1220,14 +1220,14 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   </td>
                                   <td className="py-3 px-4">
                                     <div className="flex items-center space-x-2">
-                                      <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
+                                      <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-gray-50">
                                         {b.teacher.firstName[0]}{(b.teacher.lastName || b.teacher.firstName)[0]}
                                       </div>
                                       <span className="font-medium text-[#2D3B45]">{b.teacher.firstName} {b.teacher.lastName !== b.teacher.firstName ? b.teacher.lastName : ''}</span>
                                     </div>
                                   </td>
                                   <td className="py-3 px-4 text-center">
-                                    <span className={`px-2.5 py-1 text-[12px] font-bold rounded-full ${b.studentCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                                    <span className={`px-2.5 py-1 text-[16px] font-bold rounded-full ${b.studentCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                                       {b.studentCount}
                                     </span>
                                   </td>
@@ -1358,15 +1358,15 @@ function AdminStatisticsView() {
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4 mb-8">
         <div className="bg-[#008EE2] text-white rounded-lg p-5">
-          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Total Students</div>
+          <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Total Students</div>
           <div className="text-3xl font-bold">{data.totalStudents.toLocaleString()}</div>
         </div>
         <div className="bg-[#2D3B45] text-white rounded-lg p-5">
-          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Total Courses</div>
+          <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Total Courses</div>
           <div className="text-3xl font-bold">{data.totalCourses}</div>
         </div>
         <div className="bg-[#008744] text-white rounded-lg p-5">
-          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Avg Course Progress</div>
+          <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Avg Course Progress</div>
           <div className="text-3xl font-bold">
             {courseProgress.length > 0
               ? Math.round(courseProgress.reduce((s: number, c: any) => s + c.progressPct, 0) / courseProgress.length)
@@ -1374,7 +1374,7 @@ function AdminStatisticsView() {
           </div>
         </div>
         <div className="bg-[#C23C2D] text-white rounded-lg p-5">
-          <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Active Modules Today</div>
+          <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Active Modules Today</div>
           <div className="text-3xl font-bold">
             {courseProgress.filter((c: any) => c.currentModule).length}
           </div>
@@ -1393,7 +1393,7 @@ function AdminStatisticsView() {
             <div className="h-2" style={{ backgroundColor: course.color || '#2D3B45' }} />
             <div className="p-4">
               <h3 className="font-bold text-sm text-[#2D3B45] mb-1">{course.name}</h3>
-              <p className="text-[11px] text-gray-500 mb-3">{course.code} &middot; {course.totalStudents} students &middot; {course.totalModules} modules</p>
+              <p className="text-[16px] text-gray-500 mb-3">{course.code} &middot; {course.totalStudents} students &middot; {course.totalModules} modules</p>
 
               {/* Progress bar */}
               <div className="flex items-center space-x-3 mb-2">
@@ -1406,7 +1406,7 @@ function AdminStatisticsView() {
                 <span className="text-sm font-bold text-[#2D3B45]">{course.progressPct}%</span>
               </div>
 
-              <div className="flex justify-between text-[11px] text-gray-500">
+              <div className="flex justify-between text-[16px] text-gray-500">
                 <span>{course.completedModules}/{course.totalModules} modules done</span>
                 {course.currentModule && (
                   <span className="text-[#008EE2] font-medium">Now: {course.currentModule}</span>
@@ -1423,7 +1423,7 @@ function AdminStatisticsView() {
           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: activeCourse.color }} />
-              <span className="font-bold text-[15px]">{activeCourse.name} — Student Progress ({activeCourse.students.length})</span>
+              <span className="font-bold text-[16px]">{activeCourse.name} — Student Progress ({activeCourse.students.length})</span>
             </div>
             <div className="flex items-center space-x-3">
               <input
@@ -1459,19 +1459,19 @@ function AdminStatisticsView() {
                   <tr key={s.id} className="hover:bg-gray-50">
                     <td className="px-4 py-2.5">
                       <div className="flex items-center space-x-2">
-                        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-[11px] font-bold text-gray-600">
+                        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-[16px] font-bold text-gray-600">
                           {s.firstName?.[0]}{s.lastName?.[0]}
                         </div>
                         <div>
                           <div className="font-medium">{s.firstName} {s.lastName}</div>
-                          <div className="text-[11px] text-gray-400">{s.email}</div>
+                          <div className="text-[16px] text-gray-400">{s.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-gray-500">{s.vNumber || '—'}</td>
                     <td className="px-4 py-2.5">
                       {s.batchCode ? (
-                        <span className="px-2 py-0.5 text-[11px] font-bold rounded bg-gray-100 text-gray-700">{s.batchCode}</span>
+                        <span className="px-2 py-0.5 text-[16px] font-bold rounded bg-gray-100 text-gray-700">{s.batchCode}</span>
                       ) : '—'}
                     </td>
                     <td className="px-4 py-2.5 text-gray-500">{s.campus || '—'}</td>
@@ -1842,7 +1842,7 @@ function CourseView({ courseId }: { courseId: string }) {
           {navItems.map(item => (
             <div key={item.label} onClick={() => setActiveSection(item.label)}
               className={`flex items-center px-4 py-1.5 cursor-pointer border-l-[3px] ${activeSection === item.label ? 'border-black text-black font-bold' : 'border-transparent text-[#008EE2] hover:bg-gray-50'}`}>
-              <span className="text-[15px]">{item.label}</span>
+              <span className="text-[16px]">{item.label}</span>
             </div>
           ))}
         </aside>
@@ -1851,12 +1851,12 @@ function CourseView({ courseId }: { courseId: string }) {
           {activeSection === 'Home' ? (
             <div className="max-w-4xl">
               <h1 className="text-[32px] font-medium text-[#2D3B45] mb-10">{course.name}</h1>
-              {course.description && <p className="text-[15px] text-[#2D3B45] mb-6">{course.description}</p>}
+              {course.description && <p className="text-[16px] text-[#2D3B45] mb-6">{course.description}</p>}
 
               {course.modules?.length > 0 && (
                 <>
                   <h2 className="text-[28px] font-medium text-[#2D3B45] mb-4">Course Modules</h2>
-                  <table className="w-full border-collapse border border-[#E1E1E1] text-[15px]">
+                  <table className="w-full border-collapse border border-[#E1E1E1] text-[16px]">
                     <thead>
                       <tr className="bg-[#2D3B45] text-white">
                         <th className="border border-[#E1E1E1] px-4 py-3 text-center font-medium w-16">#</th>
@@ -2034,7 +2034,7 @@ function CourseView({ courseId }: { courseId: string }) {
                               <div key={qIdx} className={`border rounded-lg overflow-hidden ${q.type === 'MCQ' ? 'border-[#008EE2]' : 'border-purple-400'}`}>
                                 <div className={`px-4 py-2 flex items-center justify-between ${q.type === 'MCQ' ? 'bg-blue-50' : 'bg-purple-50'}`}>
                                   <div className="flex items-center space-x-3">
-                                    <span className={`px-2 py-0.5 text-[11px] font-bold rounded ${q.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{q.type}</span>
+                                    <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${q.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{q.type}</span>
                                     <span className="text-sm font-bold text-[#2D3B45]">Question {qIdx + 1}</span>
                                   </div>
                                   <div className="flex items-center space-x-1">
@@ -2054,27 +2054,27 @@ function CourseView({ courseId }: { courseId: string }) {
                                 </div>
                                 <div className="p-4 space-y-3">
                                   <div>
-                                    <label className="block text-[12px] font-bold text-gray-500 mb-1">Question Text *</label>
+                                    <label className="block text-[16px] font-bold text-gray-500 mb-1">Question Text *</label>
                                     <textarea value={q.text} onChange={e => updateBuilderQuestion(qIdx, { text: e.target.value })} rows={2}
                                       className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
                                       placeholder="Enter question text..." />
                                   </div>
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <label className="block text-[12px] font-bold text-gray-500 mb-1">Points</label>
+                                      <label className="block text-[16px] font-bold text-gray-500 mb-1">Points</label>
                                       <input type="number" value={q.points} onChange={e => updateBuilderQuestion(qIdx, { points: Number(e.target.value) })}
                                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={1} />
                                     </div>
                                     {q.type === 'THEORY' && (
                                       <div>
-                                        <label className="block text-[12px] font-bold text-gray-500 mb-1">Word Limit (0 = no limit)</label>
+                                        <label className="block text-[16px] font-bold text-gray-500 mb-1">Word Limit (0 = no limit)</label>
                                         <input type="number" value={q.wordLimit} onChange={e => updateBuilderQuestion(qIdx, { wordLimit: Number(e.target.value) })}
                                           className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={0} />
                                       </div>
                                     )}
                                   </div>
                                   <div>
-                                    <label className="block text-[12px] font-bold text-gray-500 mb-1">Explanation (shown after submission)</label>
+                                    <label className="block text-[16px] font-bold text-gray-500 mb-1">Explanation (shown after submission)</label>
                                     <input type="text" value={q.explanation} onChange={e => updateBuilderQuestion(qIdx, { explanation: e.target.value })}
                                       className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
                                       placeholder="Optional explanation..." />
@@ -2083,7 +2083,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                   {/* MCQ Options */}
                                   {q.type === 'MCQ' && (
                                     <div>
-                                      <label className="block text-[12px] font-bold text-gray-500 mb-2">Options (select correct answer)</label>
+                                      <label className="block text-[16px] font-bold text-gray-500 mb-2">Options (select correct answer)</label>
                                       <div className="space-y-2">
                                         {q.options.map((opt, oIdx) => (
                                           <div key={oIdx} className="flex items-center space-x-2">
@@ -2168,10 +2168,10 @@ function CourseView({ courseId }: { courseId: string }) {
                       {/* Assignment Header */}
                       <div className="border-b border-[#E1E1E1] pb-6 mb-6">
                         <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">{assignmentDetail.title}</h2>
-                        <div className="flex items-center space-x-4 text-[13px] text-gray-500">
+                        <div className="flex items-center space-x-4 text-[16px] text-gray-500">
                           <span className="font-bold text-[#2D3B45]">{assignmentDetail.points} pts</span>
                           {assignmentDetail.format && (
-                            <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
+                            <span className={`px-2 py-0.5 text-[16px] font-bold rounded-full ${
                               assignmentDetail.format === 'FILE' ? 'bg-gray-200 text-gray-700' :
                               assignmentDetail.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
                               assignmentDetail.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
@@ -2180,20 +2180,20 @@ function CourseView({ courseId }: { courseId: string }) {
                           )}
                           {assignmentDetail.dueDate && <span>Due: {new Date(assignmentDetail.dueDate).toLocaleString()}</span>}
                           {assignmentDetail.timeLimit && <span>{assignmentDetail.timeLimit} min</span>}
-                          {!assignmentDetail.published && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[11px] font-bold rounded-full">UNPUBLISHED</span>}
+                          {!assignmentDetail.published && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[16px] font-bold rounded-full">UNPUBLISHED</span>}
                         </div>
                       </div>
 
                       {/* Description & Instructions */}
                       {assignmentDetail.description && (
                         <div className="mb-4">
-                          <p className="text-[15px] text-[#2D3B45]">{assignmentDetail.description}</p>
+                          <p className="text-[16px] text-[#2D3B45]">{assignmentDetail.description}</p>
                         </div>
                       )}
                       {assignmentDetail.instructions && (
                         <div className="bg-[#F5F5F5] border border-[#E1E1E1] rounded p-4 mb-6">
                           <h3 className="font-bold text-sm text-[#2D3B45] mb-2">Instructions</h3>
-                          <p className="text-[14px] text-[#2D3B45] whitespace-pre-wrap">{assignmentDetail.instructions}</p>
+                          <p className="text-[16px] text-[#2D3B45] whitespace-pre-wrap">{assignmentDetail.instructions}</p>
                         </div>
                       )}
 
@@ -2215,7 +2215,7 @@ function CourseView({ courseId }: { courseId: string }) {
                       {(effectiveRole === 'STUDENT') && (
                         <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
                           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
-                            <span className="font-bold text-[15px]">Your Submission</span>
+                            <span className="font-bold text-[16px]">Your Submission</span>
                             {/* Quiz timer */}
                             {quizTimeLeft !== null && quizTimeLeft > 0 && (assignmentDetail.format !== 'FILE') && (
                               <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-sm font-bold ${quizTimeLeft < 60 ? 'bg-red-100 text-red-700 animate-pulse' : quizTimeLeft < 300 ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
@@ -2234,19 +2234,19 @@ function CourseView({ courseId }: { courseId: string }) {
                                 return (
                                   <div>
                                     <div className="flex items-center space-x-3 mb-4">
-                                      <span className={`px-3 py-1 text-[12px] font-bold rounded-full ${mySubmission.status === 'GRADED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{mySubmission.status}</span>
-                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">LATE</span>}
+                                      <span className={`px-3 py-1 text-[16px] font-bold rounded-full ${mySubmission.status === 'GRADED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{mySubmission.status}</span>
+                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[16px] font-bold rounded-full">LATE</span>}
                                     </div>
                                     {mySubmission.score !== null && (
                                       <div className="bg-green-50 rounded-lg p-4 mb-4">
-                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Score</div>
+                                        <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Score</div>
                                         <div className="text-2xl font-bold text-green-700">{mySubmission.score} / {assignmentDetail.points}</div>
                                       </div>
                                     )}
                                     {mySubmission.feedback && (
                                       <div className="bg-blue-50 border border-blue-200 rounded p-4 mb-4">
                                         <h4 className="font-bold text-sm text-[#2D3B45] mb-1">Feedback</h4>
-                                        <p className="text-[14px] text-[#2D3B45] whitespace-pre-wrap">{mySubmission.feedback}</p>
+                                        <p className="text-[16px] text-[#2D3B45] whitespace-pre-wrap">{mySubmission.feedback}</p>
                                       </div>
                                     )}
                                     {/* Show answer results if showResults is enabled */}
@@ -2264,7 +2264,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                               <div className="flex items-center justify-between mb-2">
                                                 <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}. {question.text}</span>
                                                 <div className="flex items-center space-x-2">
-                                                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
+                                                  <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
                                                   {answer?.pointsAwarded !== null && (
                                                     <span className="text-sm font-bold">{answer.pointsAwarded}/{question.points}</span>
                                                   )}
@@ -2301,7 +2301,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                 </div>
                                               )}
                                               {question.explanation && (
-                                                <div className="mt-2 text-[12px] text-gray-500 italic">Explanation: {question.explanation}</div>
+                                                <div className="mt-2 text-[16px] text-gray-500 italic">Explanation: {question.explanation}</div>
                                               )}
                                             </div>
                                           );
@@ -2317,7 +2317,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                 return (
                                   <div>
                                     <div className="flex items-center space-x-3 mb-4">
-                                      <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">NOT STARTED</span>
+                                      <span className="px-3 py-1 bg-red-100 text-red-600 text-[16px] font-bold rounded-full">NOT STARTED</span>
                                     </div>
                                     {assignmentQuestions.length === 0 ? (
                                       <div className="text-center py-8 text-gray-400 text-sm">No questions available for this assignment.</div>
@@ -2328,11 +2328,11 @@ function CourseView({ courseId }: { courseId: string }) {
                                             <div className="flex items-center justify-between mb-3">
                                               <div className="flex items-center space-x-2">
                                                 <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}.</span>
-                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
+                                                <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
                                               </div>
-                                              <span className="text-[12px] text-gray-500">{question.points} pts</span>
+                                              <span className="text-[16px] text-gray-500">{question.points} pts</span>
                                             </div>
-                                            <p className="text-[14px] text-[#2D3B45] mb-3">{question.text}</p>
+                                            <p className="text-[16px] text-[#2D3B45] mb-3">{question.text}</p>
 
                                             {question.type === 'MCQ' && question.options && (
                                               <div className="space-y-2">
@@ -2363,8 +2363,8 @@ function CourseView({ courseId }: { courseId: string }) {
                                                   placeholder="Write your answer here..." />
                                                 {question.wordLimit > 0 && (
                                                   <div className="flex items-center justify-between mt-1">
-                                                    <span className="text-[11px] text-gray-400">Word limit: {question.wordLimit}</span>
-                                                    <span className={`text-[11px] ${
+                                                    <span className="text-[16px] text-gray-400">Word limit: {question.wordLimit}</span>
+                                                    <span className={`text-[16px] ${
                                                       (quizAnswers[question.id]?.textAnswer || '').split(/\s+/).filter(Boolean).length > question.wordLimit
                                                         ? 'text-red-500 font-bold' : 'text-gray-400'
                                                     }`}>
@@ -2399,24 +2399,24 @@ function CourseView({ courseId }: { courseId: string }) {
                                 return (
                                   <div>
                                     <div className="flex items-center space-x-3 mb-4">
-                                      <span className="px-3 py-1 bg-green-100 text-green-700 text-[12px] font-bold rounded-full">GRADED</span>
-                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">LATE</span>}
+                                      <span className="px-3 py-1 bg-green-100 text-green-700 text-[16px] font-bold rounded-full">GRADED</span>
+                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[16px] font-bold rounded-full">LATE</span>}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                       <div className="bg-green-50 rounded-lg p-4">
-                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Score</div>
+                                        <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Score</div>
                                         <div className="text-2xl font-bold text-green-700">{mySubmission.score} / {assignmentDetail.points}</div>
                                       </div>
                                       <div className="bg-gray-50 rounded-lg p-4">
-                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Submitted</div>
+                                        <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Submitted</div>
                                         <div className="text-sm font-medium text-[#2D3B45]">{mySubmission.submittedAt ? new Date(mySubmission.submittedAt).toLocaleString() : 'N/A'}</div>
-                                        {mySubmission.fileName && <div className="text-[12px] text-gray-500 mt-1">{mySubmission.fileName}</div>}
+                                        {mySubmission.fileName && <div className="text-[16px] text-gray-500 mt-1">{mySubmission.fileName}</div>}
                                       </div>
                                     </div>
                                     {mySubmission.feedback && (
                                       <div className="bg-blue-50 border border-blue-200 rounded p-4">
                                         <h4 className="font-bold text-sm text-[#2D3B45] mb-1">Feedback</h4>
-                                        <p className="text-[14px] text-[#2D3B45] whitespace-pre-wrap">{mySubmission.feedback}</p>
+                                        <p className="text-[16px] text-[#2D3B45] whitespace-pre-wrap">{mySubmission.feedback}</p>
                                       </div>
                                     )}
                                   </div>
@@ -2426,18 +2426,18 @@ function CourseView({ courseId }: { courseId: string }) {
                                 return (
                                   <div>
                                     <div className="flex items-center space-x-3 mb-4">
-                                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[12px] font-bold rounded-full">SUBMITTED</span>
-                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">LATE</span>}
+                                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[16px] font-bold rounded-full">SUBMITTED</span>
+                                      {mySubmission.isLate && <span className="px-3 py-1 bg-red-100 text-red-600 text-[16px] font-bold rounded-full">LATE</span>}
                                     </div>
                                     <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                                      <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">File</div>
+                                      <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">File</div>
                                       <div className="text-sm font-medium text-[#2D3B45]">{mySubmission.fileName || 'Submitted file'}</div>
-                                      <div className="text-[12px] text-gray-500 mt-1">{mySubmission.submittedAt ? new Date(mySubmission.submittedAt).toLocaleString() : ''}</div>
+                                      <div className="text-[16px] text-gray-500 mt-1">{mySubmission.submittedAt ? new Date(mySubmission.submittedAt).toLocaleString() : ''}</div>
                                     </div>
                                     {mySubmission.comment && (
                                       <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                                        <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Your Comment</div>
-                                        <p className="text-[14px] text-[#2D3B45]">{mySubmission.comment}</p>
+                                        <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Your Comment</div>
+                                        <p className="text-[16px] text-[#2D3B45]">{mySubmission.comment}</p>
                                       </div>
                                     )}
                                     <p className="text-sm text-gray-500">Your submission is being reviewed. You can resubmit below.</p>
@@ -2465,7 +2465,7 @@ function CourseView({ courseId }: { courseId: string }) {
                               return (
                                 <div>
                                   <div className="flex items-center space-x-3 mb-4">
-                                    <span className="px-3 py-1 bg-red-100 text-red-600 text-[12px] font-bold rounded-full">MISSING</span>
+                                    <span className="px-3 py-1 bg-red-100 text-red-600 text-[16px] font-bold rounded-full">MISSING</span>
                                   </div>
                                   <div className="space-y-3">
                                     <div>
@@ -2476,7 +2476,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                           onChange={e => setSubmissionFile(e.target.files?.[0] || null)} />
                                       </label>
                                       {assignmentDetail.allowedFormats && (
-                                        <p className="text-[11px] text-gray-400 mt-1">Accepted formats: {assignmentDetail.allowedFormats}</p>
+                                        <p className="text-[16px] text-gray-400 mt-1">Accepted formats: {assignmentDetail.allowedFormats}</p>
                                       )}
                                     </div>
                                     <textarea value={submissionComment} onChange={e => setSubmissionComment(e.target.value)} rows={3}
@@ -2498,7 +2498,7 @@ function CourseView({ courseId }: { courseId: string }) {
                       {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
                         <div className="border border-[#E1E1E1] rounded-sm overflow-hidden mt-6">
                           <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
-                            <span className="font-bold text-[15px]">Submissions ({assignmentDetail.submissions?.length || 0})</span>
+                            <span className="font-bold text-[16px]">Submissions ({assignmentDetail.submissions?.length || 0})</span>
                           </div>
 
                           {/* Teacher: Show questions overview for quiz formats */}
@@ -2506,13 +2506,13 @@ function CourseView({ courseId }: { courseId: string }) {
                             <div className="bg-blue-50/50 border-b border-[#E1E1E1] px-4 py-3">
                               <div className="flex items-center space-x-2 mb-2">
                                 <span className="text-sm font-bold text-[#2D3B45]">Questions ({assignmentQuestions.length})</span>
-                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                                <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${
                                   assignmentDetail.format === 'MCQ' ? 'bg-[#008EE2] text-white' :
                                   assignmentDetail.format === 'THEORY' ? 'bg-purple-600 text-white' :
                                   'bg-amber-500 text-white'
                                 }`}>{assignmentDetail.format}</span>
                               </div>
-                              <div className="text-[12px] text-gray-500 space-x-4">
+                              <div className="text-[16px] text-gray-500 space-x-4">
                                 <span>MCQ: {assignmentQuestions.filter((q: any) => q.type === 'MCQ').length}</span>
                                 <span>Theory: {assignmentQuestions.filter((q: any) => q.type === 'THEORY').length}</span>
                                 <span>Total Points: {assignmentQuestions.reduce((s: number, q: any) => s + q.points, 0)}</span>
@@ -2525,9 +2525,9 @@ function CourseView({ courseId }: { courseId: string }) {
                             {!assignmentDetail.submissions?.length ? (
                               <div className="p-8 text-center text-gray-400 text-sm">No submissions yet.</div>
                             ) : (
-                              <table className="w-full text-left text-[14px]">
+                              <table className="w-full text-left text-[16px]">
                                 <thead>
-                                  <tr className="bg-gray-50 text-[#2D3B45] font-bold text-[13px]">
+                                  <tr className="bg-gray-50 text-[#2D3B45] font-bold text-[16px]">
                                     <th className="py-3 px-4">Student</th>
                                     <th className="py-3 px-4">Status</th>
                                     <th className="py-3 px-4">Submitted</th>
@@ -2553,24 +2553,24 @@ function CourseView({ courseId }: { courseId: string }) {
                                       }}>
                                         <td className="py-3 px-4">
                                           <div className="flex items-center space-x-2">
-                                            <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[11px] font-medium text-gray-600 bg-gray-50">
+                                            <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-gray-50">
                                               {sub.student?.firstName?.[0]}{sub.student?.lastName?.[0]}
                                             </div>
                                             <span className="font-medium">{sub.student?.firstName} {sub.student?.lastName}</span>
                                           </div>
                                         </td>
                                         <td className="py-3 px-4">
-                                          <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
+                                          <span className={`px-2 py-0.5 text-[16px] font-bold rounded-full ${
                                             sub.status === 'GRADED' ? 'bg-green-100 text-green-700' :
                                             sub.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700' :
                                             'bg-red-100 text-red-600'
                                           }`}>{sub.status}</span>
                                         </td>
-                                        <td className="py-3 px-4 text-[13px] text-gray-500">
+                                        <td className="py-3 px-4 text-[16px] text-gray-500">
                                           {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '-'}
                                         </td>
                                         <td className="py-3 px-4">
-                                          {sub.isLate ? <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600">LATE</span> : <span className="text-gray-400 text-[12px]">On time</span>}
+                                          {sub.isLate ? <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-red-100 text-red-600">LATE</span> : <span className="text-gray-400 text-[16px]">On time</span>}
                                         </td>
                                         <td className="py-3 px-4 font-bold">
                                           {sub.score !== null ? `${sub.score} / ${assignmentDetail.points}` : '-'}
@@ -2599,8 +2599,8 @@ function CourseView({ courseId }: { courseId: string }) {
                                               )}
                                               {sub.comment && (
                                                 <div className="bg-white border border-[#E1E1E1] rounded p-3">
-                                                  <div className="text-[11px] text-gray-400 uppercase tracking-wider mb-1">Student Comment</div>
-                                                  <p className="text-[14px] text-[#2D3B45]">{sub.comment}</p>
+                                                  <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Student Comment</div>
+                                                  <p className="text-[16px] text-[#2D3B45]">{sub.comment}</p>
                                                 </div>
                                               )}
                                               <div className="grid grid-cols-2 gap-4">
@@ -2649,7 +2649,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                     <div className="flex items-center justify-between mb-2">
                                                       <div className="flex items-center space-x-2">
                                                         <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}. {question.text}</span>
-                                                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${isMCQ ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
+                                                        <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${isMCQ ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
                                                       </div>
                                                       <span className="text-sm text-gray-500">{question.points} pts</span>
                                                     </div>
@@ -2672,7 +2672,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                             </div>
                                                           );
                                                         })}
-                                                        <div className="mt-1 text-[12px] font-bold">
+                                                        <div className="mt-1 text-[16px] font-bold">
                                                           {answer?.isCorrect ? (
                                                             <span className="text-green-600">Correct (+{answer.pointsAwarded ?? question.points})</span>
                                                           ) : answer?.isCorrect === false ? (
@@ -2693,7 +2693,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                         {answer && (
                                                           <div className="grid grid-cols-2 gap-3 mt-2">
                                                             <div>
-                                                              <label className="block text-[12px] font-bold text-gray-500 mb-1">Points (max {question.points})</label>
+                                                              <label className="block text-[16px] font-bold text-gray-500 mb-1">Points (max {question.points})</label>
                                                               <input type="number"
                                                                 value={theoryGrades[answer.id]?.pointsAwarded ?? answer.pointsAwarded ?? 0}
                                                                 onChange={e => setTheoryGrades(prev => ({
@@ -2707,7 +2707,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                                 className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
                                                             </div>
                                                             <div>
-                                                              <label className="block text-[12px] font-bold text-gray-500 mb-1">Feedback</label>
+                                                              <label className="block text-[16px] font-bold text-gray-500 mb-1">Feedback</label>
                                                               <input type="text"
                                                                 value={theoryGrades[answer.id]?.feedback ?? answer.feedback ?? ''}
                                                                 onChange={e => setTheoryGrades(prev => ({
@@ -2770,7 +2770,7 @@ function CourseView({ courseId }: { courseId: string }) {
                 /* Assignment List */
                 <div className="border border-[#E1E1E1] rounded-sm overflow-hidden">
                   <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
-                    <span className="font-bold text-[15px]">Assignments ({course.assignments?.length || 0})</span>
+                    <span className="font-bold text-[16px]">Assignments ({course.assignments?.length || 0})</span>
                     {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
                       <button onClick={() => setShowCreateAssignment(true)}
                         className="flex items-center space-x-1 bg-[#008EE2] text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
@@ -2787,16 +2787,16 @@ function CourseView({ courseId }: { courseId: string }) {
                         <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
-                            <h4 className="font-bold text-[15px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
+                            <h4 className="font-bold text-[16px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
                             {a.format && a.format !== 'FILE' && (
-                              <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
+                              <span className={`px-1.5 py-0.5 text-[16px] font-bold rounded ${
                                 a.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
                                 a.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
                                 'bg-amber-100 text-amber-700'
                               }`}>{a.format}</span>
                             )}
                           </div>
-                          <p className="text-[12px] text-gray-500 mt-0.5">
+                          <p className="text-[16px] text-gray-500 mt-0.5">
                             {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
                             {a.timeLimit ? ` • ${a.timeLimit} min` : ''}
                           </p>
@@ -2850,26 +2850,26 @@ function CourseView({ courseId }: { courseId: string }) {
                 <div className="max-w-6xl">
                   {/* Course Header */}
                   <h1 className="text-[28px] font-medium text-[#2D3B45] mb-1">{course.name}</h1>
-                  <p className="text-[14px] text-gray-500 mb-6">
+                  <p className="text-[16px] text-gray-500 mb-6">
                     Total Hours: {totalHours} | {moduleData.length} Modules | {totalAssignments} Assessments | Weight: {totalWeight.toFixed(2)}%
                   </p>
 
                   {/* Course Summary Cards */}
                   <div className="grid grid-cols-4 gap-4 mb-8">
                     <div className="bg-[#2D3B45] text-white rounded-lg p-4">
-                      <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Modules</div>
+                      <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Modules</div>
                       <div className="text-2xl font-bold">{moduleData.length}</div>
                     </div>
                     <div className="bg-[#c0392b] text-white rounded-lg p-4">
-                      <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Theory Pts (per module)</div>
+                      <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Theory Pts (per module)</div>
                       <div className="text-2xl font-bold">{moduleData.length > 0 ? `${Math.min(...moduleData.map((m: any) => m.theoryPts))}–${Math.max(...moduleData.map((m: any) => m.theoryPts))}` : '0'}</div>
                     </div>
                     <div className="bg-[#2980b9] text-white rounded-lg p-4">
-                      <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Practical Pts (per module)</div>
+                      <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Practical Pts (per module)</div>
                       <div className="text-2xl font-bold">{moduleData.length > 0 ? `${Math.min(...moduleData.map((m: any) => m.practicalPts))}–${Math.max(...moduleData.map((m: any) => m.practicalPts))}` : '0'}</div>
                     </div>
                     <div className="bg-[#008744] text-white rounded-lg p-4">
-                      <div className="text-[11px] uppercase tracking-wider opacity-70 mb-1">Total Hours</div>
+                      <div className="text-[16px] uppercase tracking-wider opacity-70 mb-1">Total Hours</div>
                       <div className="text-2xl font-bold">{totalHours}</div>
                     </div>
                   </div>
@@ -2877,11 +2877,11 @@ function CourseView({ courseId }: { courseId: string }) {
                   {/* Assessment Patterns */}
                   {Object.keys(patterns).length > 0 && (
                     <div className="bg-gray-50 border border-[#E1E1E1] rounded-lg p-4 mb-8">
-                      <h3 className="text-[14px] font-bold text-[#2D3B45] mb-3">Assessment Patterns</h3>
+                      <h3 className="text-[16px] font-bold text-[#2D3B45] mb-3">Assessment Patterns</h3>
                       <div className="space-y-2">
                         {Object.entries(patterns).map(([pattern, count], idx) => (
-                          <div key={idx} className="flex items-center space-x-3 text-[13px]">
-                            <span className="bg-[#008EE2] text-white text-[11px] font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">{count}</span>
+                          <div key={idx} className="flex items-center space-x-3 text-[16px]">
+                            <span className="bg-[#008EE2] text-white text-[16px] font-bold rounded-full w-6 h-6 flex items-center justify-center shrink-0">{count}</span>
                             <span className="text-gray-600">
                               <span className="font-bold">{count} module{count > 1 ? 's' : ''}:</span> {pattern} = 100 pts
                             </span>
@@ -2920,11 +2920,11 @@ function CourseView({ courseId }: { courseId: string }) {
                           <div className="bg-gradient-to-r from-[#2D3B45] to-[#4A5568] rounded-lg p-6 mb-8 text-white">
                             <div className="flex items-center justify-between">
                               <div>
-                                <div className="text-[11px] uppercase tracking-wider opacity-70">Overall Course Grade</div>
+                                <div className="text-[16px] uppercase tracking-wider opacity-70">Overall Course Grade</div>
                                 <div className="text-5xl font-bold mt-1">{overallGrade.toFixed(1)}%</div>
                               </div>
                               <div className="text-right">
-                                <div className="text-[11px] uppercase tracking-wider opacity-70">Graded Modules</div>
+                                <div className="text-[16px] uppercase tracking-wider opacity-70">Graded Modules</div>
                                 <div className="text-2xl font-bold mt-1">{moduleGrades.filter(m => m.assignmentGrades.some((a: any) => a.score !== null)).length} / {moduleData.length}</div>
                               </div>
                             </div>
@@ -2934,7 +2934,7 @@ function CourseView({ courseId }: { courseId: string }) {
                         <h2 className="text-[18px] font-bold text-[#2D3B45] mb-4 border-b-2 border-[#008EE2] pb-2">
                           Module Grades
                         </h2>
-                        <table className="w-full border-collapse text-[13px] mb-10">
+                        <table className="w-full border-collapse text-[16px] mb-10">
                           <thead>
                             <tr className="bg-[#2D3B45] text-white">
                               <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-8">#</th>
@@ -2951,14 +2951,14 @@ function CourseView({ courseId }: { courseId: string }) {
                               const hasGrades = m.assignmentGrades.some((a: any) => a.score !== null);
                               return (
                                 <tr key={m.mod.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'} hover:bg-yellow-50/50`}>
-                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center text-gray-400 text-[12px]">{m.mod.position}</td>
-                                  <td className="border border-[#E1E1E1] px-3 py-2.5 font-bold text-[13px]">{m.mod.name}</td>
+                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center text-gray-400 text-[16px]">{m.mod.position}</td>
+                                  <td className="border border-[#E1E1E1] px-3 py-2.5 font-bold text-[16px]">{m.mod.name}</td>
                                   <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008EE2]">{m.weight}%</td>
                                   <td className="border border-[#E1E1E1] px-3 py-2.5">
                                     {m.assignmentGrades.map((a: any) => {
                                       const type = (a.title.split(' - ').pop() || '').trim();
                                       return (
-                                        <div key={a.id} className="flex items-center justify-between text-[12px] py-0.5">
+                                        <div key={a.id} className="flex items-center justify-between text-[16px] py-0.5">
                                           <span>{type}</span>
                                           <span className={`font-bold ${a.score !== null ? (a.score / a.points >= 0.7 ? 'text-green-600' : a.score / a.points >= 0.5 ? 'text-amber-600' : 'text-red-600') : 'text-gray-300'}`}>
                                             {a.score !== null ? `${a.score}/${a.points}` : `—/${a.points}`}
@@ -2983,7 +2983,7 @@ function CourseView({ courseId }: { courseId: string }) {
                             })}
                           </tbody>
                           <tfoot>
-                            <tr className="bg-[#2D3B45] text-white font-bold text-[13px]">
+                            <tr className="bg-[#2D3B45] text-white font-bold text-[16px]">
                               <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}>TOTAL</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalWeight.toFixed(2)}%</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalAssignments} assessments</td>
@@ -3006,12 +3006,12 @@ function CourseView({ courseId }: { courseId: string }) {
                         {/* Module header */}
                         <div className="bg-[#2D3B45] text-white px-4 py-3 flex items-center justify-between">
                           <div>
-                            <div className="font-bold text-[14px]">{m.mod.name}</div>
-                            <div className="text-[11px] opacity-70">{m.mod.hours ? `${m.mod.hours} hours` : ''}</div>
+                            <div className="font-bold text-[16px]">{m.mod.name}</div>
+                            <div className="text-[16px] opacity-70">{m.mod.hours ? `${m.mod.hours} hours` : ''}</div>
                           </div>
                           <div className="text-right">
                             <div className="text-[18px] font-bold text-[#4FC3F7]">{m.weight}%</div>
-                            <div className="text-[10px] opacity-70">weight</div>
+                            <div className="text-[16px] opacity-70">weight</div>
                           </div>
                         </div>
                         {/* Assessments */}
@@ -3023,18 +3023,18 @@ function CourseView({ courseId }: { courseId: string }) {
                               <div key={a.id} className={`px-4 py-2.5 flex items-center justify-between ${isTheory ? 'bg-red-50/30' : 'bg-blue-50/30'}`}>
                                 <div className="flex items-center space-x-2">
                                   <span className={`w-2.5 h-2.5 rounded-full ${isTheory ? 'bg-red-400' : 'bg-blue-400'}`} />
-                                  <span className="text-[13px] font-medium">{typeName}</span>
-                                  <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${isTheory ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                  <span className="text-[16px] font-medium">{typeName}</span>
+                                  <span className={`px-1.5 py-0.5 text-[16px] font-bold rounded ${isTheory ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
                                     {isTheory ? 'THEORY' : 'PRACTICAL'}
                                   </span>
                                 </div>
-                                <span className="text-[14px] font-bold">{a.points} pts</span>
+                                <span className="text-[16px] font-bold">{a.points} pts</span>
                               </div>
                             );
                           })}
                         </div>
                         {/* Module total bar */}
-                        <div className="bg-gray-100 px-4 py-2 flex items-center justify-between text-[12px]">
+                        <div className="bg-gray-100 px-4 py-2 flex items-center justify-between text-[16px]">
                           <div className="flex items-center space-x-4">
                             <span>Theory: <span className="font-bold text-red-700">{m.theoryPts}</span></span>
                             <span>Practical: <span className="font-bold text-blue-700">{m.practicalPts}</span></span>
@@ -3064,13 +3064,13 @@ function CourseView({ courseId }: { courseId: string }) {
                           Example: How Grade Calculation Works
                         </h2>
                         <div className="bg-[#F8F9FA] border border-[#E1E1E1] rounded-lg p-6 mb-8">
-                          <p className="text-[14px] text-gray-500 mb-5">
+                          <p className="text-[16px] text-gray-500 mb-5">
                             <span className="font-bold text-[#2D3B45]">{example.mod.name}</span> ({example.weight}% of course
                             {example.mod.hours && ` • ${example.mod.hours} hours`})
                             — This module has {example.assignments.length} items: {example.assignments.map((a: any) => `${a.title.split(' - ').pop()} (${a.points})`).join(' + ')}
                           </p>
 
-                          <table className="w-full border-collapse text-[14px] mb-5">
+                          <table className="w-full border-collapse text-[16px] mb-5">
                             <thead>
                               <tr className="bg-[#2D3B45] text-white">
                                 <th className="border border-[#3d4d5a] px-4 py-2.5 text-left font-medium">Assessment</th>
@@ -3090,7 +3090,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                       <span>{example.mod.name} - {a.typeName}</span>
                                     </td>
                                     <td className="border border-[#E1E1E1] px-4 py-2.5 text-center">
-                                      <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${isT ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{isT ? 'Theory' : 'Practical'}</span>
+                                      <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${isT ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>{isT ? 'Theory' : 'Practical'}</span>
                                     </td>
                                     <td className="border border-[#E1E1E1] px-4 py-2.5 text-center">{a.points}</td>
                                     <td className="border border-[#E1E1E1] px-4 py-2.5 text-center font-bold">{a.score} / {a.points}</td>
@@ -3124,24 +3124,24 @@ function CourseView({ courseId }: { courseId: string }) {
                           <div className="bg-white border-2 border-[#008EE2] rounded-lg p-5 mb-4">
                             <div className="flex items-center justify-center space-x-4 text-[16px] flex-wrap">
                               <div className="text-center px-3">
-                                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Module Score</div>
+                                <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Module Score</div>
                                 <div className="font-bold text-[20px]">{totalScore}/{example.totalPts}</div>
                               </div>
                               <span className="text-2xl text-gray-300">×</span>
                               <div className="text-center px-3">
-                                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Module Weight</div>
+                                <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Module Weight</div>
                                 <div className="font-bold text-[20px] text-[#008EE2]">{example.weight}%</div>
                               </div>
                               <span className="text-2xl text-gray-300">=</span>
                               <div className="text-center px-3">
-                                <div className="text-[10px] text-gray-400 uppercase tracking-wider mb-1">Contribution to Final Grade</div>
+                                <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Contribution to Final Grade</div>
                                 <div className="font-bold text-[24px] text-[#008744]">{contribution.toFixed(2)}%</div>
                               </div>
                             </div>
-                            <div className="text-center text-[12px] text-gray-400 mt-2">{modulePct.toFixed(0)}% × {example.weight}% = {contribution.toFixed(2)}%</div>
+                            <div className="text-center text-[16px] text-gray-400 mt-2">{modulePct.toFixed(0)}% × {example.weight}% = {contribution.toFixed(2)}%</div>
                           </div>
 
-                          <p className="text-[13px] text-gray-500">
+                          <p className="text-[16px] text-gray-500">
                             <span className="font-bold">Teacher enters:</span> {sampleScores.map((a: any) => a.score).join(', ')}.
                             Canvas adds them ({totalScore}/{example.totalPts}), then applies {example.weight}% weight.
                             Student's overall course grade = sum of contributions from all {moduleData.length} modules.
@@ -3152,7 +3152,7 @@ function CourseView({ courseId }: { courseId: string }) {
                   })()}
 
                   {/* Legend */}
-                  <div className="flex items-center space-x-8 text-[13px] text-gray-600 mb-4">
+                  <div className="flex items-center space-x-8 text-[16px] text-gray-600 mb-4">
                     <div className="flex items-center space-x-2"><span className="w-4 h-4 rounded bg-red-50 border border-red-200" /><span><span className="font-bold">Theory:</span> Final, Quiz, Midterm, Exam</span></div>
                     <div className="flex items-center space-x-2"><span className="w-4 h-4 rounded bg-blue-50 border border-blue-200" /><span><span className="font-bold">Practical:</span> Assignment, Participation</span></div>
                   </div>
@@ -3162,7 +3162,7 @@ function CourseView({ courseId }: { courseId: string }) {
           ) : activeSection === 'Syllabus' ? (
             <div className="max-w-6xl">
               <h1 className="text-[28px] font-medium text-[#2D3B45] mb-2">{course.name} — Syllabus</h1>
-              <p className="text-[14px] text-gray-500 mb-6">{course.description || ''}</p>
+              <p className="text-[16px] text-gray-500 mb-6">{course.description || ''}</p>
 
               {/* Course Overview */}
               <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
@@ -3172,15 +3172,15 @@ function CourseView({ courseId }: { courseId: string }) {
                 <div className="p-6">
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     <div className="bg-[#F5F5F5] rounded-lg p-4 text-center">
-                      <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-1">Total Modules</div>
+                      <div className="text-[16px] uppercase tracking-wider text-gray-500 mb-1">Total Modules</div>
                       <div className="text-2xl font-bold text-[#2D3B45]">{course.modules?.length || 0}</div>
                     </div>
                     <div className="bg-[#F5F5F5] rounded-lg p-4 text-center">
-                      <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-1">Total Hours</div>
+                      <div className="text-[16px] uppercase tracking-wider text-gray-500 mb-1">Total Hours</div>
                       <div className="text-2xl font-bold text-[#2D3B45]">{(course.modules || []).reduce((s: number, m: any) => s + (m.hours || 0), 0).toLocaleString()}</div>
                     </div>
                     <div className="bg-[#F5F5F5] rounded-lg p-4 text-center">
-                      <div className="text-[11px] uppercase tracking-wider text-gray-500 mb-1">Total Assessments</div>
+                      <div className="text-[16px] uppercase tracking-wider text-gray-500 mb-1">Total Assessments</div>
                       <div className="text-2xl font-bold text-[#2D3B45]">{course.assignments?.length || 0}</div>
                     </div>
                   </div>
@@ -3223,8 +3223,8 @@ function CourseView({ courseId }: { courseId: string }) {
                           <td className="px-6 py-3">
                             <div className="flex items-center space-x-2">
                               <span className="font-medium text-[#2D3B45]">{mod.name}</span>
-                              {status === 'current' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#008EE2] text-white animate-pulse">CURRENT</span>}
-                              {status === 'completed' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700">DONE</span>}
+                              {status === 'current' && <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-[#008EE2] text-white animate-pulse">CURRENT</span>}
+                              {status === 'completed' && <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-green-100 text-green-700">DONE</span>}
                             </div>
                           </td>
                           <td className="px-6 py-3 text-center font-bold text-[#008EE2]">{mod.weight ? `${mod.weight}%` : '—'}</td>
@@ -3236,7 +3236,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                 {modAssignments.map((a: any) => {
                                   const type = (a.title.split(' - ').pop() || '').trim();
                                   return (
-                                    <span key={a.id} className={`px-2 py-0.5 text-[10px] font-medium rounded ${
+                                    <span key={a.id} className={`px-2 py-0.5 text-[16px] font-medium rounded ${
                                       /Final/i.test(type) ? 'bg-red-100 text-red-700' :
                                       /Midterm/i.test(type) ? 'bg-amber-100 text-amber-700' :
                                       /Quiz/i.test(type) ? 'bg-purple-100 text-purple-700' :
@@ -3248,7 +3248,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                   );
                                 })}
                               </div>
-                            ) : <span className="text-gray-400 text-[12px]">—</span>}
+                            ) : <span className="text-gray-400 text-[16px]">—</span>}
                           </td>
                         </tr>
                       );
@@ -3292,7 +3292,7 @@ function CourseView({ courseId }: { courseId: string }) {
                           'bg-gray-50 border border-gray-200'
                         }`}>
                           <div className="text-xl font-bold">{count}</div>
-                          <div className="text-[11px] text-gray-600">{type}</div>
+                          <div className="text-[16px] text-gray-600">{type}</div>
                         </div>
                       ));
                     })()}
@@ -3307,31 +3307,31 @@ function CourseView({ courseId }: { courseId: string }) {
               {/* Course Details */}
               <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
                 <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Course Details</h2>
+                  <h2 className="font-bold text-[16px] text-[#2D3B45]">Course Details</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Course Name</label>
-                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.name}</p>
+                      <label className="text-[16px] font-bold text-gray-500 uppercase tracking-wider">Course Name</label>
+                      <p className="text-[16px] text-[#2D3B45] mt-1">{course.name}</p>
                     </div>
                     <div>
-                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Course Code (SIS ID)</label>
-                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.code}</p>
+                      <label className="text-[16px] font-bold text-gray-500 uppercase tracking-wider">Course Code (SIS ID)</label>
+                      <p className="text-[16px] text-[#2D3B45] mt-1">{course.code}</p>
                     </div>
                     <div>
-                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Term</label>
-                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.term || 'Default Term'}</p>
+                      <label className="text-[16px] font-bold text-gray-500 uppercase tracking-wider">Term</label>
+                      <p className="text-[16px] text-[#2D3B45] mt-1">{course.term || 'Default Term'}</p>
                     </div>
                     <div>
-                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Sub-Account</label>
-                      <p className="text-[15px] text-[#2D3B45] mt-1">{course.subAccount || 'TAHA College'}</p>
+                      <label className="text-[16px] font-bold text-gray-500 uppercase tracking-wider">Sub-Account</label>
+                      <p className="text-[16px] text-[#2D3B45] mt-1">{course.subAccount || 'TAHA College'}</p>
                     </div>
                   </div>
                   {course.description && (
                     <div>
-                      <label className="text-[12px] font-bold text-gray-500 uppercase tracking-wider">Description</label>
-                      <p className="text-[14px] text-gray-600 mt-1">{course.description}</p>
+                      <label className="text-[16px] font-bold text-gray-500 uppercase tracking-wider">Description</label>
+                      <p className="text-[16px] text-gray-600 mt-1">{course.description}</p>
                     </div>
                   )}
                 </div>
@@ -3340,38 +3340,38 @@ function CourseView({ courseId }: { courseId: string }) {
               {/* Grading Configuration */}
               <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
                 <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Grading</h2>
+                  <h2 className="font-bold text-[16px] text-[#2D3B45]">Grading</h2>
                 </div>
                 <div className="p-6 space-y-4">
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
                     <div>
-                      <p className="text-[14px] font-medium text-[#2D3B45]">Weighted Assignment Groups</p>
-                      <p className="text-[12px] text-gray-500">Weight final grade based on assignment groups (modules)</p>
+                      <p className="text-[16px] font-medium text-[#2D3B45]">Weighted Assignment Groups</p>
+                      <p className="text-[16px] text-gray-500">Weight final grade based on assignment groups (modules)</p>
                     </div>
-                    <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">Enabled</span>
+                    <span className="px-3 py-1 text-[16px] font-bold rounded-full bg-green-100 text-green-700">Enabled</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
                     <div>
-                      <p className="text-[14px] font-medium text-[#2D3B45]">Total Modules</p>
-                      <p className="text-[12px] text-gray-500">Number of assignment groups</p>
+                      <p className="text-[16px] font-medium text-[#2D3B45]">Total Modules</p>
+                      <p className="text-[16px] text-gray-500">Number of assignment groups</p>
                     </div>
-                    <span className="text-[14px] font-bold text-[#2D3B45]">{course.modules?.length || 0}</span>
+                    <span className="text-[16px] font-bold text-[#2D3B45]">{course.modules?.length || 0}</span>
                   </div>
                   <div className="flex items-center justify-between py-2 border-b border-gray-100">
                     <div>
-                      <p className="text-[14px] font-medium text-[#2D3B45]">Total Weight</p>
-                      <p className="text-[12px] text-gray-500">Sum of all module weights (should equal 100%)</p>
+                      <p className="text-[16px] font-medium text-[#2D3B45]">Total Weight</p>
+                      <p className="text-[16px] text-gray-500">Sum of all module weights (should equal 100%)</p>
                     </div>
-                    <span className={`text-[14px] font-bold ${Math.abs((course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0) - 100) < 1 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`text-[16px] font-bold ${Math.abs((course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0) - 100) < 1 ? 'text-green-600' : 'text-red-600'}`}>
                       {(course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0).toFixed(2)}%
                     </span>
                   </div>
                   <div className="flex items-center justify-between py-2">
                     <div>
-                      <p className="text-[14px] font-medium text-[#2D3B45]">Points per Module</p>
-                      <p className="text-[12px] text-gray-500">Each module's assessments total 100 points</p>
+                      <p className="text-[16px] font-medium text-[#2D3B45]">Points per Module</p>
+                      <p className="text-[16px] text-gray-500">Each module's assessments total 100 points</p>
                     </div>
-                    <span className="text-[14px] font-bold text-[#2D3B45]">100 pts</span>
+                    <span className="text-[16px] font-bold text-[#2D3B45]">100 pts</span>
                   </div>
                 </div>
               </div>
@@ -3379,25 +3379,25 @@ function CourseView({ courseId }: { courseId: string }) {
               {/* Course Statistics */}
               <div className="border border-[#E1E1E1] rounded-lg overflow-hidden mb-6">
                 <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Course Statistics</h2>
+                  <h2 className="font-bold text-[16px] text-[#2D3B45]">Course Statistics</h2>
                 </div>
                 <div className="p-6">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="bg-[#008EE2]/10 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-[#008EE2]">{course.enrollments?.filter((e: any) => e.role === 'STUDENT').length || 0}</div>
-                      <div className="text-[11px] text-gray-500 mt-1">Students</div>
+                      <div className="text-[16px] text-gray-500 mt-1">Students</div>
                     </div>
                     <div className="bg-[#2D3B45]/10 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-[#2D3B45]">{course.enrollments?.filter((e: any) => e.role === 'TEACHER').length || 0}</div>
-                      <div className="text-[11px] text-gray-500 mt-1">Teachers</div>
+                      <div className="text-[16px] text-gray-500 mt-1">Teachers</div>
                     </div>
                     <div className="bg-[#008744]/10 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-[#008744]">{course.assignments?.length || 0}</div>
-                      <div className="text-[11px] text-gray-500 mt-1">Assignments</div>
+                      <div className="text-[16px] text-gray-500 mt-1">Assignments</div>
                     </div>
                     <div className="bg-[#C23C2D]/10 rounded-lg p-4 text-center">
                       <div className="text-2xl font-bold text-[#C23C2D]">{(course.modules || []).reduce((s: number, m: any) => s + (m.hours || 0), 0)}</div>
-                      <div className="text-[11px] text-gray-500 mt-1">Total Hours</div>
+                      <div className="text-[16px] text-gray-500 mt-1">Total Hours</div>
                     </div>
                   </div>
                 </div>
@@ -3406,15 +3406,15 @@ function CourseView({ courseId }: { courseId: string }) {
               {/* Navigation Visibility */}
               <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                 <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                  <h2 className="font-bold text-[15px] text-[#2D3B45]">Navigation</h2>
+                  <h2 className="font-bold text-[16px] text-[#2D3B45]">Navigation</h2>
                 </div>
                 <div className="p-6">
-                  <p className="text-[13px] text-gray-500 mb-4">Course navigation items visible to students and teachers.</p>
+                  <p className="text-[16px] text-gray-500 mb-4">Course navigation items visible to students and teachers.</p>
                   <div className="grid grid-cols-3 gap-2">
                     {['Home', 'Announcements', 'Assignments', 'Grades', 'People', 'Pages', 'Files', 'Syllabus', 'Quizzes', 'Modules'].map(item => (
                       <div key={item} className="flex items-center space-x-2 px-3 py-2 bg-[#F5F5F5] rounded">
                         <Check size={14} className="text-green-600" />
-                        <span className="text-[13px] text-[#2D3B45]">{item}</span>
+                        <span className="text-[16px] text-[#2D3B45]">{item}</span>
                       </div>
                     ))}
                   </div>
@@ -3615,7 +3615,7 @@ function CalendarView() {
                       const isSchedule = evt.type === 'schedule' || evt.title.includes('WINTER BREAK');
                       return (
                         <div key={`${evt.id}-${j}`}
-                          className="text-[10px] leading-tight px-1.5 py-0.5 rounded truncate cursor-default"
+                          className="text-[16px] leading-tight px-1.5 py-0.5 rounded truncate cursor-default"
                           style={{
                             backgroundColor: isSchedule ? color : 'transparent',
                             color: isSchedule ? '#fff' : color,
@@ -3627,7 +3627,7 @@ function CalendarView() {
                       );
                     })}
                     {dayEvents.length > 3 && (
-                      <div className="text-[10px] text-gray-400 pl-1.5">+{dayEvents.length - 3} more</div>
+                      <div className="text-[16px] text-gray-400 pl-1.5">+{dayEvents.length - 3} more</div>
                     )}
                   </div>
                 </div>
@@ -3640,7 +3640,7 @@ function CalendarView() {
         <aside className="w-[280px] border-l border-[#E1E1E1] overflow-y-auto bg-[#FAFAFA] shrink-0">
           <div className="p-4 border-b border-[#E1E1E1]">
             <h3 className="text-sm font-bold text-[#2D3B45]">Module Schedule</h3>
-            <p className="text-[11px] text-gray-400 mt-0.5">{monthName}</p>
+            <p className="text-[16px] text-gray-400 mt-0.5">{monthName}</p>
           </div>
           {monthSchedule.length === 0 ? (
             <div className="p-6 text-center text-sm text-gray-400">No modules this month</div>
@@ -3655,15 +3655,15 @@ function CalendarView() {
                   <div key={evt.id} className="p-3 hover:bg-white transition-colors">
                     <div className="flex items-center space-x-2 mb-1">
                       <div className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: color }} />
-                      <span className="text-[12px] font-semibold text-[#2D3B45] truncate">{moduleName}</span>
+                      <span className="text-[16px] font-semibold text-[#2D3B45] truncate">{moduleName}</span>
                     </div>
                     <div className="pl-[18px]">
-                      <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded ${
+                      <span className={`text-[16px] font-medium px-1.5 py-0.5 rounded ${
                         evt.track === 'Weekday' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
                       }`}>
                         {evt.track}
                       </span>
-                      <span className="text-[11px] text-gray-400 ml-2">
+                      <span className="text-[16px] text-gray-400 ml-2">
                         {startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         {' — '}
                         {endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
@@ -3713,17 +3713,17 @@ function InboxView() {
             <div key={msg.id} onClick={() => setSelectedIdx(idx)}
               className={`p-4 border-b border-[#E1E1E1] cursor-pointer ${idx === selectedIdx ? 'bg-[#E8F4FB]' : 'hover:bg-gray-50'}`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[11px] text-[#008EE2] font-medium">
+                <span className="text-[16px] text-[#008EE2] font-medium">
                   {new Date(msg.createdAt).toLocaleDateString()}
                 </span>
-                {!msg.read && <span className="bg-[#2D3B45] text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">!</span>}
+                {!msg.read && <span className="bg-[#2D3B45] text-white text-[16px] font-bold rounded-full w-5 h-5 flex items-center justify-center">!</span>}
               </div>
               <div className="flex items-start space-x-3">
                 {!msg.read && <div className="w-3 h-3 bg-[#008EE2] rounded-full mt-1.5 shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <h4 className="text-sm font-bold text-[#2D3B45] truncate">{msg.sender.firstName} {msg.sender.lastName}</h4>
-                  <p className="text-[13px] text-[#2D3B45] font-medium truncate mt-0.5">{msg.subject}</p>
-                  <p className="text-[12px] text-gray-500 truncate mt-0.5">{msg.body.slice(0, 50)}...</p>
+                  <p className="text-[16px] text-[#2D3B45] font-medium truncate mt-0.5">{msg.subject}</p>
+                  <p className="text-[16px] text-gray-500 truncate mt-0.5">{msg.body.slice(0, 50)}...</p>
                 </div>
               </div>
             </div>
@@ -3743,11 +3743,11 @@ function InboxView() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
-                      <h3 className="font-bold text-[15px] text-[#2D3B45]">{selected.sender.firstName} {selected.sender.lastName}</h3>
-                      <span className="text-[13px] text-gray-500">{new Date(selected.createdAt).toLocaleString()}</span>
+                      <h3 className="font-bold text-[16px] text-[#2D3B45]">{selected.sender.firstName} {selected.sender.lastName}</h3>
+                      <span className="text-[16px] text-gray-500">{new Date(selected.createdAt).toLocaleString()}</span>
                     </div>
-                    {selected.course && <p className="text-[13px] text-gray-500 mt-0.5">{selected.course.name}</p>}
-                    <div className="mt-8 text-[15px] text-[#2D3B45] leading-relaxed whitespace-pre-wrap">{selected.body}</div>
+                    {selected.course && <p className="text-[16px] text-gray-500 mt-0.5">{selected.course.name}</p>}
+                    <div className="mt-8 text-[16px] text-[#2D3B45] leading-relaxed whitespace-pre-wrap">{selected.body}</div>
                   </div>
                 </div>
               </div>
@@ -3799,17 +3799,17 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
   const getStatusBadge = (a: any) => {
     if (user.role === 'STUDENT') {
       const sub = a.submissions?.find((s: any) => s.studentId === user.id);
-      if (!sub || sub.status === 'MISSING') return <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600">MISSING</span>;
-      if (sub.status === 'SUBMITTED') return <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>;
-      if (sub.status === 'GRADED') return <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700">GRADED ({sub.score}/{a.points})</span>;
+      if (!sub || sub.status === 'MISSING') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-red-100 text-red-600">MISSING</span>;
+      if (sub.status === 'SUBMITTED') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>;
+      if (sub.status === 'GRADED') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-green-100 text-green-700">GRADED ({sub.score}/{a.points})</span>;
     }
     if (user.role === 'TEACHER' || user.role === 'ADMIN') {
       const total = a.submissions?.length || 0;
       const needsGrading = a.submissions?.filter((s: any) => s.status === 'SUBMITTED').length || 0;
       return (
         <div className="flex items-center space-x-2">
-          <span className="text-[12px] text-gray-500">{total} submitted</span>
-          {needsGrading > 0 && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-amber-100 text-amber-700">{needsGrading} to grade</span>}
+          <span className="text-[16px] text-gray-500">{total} submitted</span>
+          {needsGrading > 0 && <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-amber-100 text-amber-700">{needsGrading} to grade</span>}
         </div>
       );
     }
@@ -3839,8 +3839,8 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
                     <h2 className="text-lg font-bold text-[#2D3B45] cursor-pointer hover:underline" onClick={() => onSelectCourse(course.id)}>
                       {course.name}
                     </h2>
-                    <span className="text-[12px] text-gray-400">{course.code}</span>
-                    <span className="text-[12px] text-gray-400 ml-auto">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</span>
+                    <span className="text-[16px] text-gray-400">{course.code}</span>
+                    <span className="text-[16px] text-gray-400 ml-auto">{assignments.length} assignment{assignments.length !== 1 ? 's' : ''}</span>
                   </div>
 
                   {/* Assignment Rows */}
@@ -3853,8 +3853,8 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
                             onClick={() => onSelectCourse(course.id)}>
                             <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={18} /></div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-[14px] text-[#2D3B45] group-hover:underline truncate">{a.title}</h4>
-                              <p className="text-[12px] text-gray-500 mt-0.5">
+                              <h4 className="font-bold text-[16px] text-[#2D3B45] group-hover:underline truncate">{a.title}</h4>
+                              <p className="text-[16px] text-gray-500 mt-0.5">
                                 {a.points} pts
                                 {a.dueDate && (
                                   <span className={isPastDue ? 'text-red-500 font-medium' : ''}>
@@ -3931,7 +3931,7 @@ export default function App() {
                 <span className="text-white text-sm font-bold">{user!.firstName[0]}{user!.lastName[0]}</span>
               </div>
             </div>
-            <span className="text-[11px] mt-1 font-medium">Account</span>
+            <span className="text-[16px] mt-1 font-medium">Account</span>
             {isAccountDrawerOpen && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#008EE2]" />}
           </div>
 
@@ -4038,7 +4038,7 @@ export default function App() {
                     className="text-[#008EE2] text-sm font-medium hover:underline leading-tight text-left">
                     {course.name}
                   </button>
-                  <span className="text-[11px] text-gray-500 mt-1 block">{course.code}</span>
+                  <span className="text-[16px] text-gray-500 mt-1 block">{course.code}</span>
                 </div>
               ))}
             </div>
@@ -4086,7 +4086,7 @@ export default function App() {
                 {/* Profile Settings */}
                 <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                   <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Profile</h2>
+                    <h2 className="font-bold text-[16px] text-[#2D3B45]">Profile</h2>
                   </div>
                   <div className="p-6">
                     <div className="flex items-center space-x-6 mb-6">
@@ -4096,7 +4096,7 @@ export default function App() {
                       <div>
                         <h3 className="text-xl font-bold text-[#2D3B45]">{user!.firstName} {user!.lastName}</h3>
                         <p className="text-sm text-gray-500">{user!.email}</p>
-                        <span className={`inline-block mt-1 px-2 py-0.5 text-[11px] font-bold rounded-full ${userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userRole === 'TEACHER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{userRole}</span>
+                        <span className={`inline-block mt-1 px-2 py-0.5 text-[16px] font-bold rounded-full ${userRole === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userRole === 'TEACHER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{userRole}</span>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -4110,7 +4110,7 @@ export default function App() {
                 {/* Notification Preferences */}
                 <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                   <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Notification Preferences</h2>
+                    <h2 className="font-bold text-[16px] text-[#2D3B45]">Notification Preferences</h2>
                   </div>
                   <div className="p-6 space-y-3">
                     {[
@@ -4123,10 +4123,10 @@ export default function App() {
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                         <div>
-                          <p className="text-[14px] font-medium text-[#2D3B45]">{item.label}</p>
-                          <p className="text-[12px] text-gray-500">{item.desc}</p>
+                          <p className="text-[16px] font-medium text-[#2D3B45]">{item.label}</p>
+                          <p className="text-[16px] text-gray-500">{item.desc}</p>
                         </div>
-                        <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">On</span>
+                        <span className="px-3 py-1 text-[16px] font-bold rounded-full bg-green-100 text-green-700">On</span>
                       </div>
                     ))}
                   </div>
@@ -4135,13 +4135,13 @@ export default function App() {
                 {/* Display Settings */}
                 <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                   <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Display Settings</h2>
+                    <h2 className="font-bold text-[16px] text-[#2D3B45]">Display Settings</h2>
                   </div>
                   <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[14px] font-medium text-[#2D3B45]">High Contrast Mode</p>
-                        <p className="text-[12px] text-gray-500">Increase contrast for better readability</p>
+                        <p className="text-[16px] font-medium text-[#2D3B45]">High Contrast Mode</p>
+                        <p className="text-[16px] text-gray-500">Increase contrast for better readability</p>
                       </div>
                       <button onClick={() => setHighContrast(!highContrast)}
                         className={`w-12 h-6 rounded-full transition-colors ${highContrast ? 'bg-[#008EE2]' : 'bg-gray-300'}`}>
@@ -4150,8 +4150,8 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[14px] font-medium text-[#2D3B45]">Dyslexia-Friendly Font</p>
-                        <p className="text-[12px] text-gray-500">Use a monospace font for easier reading</p>
+                        <p className="text-[16px] font-medium text-[#2D3B45]">Dyslexia-Friendly Font</p>
+                        <p className="text-[16px] text-gray-500">Use a monospace font for easier reading</p>
                       </div>
                       <button onClick={() => setDyslexiaFont(!dyslexiaFont)}
                         className={`w-12 h-6 rounded-full transition-colors ${dyslexiaFont ? 'bg-[#008EE2]' : 'bg-gray-300'}`}>
@@ -4160,17 +4160,17 @@ export default function App() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[14px] font-medium text-[#2D3B45]">Language</p>
-                        <p className="text-[12px] text-gray-500">Interface language</p>
+                        <p className="text-[16px] font-medium text-[#2D3B45]">Language</p>
+                        <p className="text-[16px] text-gray-500">Interface language</p>
                       </div>
-                      <span className="text-[14px] font-medium text-[#2D3B45]">English (EN)</span>
+                      <span className="text-[16px] font-medium text-[#2D3B45]">English (EN)</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[14px] font-medium text-[#2D3B45]">Time Zone</p>
-                        <p className="text-[12px] text-gray-500">Used for due dates and scheduling</p>
+                        <p className="text-[16px] font-medium text-[#2D3B45]">Time Zone</p>
+                        <p className="text-[16px] text-gray-500">Used for due dates and scheduling</p>
                       </div>
-                      <span className="text-[14px] font-medium text-[#2D3B45]">Eastern Time (ET)</span>
+                      <span className="text-[16px] font-medium text-[#2D3B45]">Eastern Time (ET)</span>
                     </div>
                   </div>
                 </div>
@@ -4179,7 +4179,7 @@ export default function App() {
                 {userRole === 'ADMIN' && (
                   <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                     <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                      <h2 className="font-bold text-[15px] text-[#2D3B45]">Administration</h2>
+                      <h2 className="font-bold text-[16px] text-[#2D3B45]">Administration</h2>
                     </div>
                     <div className="p-6 space-y-3">
                       {[
@@ -4190,10 +4190,10 @@ export default function App() {
                       ].map((item, i) => (
                         <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                           <div>
-                            <p className="text-[14px] font-medium text-[#2D3B45]">{item.label}</p>
-                            <p className="text-[12px] text-gray-500">{item.desc}</p>
+                            <p className="text-[16px] font-medium text-[#2D3B45]">{item.label}</p>
+                            <p className="text-[16px] text-gray-500">{item.desc}</p>
                           </div>
-                          <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">Enabled</span>
+                          <span className="px-3 py-1 text-[16px] font-bold rounded-full bg-green-100 text-green-700">Enabled</span>
                         </div>
                       ))}
                     </div>
@@ -4204,7 +4204,7 @@ export default function App() {
                 {userRole === 'TEACHER' && (
                   <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                     <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                      <h2 className="font-bold text-[15px] text-[#2D3B45]">Teaching Preferences</h2>
+                      <h2 className="font-bold text-[16px] text-[#2D3B45]">Teaching Preferences</h2>
                     </div>
                     <div className="p-6 space-y-3">
                       {[
@@ -4215,10 +4215,10 @@ export default function App() {
                       ].map((item, i) => (
                         <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
                           <div>
-                            <p className="text-[14px] font-medium text-[#2D3B45]">{item.label}</p>
-                            <p className="text-[12px] text-gray-500">{item.desc}</p>
+                            <p className="text-[16px] font-medium text-[#2D3B45]">{item.label}</p>
+                            <p className="text-[16px] text-gray-500">{item.desc}</p>
                           </div>
-                          <span className="px-3 py-1 text-[12px] font-bold rounded-full bg-green-100 text-green-700">On</span>
+                          <span className="px-3 py-1 text-[16px] font-bold rounded-full bg-green-100 text-green-700">On</span>
                         </div>
                       ))}
                     </div>
@@ -4278,7 +4278,7 @@ export default function App() {
                             <div className="w-8 h-8 rounded-full bg-[#008EE2] text-white flex items-center justify-center font-bold shrink-0">5</div>
                             <div>
                               <h3 className="font-bold text-[#2D3B45] mb-1">Check your Status</h3>
-                              <p className="text-sm text-gray-600">After submission, your status will show as <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>. Once your teacher grades it, it will change to <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700">GRADED</span> with your score and feedback.</p>
+                              <p className="text-sm text-gray-600">After submission, your status will show as <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>. Once your teacher grades it, it will change to <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-green-100 text-green-700">GRADED</span> with your score and feedback.</p>
                             </div>
                           </div>
                         </div>
@@ -4332,10 +4332,10 @@ export default function App() {
                               <h3 className="font-bold text-[#2D3B45] mb-1">Choose the Format</h3>
                               <p className="text-sm text-gray-600">Select the assignment format:</p>
                               <div className="mt-2 space-y-2">
-                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-gray-200 text-gray-700">FILE</span><span className="text-sm text-gray-600">Students upload a PDF/document</span></div>
-                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-[#008EE2] text-white">MCQ</span><span className="text-sm text-gray-600">Multiple choice questions — auto-graded</span></div>
-                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-purple-600 text-white">THEORY</span><span className="text-sm text-gray-600">Open-ended text answers — manual grading</span></div>
-                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500 text-white">MIXED</span><span className="text-sm text-gray-600">Both MCQ and theory questions</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[16px] font-bold rounded bg-gray-200 text-gray-700">FILE</span><span className="text-sm text-gray-600">Students upload a PDF/document</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[16px] font-bold rounded bg-[#008EE2] text-white">MCQ</span><span className="text-sm text-gray-600">Multiple choice questions — auto-graded</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[16px] font-bold rounded bg-purple-600 text-white">THEORY</span><span className="text-sm text-gray-600">Open-ended text answers — manual grading</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[16px] font-bold rounded bg-amber-500 text-white">MIXED</span><span className="text-sm text-gray-600">Both MCQ and theory questions</span></div>
                               </div>
                             </div>
                           </div>
@@ -4403,7 +4403,7 @@ export default function App() {
                 {/* Contact Support */}
                 <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
                   <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
-                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Need More Help?</h2>
+                    <h2 className="font-bold text-[16px] text-[#2D3B45]">Need More Help?</h2>
                   </div>
                   <div className="p-6 text-sm text-gray-600">
                     <p>If you're experiencing issues or have questions not covered here, please contact the IT support team:</p>
@@ -4424,7 +4424,7 @@ export default function App() {
         )}
 
         {/* Footer */}
-        <footer className="h-16 border-t border-[#E1E1E1] flex items-center justify-between px-8 bg-white text-[11px] text-gray-500 shrink-0">
+        <footer className="h-16 border-t border-[#E1E1E1] flex items-center justify-between px-8 bg-white text-[16px] text-gray-500 shrink-0">
           <div className="flex items-center space-x-4">
             <img src="/taha-logo-full.png" alt="TAHA College" className="h-8 w-auto" />
           </div>
