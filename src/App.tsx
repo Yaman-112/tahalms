@@ -4176,6 +4176,195 @@ export default function App() {
               </div>
             </div>
           </div>
+        ) : activeTab === 'Help' ? (
+          <div className="flex-1 flex flex-col overflow-hidden bg-white">
+            <header className="h-16 border-b border-[#E1E1E1] flex items-center px-8 bg-white shrink-0">
+              <h1 className="text-3xl font-bold tracking-tight">Help Center</h1>
+            </header>
+            <div className="flex-1 overflow-y-auto p-8">
+              <div className="max-w-4xl mx-auto space-y-8">
+
+                {/* Student Help */}
+                {(userRole === 'STUDENT' || userRole === 'ADMIN') && (
+                  <>
+                    <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                      <div className="bg-[#008EE2] text-white px-6 py-4">
+                        <h2 className="text-lg font-bold">How to Submit an Assignment</h2>
+                      </div>
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008EE2] text-white flex items-center justify-center font-bold shrink-0">1</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Navigate to your Course</h3>
+                              <p className="text-sm text-gray-600">Click on <strong>Courses</strong> in the sidebar, then select your course from the list.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008EE2] text-white flex items-center justify-center font-bold shrink-0">2</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Go to Assignments</h3>
+                              <p className="text-sm text-gray-600">Click the <strong>Assignments</strong> tab in the left course navigation menu.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008EE2] text-white flex items-center justify-center font-bold shrink-0">3</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Select the Assignment</h3>
+                              <p className="text-sm text-gray-600">Click on the assignment you want to submit. You'll see the assignment details, instructions, and any attached documents.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008EE2] text-white flex items-center justify-center font-bold shrink-0">4</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Submit your Work</h3>
+                              <p className="text-sm text-gray-600"><strong>For File-based assignments:</strong> Click "Choose File", select your PDF or document, add an optional comment, and click <strong>Submit</strong>.</p>
+                              <p className="text-sm text-gray-600 mt-2"><strong>For MCQ/Quiz assignments:</strong> Read each question, select your answer from the options, and click <strong>Submit Answers</strong> when done. MCQ quizzes are auto-graded instantly.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008EE2] text-white flex items-center justify-center font-bold shrink-0">5</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Check your Status</h3>
+                              <p className="text-sm text-gray-600">After submission, your status will show as <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>. Once your teacher grades it, it will change to <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700">GRADED</span> with your score and feedback.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                      <div className="bg-[#2D3B45] text-white px-6 py-4">
+                        <h2 className="text-lg font-bold">Tips for Students</h2>
+                      </div>
+                      <div className="p-6">
+                        <ul className="space-y-3 text-sm text-gray-600">
+                          <li className="flex items-start space-x-2"><Check size={16} className="text-green-600 shrink-0 mt-0.5" /><span>Check the <strong>due date</strong> before starting — late submissions are marked accordingly.</span></li>
+                          <li className="flex items-start space-x-2"><Check size={16} className="text-green-600 shrink-0 mt-0.5" /><span>For file uploads, only <strong>PDF, DOC, and DOCX</strong> formats are accepted.</span></li>
+                          <li className="flex items-start space-x-2"><Check size={16} className="text-green-600 shrink-0 mt-0.5" /><span>For timed quizzes, keep an eye on the <strong>countdown timer</strong> — the quiz auto-submits when time runs out.</span></li>
+                          <li className="flex items-start space-x-2"><Check size={16} className="text-green-600 shrink-0 mt-0.5" /><span>You can <strong>resubmit</strong> file-based assignments before they are graded.</span></li>
+                          <li className="flex items-start space-x-2"><Check size={16} className="text-green-600 shrink-0 mt-0.5" /><span>Check the <strong>Syllabus</strong> tab for the full course schedule and module breakdown.</span></li>
+                          <li className="flex items-start space-x-2"><Check size={16} className="text-green-600 shrink-0 mt-0.5" /><span>Your <strong>Dashboard</strong> shows your course progress and current module.</span></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Teacher Help */}
+                {(userRole === 'TEACHER' || userRole === 'ADMIN') && (
+                  <>
+                    <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                      <div className="bg-[#008744] text-white px-6 py-4">
+                        <h2 className="text-lg font-bold">How to Create Assignments & Questions</h2>
+                      </div>
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008744] text-white flex items-center justify-center font-bold shrink-0">1</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Go to your Course</h3>
+                              <p className="text-sm text-gray-600">Click <strong>Courses</strong> in the sidebar, then select the course you want to add an assignment to.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008744] text-white flex items-center justify-center font-bold shrink-0">2</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Click "New Assignment"</h3>
+                              <p className="text-sm text-gray-600">In the <strong>Assignments</strong> tab, click the blue <strong>+ New Assignment</strong> button in the top right.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008744] text-white flex items-center justify-center font-bold shrink-0">3</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Choose the Format</h3>
+                              <p className="text-sm text-gray-600">Select the assignment format:</p>
+                              <div className="mt-2 space-y-2">
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-gray-200 text-gray-700">FILE</span><span className="text-sm text-gray-600">Students upload a PDF/document</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-[#008EE2] text-white">MCQ</span><span className="text-sm text-gray-600">Multiple choice questions — auto-graded</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-purple-600 text-white">THEORY</span><span className="text-sm text-gray-600">Open-ended text answers — manual grading</span></div>
+                                <div className="flex items-center space-x-2"><span className="px-2 py-0.5 text-[10px] font-bold rounded bg-amber-500 text-white">MIXED</span><span className="text-sm text-gray-600">Both MCQ and theory questions</span></div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008744] text-white flex items-center justify-center font-bold shrink-0">4</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Add Questions (MCQ/Theory/Mixed)</h3>
+                              <p className="text-sm text-gray-600">Use the question builder to add questions:</p>
+                              <ul className="mt-2 text-sm text-gray-600 space-y-1 list-disc list-inside">
+                                <li>Click <strong>"+ Add MCQ"</strong> or <strong>"+ Add Theory"</strong></li>
+                                <li>Type the question text and set points</li>
+                                <li>For MCQ: add 2-6 options and mark the correct answer</li>
+                                <li>For Theory: optionally set a word limit</li>
+                                <li>Use the arrow buttons to reorder questions</li>
+                                <li>Add an explanation (shown to students after grading)</li>
+                              </ul>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#008744] text-white flex items-center justify-center font-bold shrink-0">5</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Configure & Publish</h3>
+                              <p className="text-sm text-gray-600">Set optional settings like <strong>time limit</strong>, <strong>negative marking</strong>, <strong>shuffle questions</strong>, and <strong>show results</strong>. Then click <strong>Create Assignment</strong>.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                      <div className="bg-[#C23C2D] text-white px-6 py-4">
+                        <h2 className="text-lg font-bold">How to Grade Submissions</h2>
+                      </div>
+                      <div className="p-6">
+                        <div className="space-y-6">
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#C23C2D] text-white flex items-center justify-center font-bold shrink-0">1</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">View Submissions</h3>
+                              <p className="text-sm text-gray-600">Click on any assignment to see the list of student submissions with their status.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#C23C2D] text-white flex items-center justify-center font-bold shrink-0">2</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Review & Grade</h3>
+                              <p className="text-sm text-gray-600"><strong>File submissions:</strong> Click to view the uploaded file, enter a score and feedback, then save.</p>
+                              <p className="text-sm text-gray-600 mt-1"><strong>MCQ quizzes:</strong> Auto-graded — you can review answers but scores are calculated automatically.</p>
+                              <p className="text-sm text-gray-600 mt-1"><strong>Theory answers:</strong> Read the student's response, assign points per question, add feedback, and save.</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start space-x-4">
+                            <div className="w-8 h-8 rounded-full bg-[#C23C2D] text-white flex items-center justify-center font-bold shrink-0">3</div>
+                            <div>
+                              <h3 className="font-bold text-[#2D3B45] mb-1">Use "View as Student"</h3>
+                              <p className="text-sm text-gray-600">Click the <strong>"View as Student"</strong> button in the course header to preview how students see your assignments and quizzes.</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Contact Support */}
+                <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+                  <div className="bg-[#F5F5F5] px-6 py-4 border-b border-[#E1E1E1]">
+                    <h2 className="font-bold text-[15px] text-[#2D3B45]">Need More Help?</h2>
+                  </div>
+                  <div className="p-6 text-sm text-gray-600">
+                    <p>If you're experiencing issues or have questions not covered here, please contact the IT support team:</p>
+                    <div className="mt-4 space-y-2">
+                      <p><strong>Email:</strong> support@tahacollege.ca</p>
+                      <p><strong>Phone:</strong> Available during office hours</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400">
             <p>{activeTab} — coming soon</p>
