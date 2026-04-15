@@ -4356,7 +4356,7 @@ export default function App() {
                   <div className="p-6 text-sm text-gray-600">
                     <p>If you're experiencing issues or have questions not covered here, please contact the IT support team:</p>
                     <div className="mt-4 space-y-2">
-                      <p><strong>Email:</strong> support@tahacollege.ca</p>
+                      <p><strong>Email:</strong> portal@tahacollege.ca</p>
                       <p><strong>Phone:</strong> Available during office hours</p>
                     </div>
                   </div>
