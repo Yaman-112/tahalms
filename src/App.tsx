@@ -2891,58 +2891,110 @@ function CourseView({ courseId }: { courseId: string }) {
                     </div>
                   )}
 
-                  {/* ── SECTION 1: Full Module Breakdown ── */}
-                  <h2 className="text-[18px] font-bold text-[#2D3B45] mb-4 border-b-2 border-[#008EE2] pb-2">
-                    Module Breakdown — Theory vs Assignment
-                  </h2>
-                  <table className="w-full border-collapse text-[13px] mb-10">
-                    <thead>
-                      <tr className="bg-[#2D3B45] text-white">
-                        <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-8">#</th>
-                        <th className="border border-[#3d4d5a] px-3 py-2.5 text-left font-medium">Module</th>
-                        <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-14">Hours</th>
-                        <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-16">Weight</th>
-                        <th className="border border-[#3d4d5a] px-3 py-2.5 text-center font-medium bg-[#a93226]">Theory</th>
-                        <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium bg-[#a93226] w-12">Pts</th>
-                        <th className="border border-[#3d4d5a] px-3 py-2.5 text-center font-medium bg-[#2471a3]">Assignment / Practical</th>
-                        <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium bg-[#2471a3] w-12">Pts</th>
-                        <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-14">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-[#2D3B45]">
-                      {moduleData.map((m: any, idx: number) => (
-                        <tr key={m.mod.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'} hover:bg-yellow-50/50`}>
-                          <td className="border border-[#E1E1E1] px-2 py-2.5 text-center text-gray-400 text-[12px]">{m.mod.position}</td>
-                          <td className="border border-[#E1E1E1] px-3 py-2.5 font-bold text-[13px]">{m.mod.name}</td>
-                          <td className="border border-[#E1E1E1] px-2 py-2.5 text-center text-gray-500">{m.mod.hours || '-'}</td>
-                          <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008EE2]">{m.weight}%</td>
-                          <td className="border border-[#E1E1E1] px-3 py-2.5 bg-red-50/40">
-                            {m.theory.map((a: any) => (
-                              <div key={a.id} className="text-[12px]">{a.title.split(' - ').pop()} <span className="text-red-400">({a.points})</span></div>
-                            ))}
-                          </td>
-                          <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-red-700 bg-red-50/40">{m.theoryPts}</td>
-                          <td className="border border-[#E1E1E1] px-3 py-2.5 bg-blue-50/40">
-                            {m.practical.map((a: any) => (
-                              <div key={a.id} className="text-[12px]">{a.title.split(' - ').pop()} <span className="text-blue-400">({a.points})</span></div>
-                            ))}
-                          </td>
-                          <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-blue-700 bg-blue-50/40">{m.practicalPts}</td>
-                          <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">{m.totalPts}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="bg-[#2D3B45] text-white font-bold text-[13px]">
-                        <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}>TOTAL ({moduleData.length} modules)</td>
-                        <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalHours}</td>
-                        <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalWeight.toFixed(2)}%</td>
-                        <td className="border border-[#3d4d5a] px-2 py-3 text-center" colSpan={2}>Theory: {totalTheory}</td>
-                        <td className="border border-[#3d4d5a] px-2 py-3 text-center" colSpan={2}>Practical: {totalPractical}</td>
-                        <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalTheory + totalPractical}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                  {/* ── SECTION 1: Student Grades Table ── */}
+                  {(() => {
+                    // Compute overall grade
+                    let overallGrade = 0;
+                    let hasAnyGrade = false;
+                    const moduleGrades = moduleData.map((m: any) => {
+                      let moduleScore = 0;
+                      let moduleMax = 0;
+                      const assignmentGrades = m.assignments.map((a: any) => {
+                        const sub = a.submissions?.find((s: any) => s.status === 'GRADED');
+                        const score = sub?.score ?? null;
+                        if (score !== null) hasAnyGrade = true;
+                        moduleScore += score ?? 0;
+                        moduleMax += a.points;
+                        return { ...a, score, sub };
+                      });
+                      const modulePct = moduleMax > 0 ? (moduleScore / moduleMax) * 100 : 0;
+                      const contribution = (modulePct / 100) * m.weight;
+                      if (assignmentGrades.some((a: any) => a.score !== null)) overallGrade += contribution;
+                      return { ...m, assignmentGrades, moduleScore, moduleMax, modulePct, contribution };
+                    });
+
+                    return (
+                      <>
+                        {/* Overall Grade Card */}
+                        {hasAnyGrade && (
+                          <div className="bg-gradient-to-r from-[#2D3B45] to-[#4A5568] rounded-lg p-6 mb-8 text-white">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <div className="text-[11px] uppercase tracking-wider opacity-70">Overall Course Grade</div>
+                                <div className="text-5xl font-bold mt-1">{overallGrade.toFixed(1)}%</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-[11px] uppercase tracking-wider opacity-70">Graded Modules</div>
+                                <div className="text-2xl font-bold mt-1">{moduleGrades.filter(m => m.assignmentGrades.some((a: any) => a.score !== null)).length} / {moduleData.length}</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        <h2 className="text-[18px] font-bold text-[#2D3B45] mb-4 border-b-2 border-[#008EE2] pb-2">
+                          Module Grades
+                        </h2>
+                        <table className="w-full border-collapse text-[13px] mb-10">
+                          <thead>
+                            <tr className="bg-[#2D3B45] text-white">
+                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-8">#</th>
+                              <th className="border border-[#3d4d5a] px-3 py-2.5 text-left font-medium">Module</th>
+                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-16">Weight</th>
+                              <th className="border border-[#3d4d5a] px-3 py-2.5 text-left font-medium">Assessments</th>
+                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-20">Score</th>
+                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-16">%</th>
+                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-20">Weighted</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-[#2D3B45]">
+                            {moduleGrades.map((m: any, idx: number) => {
+                              const hasGrades = m.assignmentGrades.some((a: any) => a.score !== null);
+                              return (
+                                <tr key={m.mod.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/70'} hover:bg-yellow-50/50`}>
+                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center text-gray-400 text-[12px]">{m.mod.position}</td>
+                                  <td className="border border-[#E1E1E1] px-3 py-2.5 font-bold text-[13px]">{m.mod.name}</td>
+                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008EE2]">{m.weight}%</td>
+                                  <td className="border border-[#E1E1E1] px-3 py-2.5">
+                                    {m.assignmentGrades.map((a: any) => {
+                                      const type = (a.title.split(' - ').pop() || '').trim();
+                                      return (
+                                        <div key={a.id} className="flex items-center justify-between text-[12px] py-0.5">
+                                          <span>{type}</span>
+                                          <span className={`font-bold ${a.score !== null ? (a.score / a.points >= 0.7 ? 'text-green-600' : a.score / a.points >= 0.5 ? 'text-amber-600' : 'text-red-600') : 'text-gray-300'}`}>
+                                            {a.score !== null ? `${a.score}/${a.points}` : `—/${a.points}`}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </td>
+                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
+                                    {hasGrades ? `${m.moduleScore}/${m.moduleMax}` : '—'}
+                                  </td>
+                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
+                                    {hasGrades ? (
+                                      <span className={`${m.modulePct >= 70 ? 'text-green-600' : m.modulePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{m.modulePct.toFixed(0)}%</span>
+                                    ) : '—'}
+                                  </td>
+                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008744]">
+                                    {hasGrades ? `${m.contribution.toFixed(2)}%` : '—'}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                          <tfoot>
+                            <tr className="bg-[#2D3B45] text-white font-bold text-[13px]">
+                              <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}>TOTAL</td>
+                              <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalWeight.toFixed(2)}%</td>
+                              <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalAssignments} assessments</td>
+                              <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}></td>
+                              <td className="border border-[#3d4d5a] px-2 py-3 text-center text-[#4FC3F7]">{hasAnyGrade ? `${overallGrade.toFixed(2)}%` : '—'}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </>
+                    );
+                  })()}
 
                   {/* ── SECTION 2: Detailed Module Cards ── */}
                   <h2 className="text-[18px] font-bold text-[#2D3B45] mb-4 border-b-2 border-[#008EE2] pb-2">
