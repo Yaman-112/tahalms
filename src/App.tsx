@@ -618,6 +618,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
     adminActiveSection === 'Batches' && !selectedBatchCode ? `/enrollments/batch-summary` : null
   );
   const [batchStudentPage, setBatchStudentPage] = useState(1);
+  const [showExitingOnly, setShowExitingOnly] = useState(false);
   const { data: batchStudents, loading: batchStudentsLoading, refetch: refetchBatchStudents } = useApi<any>(
     selectedBatchCode ? `/enrollments?batchCode=${selectedBatchCode}&page=${batchStudentPage}&limit=50` : null
   );
@@ -713,13 +714,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <td className="py-4 px-4"><a href="#" onClick={(e) => { e.preventDefault(); onCourseSelect(course.id); }} className="text-[#008EE2] hover:underline">{course.name}</a></td>
                           <td className="py-4 px-4 text-gray-600">{course.code}</td>
                           <td className="py-4 px-4 text-gray-600">{course.term}</td>
-                          <td className="py-4 px-4">
+                          <td className="py-4 px-4 align-top">
                             {course.teachers?.map((t, idx) => (
-                              <div key={idx} className="flex items-center space-x-2 mb-1">
-                                <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-white">
+                              <div key={idx} className="flex items-center gap-2 mb-1.5 last:mb-0">
+                                <div className="w-8 h-8 shrink-0 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-white">
                                   {t.initial}
                                 </div>
-                                <a href="#" className="text-[#008EE2] hover:underline text-[16px]">{t.name}</a>
+                                <a href="#" className="text-[#008EE2] hover:underline text-[16px] break-words min-w-0">{t.name}</a>
                               </div>
                             ))}
                           </td>
@@ -920,7 +921,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
               ) : selectedBatchCode ? (
                 /* Batch Student List */
                 <div>
-                  <button onClick={() => { setSelectedBatchCode(null); setBatchStudentPage(1); setShowEnrollDialog(false); setEnrollResult(null); }} className="flex items-center text-[#008EE2] text-sm mb-6 hover:underline">
+                  <button onClick={() => { setSelectedBatchCode(null); setBatchStudentPage(1); setShowEnrollDialog(false); setEnrollResult(null); setShowExitingOnly(false); }} className="flex items-center text-[#008EE2] text-sm mb-6 hover:underline">
                     <ChevronLeft size={16} className="mr-1" /> Back to all batches
                   </button>
                   <div className="flex items-center justify-between mb-2">
@@ -1039,8 +1040,15 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           const graded = enrolls.filter((e: any) => e.progress?.gradePct !== null);
                           return graded.length > 0 ? Math.round(graded.reduce((s: number, e: any) => s + e.progress.gradePct, 0) / graded.length) : null;
                         })();
+                        const nowMs = Date.now();
+                        const exitWindowMs = 30 * 24 * 60 * 60 * 1000;
+                        const exitingCount = enrolls.filter((e: any) => {
+                          if (!e.endDate) return false;
+                          const end = new Date(e.endDate).getTime();
+                          return end >= nowMs && end - nowMs <= exitWindowMs;
+                        }).length;
                         return (
-                          <div className="grid grid-cols-5 gap-3 mb-6">
+                          <div className="grid grid-cols-6 gap-3 mb-6">
                             <div className="bg-[#2D3B45] text-white rounded-lg p-3 text-center">
                               <div className="text-[16px] uppercase tracking-wider opacity-70">Students</div>
                               <div className="text-xl font-bold">{enrolls.length}</div>
@@ -1061,6 +1069,16 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               <div className="text-[16px] uppercase tracking-wider opacity-70">Current Module</div>
                               <div className="text-sm font-bold mt-0.5 truncate">{p?.currentModuleName || '—'}</div>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => setShowExitingOnly(v => !v)}
+                              className={`rounded-lg p-3 text-center transition-all text-white ${showExitingOnly ? 'bg-[#B45309] ring-2 ring-offset-2 ring-[#F59E0B]' : 'bg-[#F59E0B] hover:bg-[#D97706]'}`}
+                              title="Students whose course ends within 30 days — click to filter"
+                            >
+                              <div className="text-[16px] uppercase tracking-wider opacity-90">About to Exit</div>
+                              <div className="text-xl font-bold">{exitingCount}</div>
+                              <div className="text-[11px] opacity-80 mt-0.5">{showExitingOnly ? 'Showing only' : 'Click to filter'}</div>
+                            </button>
                           </div>
                         );
                       })()}
@@ -1080,7 +1098,15 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
-                            {(batchStudents?.enrollments || []).map((e: any) => {
+                            {(batchStudents?.enrollments || [])
+                              .filter((e: any) => {
+                                if (!showExitingOnly) return true;
+                                if (!e.endDate) return false;
+                                const end = new Date(e.endDate).getTime();
+                                const nowMs = Date.now();
+                                return end >= nowMs && end - nowMs <= 30 * 24 * 60 * 60 * 1000;
+                              })
+                              .map((e: any) => {
                               const p = e.progress || {};
                               const assignProg = p.assignmentProgress || 0;
                               return (
