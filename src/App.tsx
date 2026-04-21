@@ -2536,7 +2536,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                                 <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}. {question.text}</span>
                                                 <div className="flex items-center space-x-2">
                                                   <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${question.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
-                                                  {answer?.pointsAwarded !== null && (
+                                                  {answer?.pointsAwarded != null && (
                                                     <span className="text-sm font-bold">{answer.pointsAwarded}/{question.points}</span>
                                                   )}
                                                 </div>
