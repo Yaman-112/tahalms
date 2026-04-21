@@ -218,6 +218,94 @@ function TeacherLoginView({ onSwitchRole }: { onSwitchRole: (role: string) => vo
 
 // --- Dashboard Components ---
 
+// ─── Dashboard Files Section (per-course, collapsible) ──
+function DashboardFilesSection({ courses }: { courses: { id: string; name: string; color?: string }[] }) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  if (courses.length === 0) return null;
+  const toggle = (id: string) => setExpanded(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  return (
+    <div className="mt-8">
+      <h2 className="text-lg font-bold text-[#2D3B45] mb-4 border-b border-gray-200 pb-2">Course Files</h2>
+      <div className="space-y-3">
+        {courses.map(c => (
+          <CourseFileCard key={c.id} course={c} expanded={expanded.has(c.id)} onToggle={() => toggle(c.id)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CourseFileCard({ course, expanded, onToggle }: { course: { id: string; name: string; color?: string }; expanded: boolean; onToggle: () => void }) {
+  const { data: files } = useApi<any[]>(expanded ? `/courses/${course.id}/files` : null);
+  const formatBytes = (n: number) => {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+  const handleDownload = (fileId: string, fileName: string) => {
+    const token = getAccessToken();
+    const url = `/api/courses/${course.id}/files/${fileId}/download?token=${encodeURIComponent(token || '')}`;
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.target = '_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  const byFolder = new Map<string, any[]>();
+  for (const f of files || []) {
+    const k = f.folder || '';
+    if (!byFolder.has(k)) byFolder.set(k, []);
+    byFolder.get(k)!.push(f);
+  }
+  const folderKeys = Array.from(byFolder.keys()).sort();
+
+  return (
+    <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+      <div onClick={onToggle} className="flex items-center justify-between p-3 cursor-pointer hover:bg-gray-50">
+        <div className="flex items-center space-x-3">
+          <div className="w-2 h-8 rounded" style={{ backgroundColor: course.color || '#2D3B45' }} />
+          <div>
+            <h3 className="font-semibold text-[#2D3B45] text-[14px]">{course.name}</h3>
+            {expanded && files && <span className="text-[12px] text-gray-400">{files.length} files</span>}
+          </div>
+        </div>
+        <ChevronRight size={18} className={`text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`} />
+      </div>
+      {expanded && (
+        <div className="border-t border-[#E1E1E1] p-3 bg-gray-50">
+          {!files ? (
+            <p className="text-[13px] text-gray-400">Loading…</p>
+          ) : files.length === 0 ? (
+            <p className="text-[13px] text-gray-400">No files yet.</p>
+          ) : (
+            folderKeys.map(folder => (
+              <div key={folder || 'root'} className="mb-3 last:mb-0">
+                <div className="text-[12px] font-semibold text-gray-500 uppercase tracking-wide mb-1">{folder || 'Course Files'}</div>
+                <div className="divide-y divide-[#EFEFEF]">
+                  {byFolder.get(folder)!.map(f => (
+                    <div key={f.id} className="flex items-center py-1.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] text-[#2D3B45] truncate">{f.fileName}</div>
+                        <div className="text-[11px] text-gray-500">{formatBytes(f.fileSize)}</div>
+                      </div>
+                      <button
+                        onClick={() => handleDownload(f.id, f.fileName)}
+                        className="ml-3 px-2 py-0.5 text-[12px] text-[#008EE2] hover:bg-[#008EE2]/10 rounded"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) => void }) {
   const { data, loading } = useApi<any>('/dashboard');
 
@@ -381,6 +469,15 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
               })}
             </div>
           )}
+
+          {/* Course Files */}
+          <DashboardFilesSection
+            courses={enrollments
+              .filter((e: any) => e.course)
+              .map((e: any) => ({ id: e.course.id, name: e.course.name, color: e.course.color }))
+              .filter((c: any, idx: number, arr: any[]) => arr.findIndex(x => x.id === c.id) === idx)
+            }
+          />
         </div>
       </div>
     </>
@@ -500,6 +597,14 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
               </div>
             </>
           )}
+
+          {/* Course Files */}
+          <DashboardFilesSection
+            courses={[
+              ...(batches.map((b: any) => ({ id: b.course.id, name: b.course.name, color: b.course.color }))),
+              ...((data.publishedCourses || []).map((c: any) => ({ id: c.id, name: c.name, color: c.color }))),
+            ].filter((c: any, idx: number, arr: any[]) => arr.findIndex(x => x.id === c.id) === idx)}
+          />
         </div>
       </div>
     </div>
