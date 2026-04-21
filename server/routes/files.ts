@@ -8,7 +8,6 @@ import { uploadCourseFile, UPLOAD_DIR } from '../middleware/upload';
 import { success, error } from '../utils/response';
 
 const router = Router();
-router.use(authenticate);
 
 // Permission: can the user read files in this course?
 async function canRead(userId: string, role: string, courseId: string): Promise<boolean> {
@@ -27,7 +26,7 @@ async function canManage(userId: string, role: string, courseId: string): Promis
 }
 
 // GET /api/courses/:courseId/files — list files (optional ?folder= filter)
-router.get('/courses/:courseId/files', async (req: AuthRequest, res) => {
+router.get('/courses/:courseId/files', authenticate, async (req: AuthRequest, res) => {
   try {
     const { courseId } = req.params;
     const { role, userId } = req.user!;
@@ -50,7 +49,7 @@ router.get('/courses/:courseId/files', async (req: AuthRequest, res) => {
 });
 
 // POST /api/courses/:courseId/files — upload one file (multipart)
-router.post('/courses/:courseId/files', (req, res, next) => {
+router.post('/courses/:courseId/files', authenticate, (req, res, next) => {
   uploadCourseFile.single('file')(req, res, err => {
     if (err) return error(res, err.message, 400);
     next();
@@ -98,7 +97,7 @@ router.post('/courses/:courseId/files', (req, res, next) => {
 });
 
 // GET /api/courses/:courseId/files/:fileId/download
-router.get('/courses/:courseId/files/:fileId/download', async (req: AuthRequest, res) => {
+router.get('/courses/:courseId/files/:fileId/download', authenticate, async (req: AuthRequest, res) => {
   try {
     const { courseId, fileId } = req.params;
     const { role, userId } = req.user!;
@@ -120,7 +119,7 @@ router.get('/courses/:courseId/files/:fileId/download', async (req: AuthRequest,
 });
 
 // DELETE /api/courses/:courseId/files/:fileId
-router.delete('/courses/:courseId/files/:fileId', async (req: AuthRequest, res) => {
+router.delete('/courses/:courseId/files/:fileId', authenticate, async (req: AuthRequest, res) => {
   try {
     const { courseId, fileId } = req.params;
     const { role, userId } = req.user!;
