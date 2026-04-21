@@ -742,6 +742,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const { data: userProfile, loading: userProfileLoading } = useApi<any>(
     selectedUserId ? `/users/${selectedUserId}` : null
   );
+  const [pageViewTab, setPageViewTab] = useState<'30day' | '1year'>('30day');
   // Dialogs
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [showCreateBatchDialog, setShowCreateBatchDialog] = useState(false);
@@ -1130,15 +1131,33 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-6">
                             <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Page Views</legend>
                             <div className="flex items-center gap-1 border-b border-gray-200 mb-2">
-                              <button className="px-3 py-1.5 text-[13px] font-medium border-b-2 border-[#008EE2] text-[#2D3B45]">30-day activity</button>
-                              <button className="px-3 py-1.5 text-[13px] text-[#008EE2] hover:underline">1-year activity</button>
+                              <button
+                                type="button"
+                                onClick={() => setPageViewTab('30day')}
+                                className={`px-3 py-1.5 text-[13px] ${pageViewTab === '30day' ? 'font-medium border-b-2 border-[#008EE2] text-[#2D3B45]' : 'text-[#008EE2] hover:underline'}`}>
+                                30-day activity
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPageViewTab('1year')}
+                                className={`px-3 py-1.5 text-[13px] ${pageViewTab === '1year' ? 'font-medium border-b-2 border-[#008EE2] text-[#2D3B45]' : 'text-[#008EE2] hover:underline'}`}>
+                                1-year activity
+                              </button>
                             </div>
-                            <div className="text-[12px] text-gray-500 mb-4">This page shows only the past 30 days of history.</div>
+                            <div className="text-[12px] text-gray-500 mb-4">
+                              {pageViewTab === '30day'
+                                ? 'This page shows only the past 30 days of history.'
+                                : 'This page shows the past year of history.'}
+                            </div>
                             <div className="flex flex-col items-center justify-center py-8">
                               <div className="text-5xl mb-2">🐼</div>
-                              <div className="text-[14px] font-medium text-[#2D3B45]">Nothing in the last 30 days</div>
+                              <div className="text-[14px] font-medium text-[#2D3B45]">
+                                {pageViewTab === '30day' ? 'Nothing in the last 30 days' : 'Nothing in the last year'}
+                              </div>
                               <div className="text-[12px] text-gray-500 mt-1 text-center max-w-md">
-                                This page shows only the past 30 days of history. It looks like there hasn't been anything recent to show.
+                                {pageViewTab === '30day'
+                                  ? "This page shows only the past 30 days of history. It looks like there hasn't been anything recent to show."
+                                  : "This page shows the past year of history. It looks like there hasn't been anything recent to show."}
                               </div>
                             </div>
                           </fieldset>
