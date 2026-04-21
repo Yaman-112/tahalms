@@ -966,71 +966,196 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                   </button>
                   {userProfileLoading ? <LoadingSpinner /> : userProfile && (
                     <div>
-                      <div className="flex items-start space-x-6 mb-8">
-                        <div className="w-20 h-20 rounded-full border-2 border-[#E1E1E1] flex items-center justify-center bg-gray-50 shrink-0">
-                          <span className="text-3xl text-[#008EE2] font-light">{userProfile.firstName?.[0]}{userProfile.lastName?.[0]}</span>
-                        </div>
-                        <div>
-                          <h1 className="text-2xl font-bold text-[#2D3B45]">{userProfile.firstName} {userProfile.lastName}</h1>
-                          <p className="text-gray-500">{userProfile.email}</p>
-                          <div className="flex items-center space-x-3 mt-2">
-                            <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${userProfile.role === 'ADMIN' ? 'bg-purple-100 text-purple-700' : userProfile.role === 'TEACHER' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>{userProfile.role}</span>
-                            {userProfile.isActive ? <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-green-100 text-green-700">Active</span> : <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>}
-                          </div>
-                        </div>
+                      {/* Canvas-style breadcrumb */}
+                      <div className="text-[13px] text-[#008EE2] mb-3">
+                        <span>TAHA College</span>
+                        <span className="text-gray-400 mx-1">›</span>
+                        <span className="text-gray-600">{userProfile.firstName?.toLowerCase()}'s profile</span>
                       </div>
 
-                      {/* Student details grid */}
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                        {[
-                          { label: 'Student ID', value: userProfile.vNumber },
-                          { label: 'Email', value: userProfile.email },
-                          { label: 'Contact', value: userProfile.contactNo },
-                          { label: 'Address', value: userProfile.address },
-                          { label: 'Campus', value: userProfile.campus },
-                          { label: 'Program', value: userProfile.program },
-                          { label: 'Shift', value: userProfile.shift },
-                          { label: 'Start Date', value: userProfile.startDate ? new Date(userProfile.startDate).toLocaleDateString() : null },
-                          { label: 'Finish Date', value: userProfile.finishDate ? new Date(userProfile.finishDate).toLocaleDateString() : null },
-                          { label: 'Status', value: userProfile.campusStatus },
-                          { label: 'Admission Rep', value: userProfile.admissionRep },
-                        ].filter(f => f.value).map(f => (
-                          <div key={f.label} className="bg-gray-50 rounded-lg p-3">
-                            <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">{f.label}</div>
-                            <div className="text-[16px] font-medium text-[#2D3B45]">{f.value}</div>
-                          </div>
-                        ))}
-                      </div>
+                      <div className="flex gap-6">
+                        {/* Main content */}
+                        <div className="flex-1 min-w-0">
+                          <h1 className="text-[28px] font-normal text-[#2D3B45] mb-4">{userProfile.firstName}</h1>
 
-                      {/* Enrollments */}
-                      {userProfile.enrollments?.length > 0 && (
-                        <>
-                          <h2 className="text-lg font-bold text-[#2D3B45] mb-4 border-b border-gray-200 pb-2">Enrollments ({userProfile.enrollments.length})</h2>
-                          <div className="space-y-3">
-                            {userProfile.enrollments.map((e: any) => (
-                              <div key={e.id} className="border border-[#E1E1E1] rounded-lg p-4 hover:bg-gray-50">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center space-x-3">
-                                    {e.batchCode && <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{e.batchCode}</span>}
-                                    <span className="font-bold text-[#2D3B45]">{e.course.name}</span>
-                                  </div>
-                                  {e.lastStatus && <span className={`px-2 py-0.5 text-[16px] font-medium rounded-full ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') ? 'bg-green-100 text-green-700' : e.lastStatus.includes('Withdrawal') || e.lastStatus.includes('Cancel') ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>{e.lastStatus}</span>}
-                                </div>
-                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-[16px] text-gray-500">
-                                  {e.campus && <span>Campus: <span className="font-medium text-gray-700">{e.campus}</span></span>}
-                                  {e.classTime && <span>Time: <span className="font-medium text-gray-700">{e.classTime}</span></span>}
-                                  {e.classDays && <span>Days: <span className="font-medium text-gray-700">{e.classDays}</span></span>}
-                                  {e.totalFees && <span>Fees: <span className="font-medium text-gray-700">${e.totalFees.toLocaleString()}</span></span>}
-                                  {e.startDate && <span>Start: <span className="font-medium text-gray-700">{new Date(e.startDate).toLocaleDateString()}</span></span>}
-                                  {e.endDate && <span>End: <span className="font-medium text-gray-700">{new Date(e.endDate).toLocaleDateString()}</span></span>}
-                                  {e.studyHours && <span>Hours: <span className="font-medium text-gray-700">{e.studyHours}</span></span>}
-                                  {e.contractSigned && <span>Contract: <span className="font-medium text-gray-700">{e.contractSigned}</span></span>}
-                                </div>
+                          {/* Name and Email fieldset */}
+                          <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-3 mb-4">
+                            <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Name and Email</legend>
+                            <div className="flex">
+                              <table className="flex-1 text-[14px]">
+                                <tbody>
+                                  <tr>
+                                    <td className="w-[140px] align-top py-1 text-[#2D3B45] font-bold">Full Name:</td>
+                                    <td className="py-1 text-[#2D3B45]">{userProfile.firstName} {userProfile.lastName}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="align-top py-1 text-[#2D3B45] font-bold">Display Name:</td>
+                                    <td className="py-1 text-[#2D3B45]">{userProfile.firstName}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="align-top py-1 text-[#2D3B45] font-bold">Sortable Name:</td>
+                                    <td className="py-1 text-[#2D3B45]">{userProfile.lastName}, {userProfile.firstName}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="align-top py-2 text-[#2D3B45] font-bold">Profile Picture:</td>
+                                    <td className="py-2">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-[50px] h-[50px] rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[#008EE2] text-[18px] font-light">
+                                          {userProfile.firstName?.[0]}{userProfile.lastName?.[0]}
+                                        </div>
+                                        <a className="text-[#008EE2] hover:underline cursor-pointer text-[13px]">Remove avatar picture</a>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td className="align-top py-1 text-[#2D3B45] font-bold">Default Email:</td>
+                                    <td className="py-1 text-[#2D3B45]">{userProfile.email}</td>
+                                  </tr>
+                                  <tr>
+                                    <td className="align-top py-1 text-[#2D3B45] font-bold">Time Zone:</td>
+                                    <td className="py-1 text-[#2D3B45]">Eastern Time (US &amp; Canada)</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                              <div className="w-[220px] pl-4 pt-[88px] text-[13px] text-[#2D3B45]">
+                                <div><span className="font-bold">Last request:</span> <span className="text-gray-600">—</span></div>
+                                <a className="text-[#008EE2] hover:underline cursor-pointer">more...</a>
                               </div>
-                            ))}
-                          </div>
-                        </>
-                      )}
+                            </div>
+                            <div className="mt-2 pt-1 text-[13px] text-[#008EE2]">
+                              <a className="hover:underline cursor-pointer">Edit</a>
+                              <span className="text-gray-400 px-1">|</span>
+                              <a className="hover:underline cursor-pointer">Act as User</a>
+                              <span className="text-gray-400 px-1">|</span>
+                              <a className="hover:underline cursor-pointer">Merge with Another User</a>
+                              <span className="text-gray-400 px-1">|</span>
+                              <a className="hover:underline cursor-pointer">{userProfile.isActive ? 'Suspend User' : 'Reactivate User'}</a>
+                              <span className="text-gray-400 px-1">|</span>
+                              <a className="hover:underline cursor-pointer text-red-600">Delete from TAHA College</a>
+                            </div>
+                          </fieldset>
+
+                          {/* Login Information fieldset */}
+                          <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-3 mb-4">
+                            <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Login Information</legend>
+                            <table className="w-full text-[13px] border-t border-gray-200">
+                              <tbody>
+                                <tr className="border-b border-gray-200">
+                                  <td className="align-top py-3 px-3 text-[#2D3B45] leading-6">
+                                    <div>{userProfile.email}</div>
+                                    {userProfile.vNumber && <div>SIS ID: {userProfile.vNumber}</div>}
+                                    <div>Integration ID:</div>
+                                  </td>
+                                  <td className="align-top py-3 px-3 text-[#2D3B45] whitespace-nowrap">TAHA College</td>
+                                  <td className="align-top py-3 px-3 text-right w-[30px]">
+                                    <button className="text-gray-400 hover:text-[#008EE2]" title="Edit login">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                    </button>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                            <div className="mt-2 text-[13px]">
+                              <a className="text-[#008EE2] hover:underline cursor-pointer">Add Login</a>
+                            </div>
+                          </fieldset>
+
+                          {/* Student Information (TAHA-specific fields) */}
+                          {(userProfile.campus || userProfile.program || userProfile.shift || userProfile.contactNo || userProfile.address || userProfile.startDate || userProfile.finishDate || userProfile.campusStatus || userProfile.admissionRep) && (
+                            <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-4 mb-4">
+                              <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Student Information</legend>
+                              <table className="w-full text-[14px]">
+                                <tbody>
+                                  {[
+                                    { label: 'Contact', value: userProfile.contactNo },
+                                    { label: 'Address', value: userProfile.address },
+                                    { label: 'Campus', value: userProfile.campus },
+                                    { label: 'Program', value: userProfile.program },
+                                    { label: 'Shift', value: userProfile.shift },
+                                    { label: 'Start Date', value: userProfile.startDate ? new Date(userProfile.startDate).toLocaleDateString() : null },
+                                    { label: 'Finish Date', value: userProfile.finishDate ? new Date(userProfile.finishDate).toLocaleDateString() : null },
+                                    { label: 'Status', value: userProfile.campusStatus },
+                                    { label: 'Admission Rep', value: userProfile.admissionRep },
+                                  ].filter(f => f.value).map(f => (
+                                    <tr key={f.label}>
+                                      <td className="w-[160px] align-top py-1 text-[#2D3B45] font-bold">{f.label}:</td>
+                                      <td className="py-1 text-[#2D3B45]">{f.value}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </fieldset>
+                          )}
+
+                          {/* Enrollments fieldset */}
+                          <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-4 mb-4">
+                            <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Enrollments</legend>
+                            <div className="text-[14px] font-bold text-[#2D3B45] mb-2">Courses ({userProfile.enrollments?.length || 0})</div>
+                            {userProfile.enrollments?.length > 0 ? (
+                              <div className="max-h-[180px] overflow-y-auto pr-2">
+                                {userProfile.enrollments.map((e: any) => (
+                                  <div key={e.id} className="flex items-start justify-between py-1.5 border-b border-gray-100 last:border-b-0">
+                                    <div className="text-[13px] min-w-0 flex-1">
+                                      <a className="text-[#008EE2] hover:underline cursor-pointer font-medium">
+                                        {e.course.name}{e.batchCode ? `, ${e.batchCode}` : ''}{e.startDate ? ` - ${new Date(e.startDate).toLocaleDateString()}` : ''}
+                                      </a>
+                                      <div className="text-[12px] text-gray-500 mt-0.5">
+                                        <span className={`${e.lastStatus?.includes('Withdrawal') || e.lastStatus?.includes('Cancel') ? 'text-red-600' : 'text-green-700'}`}>
+                                          {e.lastStatus || 'Active'}
+                                        </span>
+                                        , Enrolled as: Student
+                                      </div>
+                                    </div>
+                                    <button className="text-gray-400 hover:text-red-500 ml-3 mt-0.5" title="Remove enrollment">
+                                      <X size={14} />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-[13px] text-gray-500 py-2">No enrollments.</div>
+                            )}
+                          </fieldset>
+
+                          {/* Access Tokens fieldset */}
+                          <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-8 mb-4">
+                            <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Access Tokens</legend>
+                            <div className="flex flex-col items-center justify-center py-4 text-gray-400">
+                              <Search size={40} strokeWidth={1.5} className="mb-2" />
+                              <div className="text-[13px]">This user has not generated any access tokens.</div>
+                            </div>
+                          </fieldset>
+
+                          {/* Page Views fieldset */}
+                          <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-6">
+                            <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Page Views</legend>
+                            <div className="flex items-center gap-1 border-b border-gray-200 mb-2">
+                              <button className="px-3 py-1.5 text-[13px] font-medium border-b-2 border-[#008EE2] text-[#2D3B45]">30-day activity</button>
+                              <button className="px-3 py-1.5 text-[13px] text-[#008EE2] hover:underline">1-year activity</button>
+                            </div>
+                            <div className="text-[12px] text-gray-500 mb-4">This page shows only the past 30 days of history.</div>
+                            <div className="flex flex-col items-center justify-center py-8">
+                              <div className="text-5xl mb-2">🐼</div>
+                              <div className="text-[14px] font-medium text-[#2D3B45]">Nothing in the last 30 days</div>
+                              <div className="text-[12px] text-gray-500 mt-1 text-center max-w-md">
+                                This page shows only the past 30 days of history. It looks like there hasn't been anything recent to show.
+                              </div>
+                            </div>
+                          </fieldset>
+                        </div>
+
+                        {/* Right sidebar actions */}
+                        <aside className="w-[220px] shrink-0 space-y-2">
+                          <button className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                            <Inbox size={14} className="shrink-0" />
+                            <span>Message {userProfile.firstName}</span>
+                          </button>
+                          <button className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                            <Shield size={14} className="shrink-0" />
+                            <span>Terminate all sessions for this user</span>
+                          </button>
+                        </aside>
+                      </div>
                     </div>
                   )}
                 </div>
