@@ -4095,7 +4095,13 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
   const getStatusBadge = (a: any) => {
     if (user.role === 'STUDENT') {
       const sub = a.submissions?.find((s: any) => s.studentId === user.id);
-      if (!sub || sub.status === 'MISSING') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-red-100 text-red-600">MISSING</span>;
+      const pastDue = a.dueDate && new Date() > new Date(a.dueDate);
+      if (!sub) {
+        return pastDue
+          ? <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-red-100 text-red-600">MISSING</span>
+          : <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-gray-100 text-gray-600">NOT SUBMITTED</span>;
+      }
+      if (sub.status === 'MISSING') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-red-100 text-red-600">MISSING</span>;
       if (sub.status === 'SUBMITTED') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-blue-100 text-blue-700">SUBMITTED</span>;
       if (sub.status === 'GRADED') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-green-100 text-green-700">GRADED ({sub.score}/{a.points})</span>;
     }
