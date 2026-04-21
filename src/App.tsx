@@ -1635,8 +1635,6 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
                     <div className="text-[14px] text-[#2D3B45] truncate">{f.fileName}</div>
                     <div className="text-[12px] text-gray-500">
                       {formatBytes(f.fileSize)}
-                      {f.uploadedBy && ` • uploaded by ${f.uploadedBy.firstName} ${f.uploadedBy.lastName}`}
-                      {` • ${new Date(f.createdAt).toLocaleDateString()}`}
                     </div>
                   </div>
                   <button
