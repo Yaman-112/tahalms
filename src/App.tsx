@@ -2072,14 +2072,14 @@ function CourseView({ courseId }: { courseId: string }) {
   const studentNavItems = [
     { label: 'Home' }, { label: 'Assignments' }, { label: 'Grades' },
     { label: 'Pages' }, { label: 'Files' }, { label: 'Syllabus' },
-    { label: 'Quizzes' }, { label: 'Modules' }, { label: 'Collaborations' }
+    { label: 'Quizzes' }
   ];
 
   const teacherNavItems = [
     { label: 'Home' }, { label: 'Announcements' }, { label: 'Assignments' },
     { label: 'Grades' }, { label: 'People' }, { label: 'Pages' },
     { label: 'Files' }, { label: 'Syllabus' }, { label: 'Rubrics' },
-    { label: 'Quizzes' }, { label: 'Modules' }, { label: 'Settings' }
+    { label: 'Quizzes' }, { label: 'Settings' }
   ];
 
   const effectiveRole = viewAsStudent ? 'STUDENT' : user?.role;
