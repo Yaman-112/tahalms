@@ -57,6 +57,7 @@ const COURSE_FILE_MIMES = new Set([
   'audio/x-wav',
   'audio/mp4',
   'audio/x-m4a',
+  'application/octet-stream',
 ]);
 
 export const uploadCourseFile = multer({
