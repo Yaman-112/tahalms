@@ -45,10 +45,26 @@ router.get('/', async (req: AuthRequest, res) => {
       },
     });
 
-    // Don't expose server paths
+    // For teacher/admin: compute per-status counts in one grouped query
+    const statusByAssignment = new Map<string, { GRADED: number; SUBMITTED: number; MISSING: number }>();
+    if (role !== 'STUDENT' && assignments.length > 0) {
+      const grouped = await prisma.submission.groupBy({
+        by: ['assignmentId', 'status'],
+        where: { assignmentId: { in: assignments.map(a => a.id) } },
+        _count: { _all: true },
+      });
+      for (const g of grouped) {
+        if (!statusByAssignment.has(g.assignmentId)) {
+          statusByAssignment.set(g.assignmentId, { GRADED: 0, SUBMITTED: 0, MISSING: 0 });
+        }
+        statusByAssignment.get(g.assignmentId)![g.status as 'GRADED' | 'SUBMITTED' | 'MISSING'] = g._count._all;
+      }
+    }
+
     const sanitized = assignments.map(({ attachmentPath, ...rest }) => ({
       ...rest,
       hasAttachment: !!attachmentPath,
+      submissionStats: statusByAssignment.get(rest.id) || { GRADED: 0, SUBMITTED: 0, MISSING: 0 },
     }));
 
     return success(res, sanitized);

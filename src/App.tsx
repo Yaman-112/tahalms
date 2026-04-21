@@ -4107,11 +4107,13 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
       if (sub.status === 'GRADED') return <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-green-100 text-green-700">GRADED ({sub.score}/{a.points})</span>;
     }
     if (user.role === 'TEACHER' || user.role === 'ADMIN') {
-      const total = a.submissions?.length || 0;
-      const needsGrading = a.submissions?.filter((s: any) => s.status === 'SUBMITTED').length || 0;
+      const stats = a.submissionStats || { GRADED: 0, SUBMITTED: 0, MISSING: 0 };
+      const graded = stats.GRADED || 0;
+      const needsGrading = stats.SUBMITTED || 0;
+      const total = graded + needsGrading;
       return (
         <div className="flex items-center space-x-2">
-          <span className="text-[16px] text-gray-500">{total} submitted</span>
+          <span className="text-[16px] text-gray-500">{total} submitted{graded > 0 ? ` • ${graded} graded` : ''}</span>
           {needsGrading > 0 && <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-amber-100 text-amber-700">{needsGrading} to grade</span>}
         </div>
       );
