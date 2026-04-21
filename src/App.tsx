@@ -4,7 +4,7 @@
  * TAHA Canvas LMS v2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   LayoutDashboard, Book, Calendar, Inbox, Clock, HelpCircle,
   ChevronLeft, Plus, NotebookPen, MoreVertical, ChevronRight,
@@ -14,7 +14,7 @@ import {
 import { motion } from 'motion/react';
 import { useAuth } from './context/AuthContext';
 import { useApi } from './hooks/useApi';
-import { api, getAccessToken } from './api/client';
+import { api, getAccessToken, del } from './api/client';
 import type {
   StudentDashboard, TeacherDashboard, AdminDashboard,
   Course, Assignment, Submission, Message
@@ -1532,6 +1532,136 @@ function AdminStatisticsView() {
 }
 
 // --- Course View ---
+
+// ─── Course Files Tab ──────────────────────────────────
+function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: string; canUpload: boolean; canDelete: (uploaderId: string | null) => boolean; userId: string }) {
+  const { data: files, loading, refetch } = useApi<any[]>(`/courses/${courseId}/files`);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadFolder, setUploadFolder] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const formatBytes = (n: number) => {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+    if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true); setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      if (uploadFolder.trim()) fd.append('folder', uploadFolder.trim());
+      const res = await api<any>(`/courses/${courseId}/files`, { method: 'POST', body: fd });
+      if (!res.success) setUploadError(res.error || 'Upload failed');
+      else { setUploadFolder(''); refetch(); }
+    } catch (err: any) { setUploadError(err.message); }
+    finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
+  };
+
+  const handleDownload = (fileId: string, fileName: string) => {
+    const token = getAccessToken();
+    const url = `/api/courses/${courseId}/files/${fileId}/download?token=${encodeURIComponent(token || '')}`;
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName; a.target = '_blank';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+
+  const handleDelete = async (fileId: string) => {
+    if (!confirm('Delete this file? This cannot be undone.')) return;
+    const res = await del<any>(`/courses/${courseId}/files/${fileId}`);
+    if (res.success) refetch();
+    else alert(res.error || 'Delete failed');
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  const byFolder = new Map<string, any[]>();
+  for (const f of files || []) {
+    const k = f.folder || '';
+    if (!byFolder.has(k)) byFolder.set(k, []);
+    byFolder.get(k)!.push(f);
+  }
+  const folderKeys = Array.from(byFolder.keys()).sort();
+
+  return (
+    <div className="max-w-5xl">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-[28px] font-medium text-[#2D3B45]">Files</h1>
+        <span className="text-[14px] text-gray-500">{files?.length || 0} files</span>
+      </div>
+
+      {canUpload && (
+        <div className="mb-6 border border-[#E1E1E1] rounded-lg p-4 bg-[#F9F9F9]">
+          <div className="flex items-center gap-3 flex-wrap">
+            <input
+              type="text"
+              value={uploadFolder}
+              onChange={e => setUploadFolder(e.target.value)}
+              placeholder="Folder (optional, e.g. Week 1)"
+              className="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded text-[14px]"
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleUpload}
+              disabled={uploading}
+              className="text-[14px]"
+            />
+            {uploading && <span className="text-[14px] text-gray-500">Uploading…</span>}
+          </div>
+          {uploadError && <p className="text-red-600 text-[13px] mt-2">{uploadError}</p>}
+        </div>
+      )}
+
+      {folderKeys.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <p>No files yet.</p>
+        </div>
+      ) : (
+        folderKeys.map(folder => (
+          <div key={folder || 'root'} className="mb-6">
+            <h2 className="text-[15px] font-semibold text-[#2D3B45] mb-2 border-b border-[#E1E1E1] pb-1">
+              {folder || 'Course Files'}
+            </h2>
+            <div className="divide-y divide-[#EFEFEF]">
+              {byFolder.get(folder)!.map(f => (
+                <div key={f.id} className="flex items-center py-2 px-2 hover:bg-gray-50 rounded">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] text-[#2D3B45] truncate">{f.fileName}</div>
+                    <div className="text-[12px] text-gray-500">
+                      {formatBytes(f.fileSize)}
+                      {f.uploadedBy && ` • uploaded by ${f.uploadedBy.firstName} ${f.uploadedBy.lastName}`}
+                      {` • ${new Date(f.createdAt).toLocaleDateString()}`}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleDownload(f.id, f.fileName)}
+                    className="ml-3 px-3 py-1 text-[13px] text-[#008EE2] hover:bg-[#008EE2]/10 rounded"
+                  >
+                    Download
+                  </button>
+                  {canDelete(f.uploadedById) && (
+                    <button
+                      onClick={() => handleDelete(f.id)}
+                      className="ml-1 px-3 py-1 text-[13px] text-red-600 hover:bg-red-50 rounded"
+                    >
+                      Delete
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
 function CourseView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
@@ -3447,6 +3577,13 @@ function CourseView({ courseId }: { courseId: string }) {
                 </div>
               </div>
             </div>
+          ) : activeSection === 'Files' ? (
+            <CourseFilesTab
+              courseId={courseId}
+              canUpload={!viewAsStudent && (user?.role === 'TEACHER' || user?.role === 'ADMIN')}
+              canDelete={(uploaderId) => !viewAsStudent && (user?.role === 'ADMIN' || uploaderId === user?.id)}
+              userId={user?.id || ''}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-400 py-20">
               <p>This section is currently empty or under construction.</p>

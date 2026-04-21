@@ -53,6 +53,7 @@ model User {
   importBatches     ImportBatch[]
   refreshTokens     RefreshToken[]
   studentAnswers    StudentAnswer[]
+  uploadedFiles     CourseFile[]       @relation("UploadedFiles")
 
   @@map("users")
 }
@@ -96,6 +97,7 @@ model Course {
   modules        Module[]
   messages       Message[]
   calendarEvents CalendarEvent[]
+  files          CourseFile[]
 
   @@map("courses")
 }
@@ -228,8 +230,34 @@ model Module {
   published Boolean  @default(true)
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  files  CourseFile[]
 
   @@map("modules")
+}
+
+// ─── COURSE FILES (shared across all batches of a course) ─
+
+model CourseFile {
+  id           String   @id @default(cuid())
+  courseId     String   @map("course_id")
+  moduleId     String?  @map("module_id")
+  uploadedById String?  @map("uploaded_by_id")
+  fileName     String   @map("file_name")
+  folder       String   @default("")
+  filePath     String   @map("file_path")
+  fileSize     Int      @map("file_size")
+  mimeType     String   @map("mime_type")
+  description  String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  course     Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module     Module? @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  uploadedBy User?   @relation("UploadedFiles", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([courseId])
+  @@index([moduleId])
+  @@map("course_files")
 }
 
 // ─── ASSIGNMENTS ────────────────────────────────────────

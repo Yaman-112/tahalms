@@ -31,4 +31,33 @@ export const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 },
 });
 
+// Looser filter for course files (slides, spreadsheets, images, zips, video)
+const COURSE_FILE_MIMES = new Set([
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/zip',
+  'application/x-zip-compressed',
+  'text/csv',
+  'text/plain',
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'video/mp4',
+  'video/quicktime',
+]);
+
+export const uploadCourseFile = multer({
+  storage: multer.memoryStorage(),
+  fileFilter: (_req, file, cb) => {
+    if (COURSE_FILE_MIMES.has(file.mimetype)) cb(null, true);
+    else cb(new Error(`File type ${file.mimetype} not allowed`));
+  },
+  limits: { fileSize: 200 * 1024 * 1024 },
+});
+
 export { UPLOAD_DIR };
