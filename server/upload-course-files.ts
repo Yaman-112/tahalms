@@ -44,6 +44,10 @@ const MIME_BY_EXT: Record<string, string> = {
   '.gif': 'image/gif',
   '.mp4': 'video/mp4',
   '.mov': 'video/quicktime',
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.webm': 'video/webm',
 };
 
 function* walk(dir: string, base: string = dir): Generator<{ abs: string; rel: string; folder: string; name: string }> {
@@ -79,10 +83,10 @@ async function loginRemote(baseUrl: string, email: string, password: string): Pr
   return token;
 }
 
-async function uploadRemote(baseUrl: string, token: string, courseId: string, file: { abs: string; name: string; folder: string }): Promise<void> {
+async function uploadRemote(baseUrl: string, token: string, courseId: string, file: { abs: string; name: string; folder: string; mime: string }): Promise<void> {
   const fd = new FormData();
   const buf = fs.readFileSync(file.abs);
-  fd.append('file', new Blob([buf]), file.name);
+  fd.append('file', new Blob([buf], { type: file.mime }), file.name);
   if (file.folder) fd.append('folder', file.folder);
   const res = await fetch(`${baseUrl}/api/courses/${courseId}/files`, {
     method: 'POST',
@@ -132,7 +136,7 @@ async function run() {
 
     if (WRITE) {
       if (isRemote) {
-        await uploadRemote(REMOTE_URL!, remoteToken!, course.id, { abs: f.abs, name: f.name, folder: f.folder });
+        await uploadRemote(REMOTE_URL!, remoteToken!, course.id, { abs: f.abs, name: f.name, folder: f.folder, mime });
       } else {
         const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const storedName = `${randomUUID()}-${safeName}`;

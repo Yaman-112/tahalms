@@ -49,6 +49,14 @@ const COURSE_FILE_MIMES = new Set([
   'image/gif',
   'video/mp4',
   'video/quicktime',
+  'video/webm',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/wave',
+  'audio/x-wav',
+  'audio/mp4',
+  'audio/x-m4a',
 ]);
 
 export const uploadCourseFile = multer({
