@@ -4094,7 +4094,8 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
 
   const getStatusBadge = (a: any) => {
     if (user.role === 'STUDENT') {
-      const sub = a.submissions?.find((s: any) => s.studentId === user.id);
+      // Backend already filters submissions to the logged-in student for STUDENT role
+      const sub = a.submissions?.[0];
       const pastDue = a.dueDate && new Date() > new Date(a.dueDate);
       if (!sub) {
         return pastDue
