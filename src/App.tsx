@@ -402,9 +402,21 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-[#008EE2]">{Math.round(progress)}%</div>
-                        <div className="text-[16px] text-gray-400">progress</div>
+                      <div className="text-right flex items-center space-x-6">
+                        <div>
+                          <div className="text-2xl font-bold text-[#008EE2]">{Math.round(progress)}%</div>
+                          <div className="text-[14px] text-gray-400">progress</div>
+                        </div>
+                        {e.overallGrade !== null && e.overallGrade !== undefined && (() => {
+                          const g = Number(e.overallGrade) || 0;
+                          const color = g >= 80 ? 'text-green-600' : g >= 60 ? 'text-[#008EE2]' : g >= 50 ? 'text-amber-600' : 'text-red-600';
+                          return (
+                            <div>
+                              <div className={`text-2xl font-bold ${color}`}>{g.toFixed(1)}%</div>
+                              <div className="text-[14px] text-gray-400">current grade</div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
 
