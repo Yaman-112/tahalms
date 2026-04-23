@@ -80,3 +80,24 @@ export function getMoaRotation(startDate: Date, limit = 8): Map<string, Date> {
 export function getMoaFirstSessionDateForStudent(dbModuleName: string, startDate: Date): Date | null {
   return getMoaRotation(startDate).get(dbModuleName) ?? null;
 }
+
+export function getMoaModuleRun(dbModuleName: string, startDate: Date, limit = 8): { first: Date; last: Date } | null {
+  const s = load();
+  const start = findStartIndex(startDate);
+  if (start < 0) return null;
+  const seen = new Set<string>();
+  let endIdx = s.length - 1;
+  for (let i = start; i < s.length; i++) {
+    for (const m of s[i].modules) seen.add(m);
+    if (seen.size >= limit) { endIdx = i; break; }
+  }
+  let firstIdx = -1, lastIdx = -1;
+  for (let i = start; i <= endIdx; i++) {
+    if (s[i].modules.includes(dbModuleName)) {
+      if (firstIdx < 0) firstIdx = i;
+      lastIdx = i;
+    }
+  }
+  if (firstIdx < 0) return null;
+  return { first: s[firstIdx].date, last: s[lastIdx].date };
+}
