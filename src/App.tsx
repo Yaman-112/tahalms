@@ -4494,7 +4494,7 @@ export default function App() {
       {/* Main Content */}
       <main className={`flex-1 flex flex-col overflow-hidden transition-opacity duration-300 ${isAccountDrawerOpen || isCoursesDrawerOpen ? 'opacity-50' : 'opacity-100'}`}>
         {userRole === 'ADMIN' && activeTab === 'Admin' ? (
-          <AdminCoursesView onCourseSelect={id => setSelectedCourseId(id)} />
+          <AdminCoursesView onCourseSelect={id => { setSelectedCourseId(id); setActiveTab('Courses'); }} />
         ) : userRole === 'ADMIN' && activeTab === 'Dashboard' && !selectedCourseId ? (
           <AdminDashboardView onCourseSelect={id => setSelectedCourseId(id)} />
         ) : userRole === 'TEACHER' && activeTab === 'Dashboard' && !selectedCourseId ? (
