@@ -33,17 +33,23 @@ router.get('/', async (req: AuthRequest, res) => {
       where.course = { enrollments: { some: { userId } } };
     }
 
-    const assignments = await prisma.assignment.findMany({
+    let assignments = await prisma.assignment.findMany({
       where,
       orderBy: { dueDate: 'asc' },
       include: {
         course: { select: { id: true, name: true, code: true, color: true } },
-        _count: { select: { submissions: true } },
+        _count: { select: { submissions: true, questions: true } },
         ...(role === 'STUDENT' ? {
           submissions: { where: { studentId: userId }, select: { id: true, status: true, score: true, submittedAt: true, isLate: true } },
         } : {}),
       },
     });
+
+    // HT: hide assignments without an uploaded question bank (no questions attached).
+    // FILE-format assignments don't use question banks, so they remain visible.
+    assignments = assignments.filter(a =>
+      a.course.code !== 'HT' || a.format === 'FILE' || a._count.questions > 0
+    );
 
     // For teacher/admin: compute per-status counts in one grouped query
     const statusByAssignment = new Map<string, { GRADED: number; SUBMITTED: number; MISSING: number }>();
