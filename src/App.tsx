@@ -1949,6 +1949,16 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
     else alert(res.error || 'Delete failed');
   };
 
+  const handleRename = async (fileId: string, currentName: string) => {
+    const next = prompt('Rename file:', currentName);
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed || trimmed === currentName) return;
+    const res = await patch<any>(`/courses/${courseId}/files/${fileId}`, { fileName: trimmed });
+    if (res.success) refetch();
+    else alert(res.error || 'Rename failed');
+  };
+
   if (loading) return <LoadingSpinner />;
 
   const byFolder = new Map<string, any[]>();
@@ -2015,12 +2025,20 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
                     Download
                   </button>
                   {canDelete(f.uploadedById) && (
-                    <button
-                      onClick={() => handleDelete(f.id)}
-                      className="ml-1 px-3 py-1 text-[13px] text-red-600 hover:bg-red-50 rounded"
-                    >
-                      Delete
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleRename(f.id, f.fileName)}
+                        className="ml-1 px-3 py-1 text-[13px] text-[#008EE2] hover:bg-[#008EE2]/10 rounded"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        onClick={() => handleDelete(f.id)}
+                        className="ml-1 px-3 py-1 text-[13px] text-red-600 hover:bg-red-50 rounded"
+                      >
+                        Delete
+                      </button>
+                    </>
                   )}
                 </div>
               ))}

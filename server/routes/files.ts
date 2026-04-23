@@ -143,4 +143,35 @@ router.delete('/courses/:courseId/files/:fileId', authenticate, async (req: Auth
   }
 });
 
+// PATCH /api/courses/:courseId/files/:fileId — rename file
+router.patch('/courses/:courseId/files/:fileId', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { courseId, fileId } = req.params;
+    const { role, userId } = req.user!;
+    const { fileName, folder } = req.body ?? {};
+
+    const file = await prisma.courseFile.findFirst({ where: { id: fileId, courseId } });
+    if (!file) return error(res, 'File not found', 404);
+
+    const isAdmin = role === 'ADMIN';
+    const isUploader = file.uploadedById === userId;
+    if (!isAdmin && !isUploader) return error(res, 'Not authorized', 403);
+
+    const data: { fileName?: string; folder?: string } = {};
+    if (typeof fileName === 'string' && fileName.trim().length > 0) {
+      data.fileName = fileName.trim();
+    }
+    if (typeof folder === 'string') {
+      data.folder = folder.trim();
+    }
+    if (Object.keys(data).length === 0) return error(res, 'Nothing to update');
+
+    const updated = await prisma.courseFile.update({ where: { id: fileId }, data });
+    return success(res, updated);
+  } catch (err) {
+    console.error('Rename course file error:', err);
+    return error(res, 'Failed to rename', 500);
+  }
+});
+
 export default router;
