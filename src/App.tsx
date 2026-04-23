@@ -742,6 +742,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const { data: userProfile, loading: userProfileLoading, refetch: refetchUserProfile } = useApi<any>(
     selectedUserId ? `/users/${selectedUserId}` : null
   );
+  const { data: userSubmissions } = useApi<any[]>(
+    selectedUserId ? `/submissions?studentId=${selectedUserId}` : null
+  );
   const toggleUserActive = async () => {
     if (!userProfile) return;
     const res = await patch<any>(`/users/${userProfile.id}`, { isActive: !userProfile.isActive });
@@ -1179,20 +1182,77 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             </div>
                             <div className="text-[12px] text-gray-500 mb-4">
                               {pageViewTab === '30day'
-                                ? 'This page shows only the past 30 days of history.'
-                                : 'This page shows the past year of history.'}
+                                ? 'Assignment submission and grading activity in the last 30 days.'
+                                : 'Assignment submission and grading activity in the last year.'}
                             </div>
-                            <div className="flex flex-col items-center justify-center py-8">
-                              <div className="text-5xl mb-2">🐼</div>
-                              <div className="text-[14px] font-medium text-[#2D3B45]">
-                                {pageViewTab === '30day' ? 'Nothing in the last 30 days' : 'Nothing in the last year'}
-                              </div>
-                              <div className="text-[12px] text-gray-500 mt-1 text-center max-w-md">
-                                {pageViewTab === '30day'
-                                  ? "This page shows only the past 30 days of history. It looks like there hasn't been anything recent to show."
-                                  : "This page shows the past year of history. It looks like there hasn't been anything recent to show."}
-                              </div>
-                            </div>
+                            {(() => {
+                              const now = Date.now();
+                              const cutoff = now - (pageViewTab === '30day' ? 30 : 365) * 86400000;
+                              const events: { at: Date; action: 'SUBMITTED' | 'GRADED'; title: string; courseCode: string; score: number | null; points: number | null; isLate: boolean }[] = [];
+                              for (const s of userSubmissions ?? []) {
+                                const title = s.assignment?.title ?? 'Assignment';
+                                const courseCode = s.assignment?.course?.code ?? '';
+                                if (s.submittedAt) events.push({ at: new Date(s.submittedAt), action: 'SUBMITTED', title, courseCode, score: null, points: s.assignment?.points ?? null, isLate: !!s.isLate });
+                                if (s.status === 'GRADED' && s.date) events.push({ at: new Date(s.date), action: 'GRADED', title, courseCode, score: s.score, points: s.assignment?.points ?? null, isLate: false });
+                              }
+                              const windowed = events.filter(e => e.at.getTime() >= cutoff).sort((a, b) => b.at.getTime() - a.at.getTime());
+                              if (windowed.length === 0) {
+                                return (
+                                  <div className="flex flex-col items-center justify-center py-8">
+                                    <div className="text-5xl mb-2">🐼</div>
+                                    <div className="text-[14px] font-medium text-[#2D3B45]">
+                                      {pageViewTab === '30day' ? 'Nothing in the last 30 days' : 'Nothing in the last year'}
+                                    </div>
+                                    <div className="text-[12px] text-gray-500 mt-1 text-center max-w-md">
+                                      No assignment activity to show.
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              const relative = (d: Date) => {
+                                const diffMs = now - d.getTime();
+                                const m = Math.floor(diffMs / 60000);
+                                if (m < 1) return 'just now';
+                                if (m < 60) return `${m} min${m === 1 ? '' : 's'} ago`;
+                                const h = Math.floor(m / 60);
+                                if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+                                const dd = Math.floor(h / 24);
+                                if (dd < 7) return `${dd} day${dd === 1 ? '' : 's'} ago`;
+                                const w = Math.floor(dd / 7);
+                                if (w < 5) return `${w} week${w === 1 ? '' : 's'} ago`;
+                                const mo = Math.floor(dd / 30);
+                                if (mo < 12) return `${mo} month${mo === 1 ? '' : 's'} ago`;
+                                return `${Math.floor(dd / 365)} year${dd >= 730 ? 's' : ''} ago`;
+                              };
+                              return (
+                                <div className="divide-y divide-gray-100">
+                                  {windowed.map((ev, i) => (
+                                    <div key={i} className="flex items-start py-2 text-[13px]">
+                                      <div className="w-[90px] shrink-0 text-gray-500">
+                                        {ev.at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                        <div className="text-[11px]">{ev.at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${ev.action === 'GRADED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
+                                            {ev.action}
+                                          </span>
+                                          {ev.isLate && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600">LATE</span>}
+                                          {ev.action === 'GRADED' && ev.score != null && ev.points != null && (
+                                            <span className="text-[12px] font-bold text-[#2D3B45]">{ev.score} / {ev.points}</span>
+                                          )}
+                                        </div>
+                                        <div className="text-[#2D3B45] truncate">
+                                          {ev.title}
+                                          {ev.courseCode && <span className="text-gray-500 ml-2">({ev.courseCode})</span>}
+                                        </div>
+                                      </div>
+                                      <div className="w-[100px] shrink-0 text-right text-[12px] text-gray-500">{relative(ev.at)}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
                           </fieldset>
                         </div>
 
