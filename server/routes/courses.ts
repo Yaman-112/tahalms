@@ -57,7 +57,12 @@ router.get('/', async (req: AuthRequest, res) => {
       ...course,
       teachers: course.enrollments
         .filter(e => e.role === 'TEACHER')
-        .map(e => ({ id: e.user.id, name: `${e.user.firstName} ${e.user.lastName}`, initial: `${e.user.firstName[0]}${e.user.lastName[0]}` })),
+        .map(e => {
+          const first = e.user.firstName ?? '';
+          const last = e.user.lastName ?? '';
+          const initial = ((first[0] ?? '') + (last[0] ?? '')).toUpperCase() || '?';
+          return { id: e.user.id, name: `${first} ${last}`.trim() || 'Unknown', initial };
+        }),
       studentCount: course.enrollments.filter(e => e.role === 'STUDENT').length,
       enrollments: undefined,
     }));

@@ -832,17 +832,17 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <td className="py-4 px-4"><a href="#" onClick={(e) => { e.preventDefault(); onCourseSelect(course.id); }} className="text-[#008EE2] hover:underline">{course.name}</a></td>
                           <td className="py-4 px-4 text-gray-600">{course.code}</td>
                           <td className="py-4 px-4 text-gray-600">{course.term}</td>
-                          <td className="py-4 px-4 align-top">
+                          <td className="py-4 px-4 align-top min-w-[200px]">
                             {course.teachers?.map((t, idx) => (
                               <div key={idx} className="flex items-center gap-2 mb-1.5 last:mb-0">
-                                <div className="w-8 h-8 shrink-0 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-white">
-                                  {t.initial}
+                                <div className="w-8 h-8 shrink-0 overflow-hidden rounded-full border border-gray-300 flex items-center justify-center text-[13px] font-medium text-gray-600 bg-white">
+                                  {(t.initial ?? '?').slice(0, 2)}
                                 </div>
-                                <a href="#" className="text-[#008EE2] hover:underline text-[16px] break-words min-w-0">{t.name}</a>
+                                <a href="#" onClick={e => { e.preventDefault(); setSelectedUserId(t.id); setAdminActiveSection('Batches'); }} className="text-[#008EE2] hover:underline text-[16px] break-words min-w-0">{t.name}</a>
                               </div>
                             ))}
                           </td>
-                          <td className="py-4 px-4"><a href="#" className="text-[#008EE2] hover:underline">{course.subAccount}</a></td>
+                          <td className="py-4 px-4"><a href="#" onClick={e => { e.preventDefault(); setAdminActiveSection('Sub-Accounts'); }} className="text-[#008EE2] hover:underline">{course.subAccount}</a></td>
                           <td className="py-4 px-4 text-gray-600">{course.studentCount}</td>
                         </tr>
                       ))}
