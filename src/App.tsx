@@ -1205,7 +1205,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   isLate: !!s.isLate,
                                 });
                               }
-                              const windowed = events.filter(e => e.at.getTime() >= cutoff).sort((a, b) => b.at.getTime() - a.at.getTime());
+                              const windowed = events.filter(e => e.at.getTime() >= cutoff && e.at.getTime() <= now).sort((a, b) => b.at.getTime() - a.at.getTime());
                               if (windowed.length === 0) {
                                 return (
                                   <div className="flex flex-col items-center justify-center py-8">
