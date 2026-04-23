@@ -3317,88 +3317,50 @@ function CourseView({ courseId }: { courseId: string }) {
                       </button>
                     )}
                   </div>
-                  <div className="bg-white">
+                  <div className="bg-white divide-y divide-[#E1E1E1]">
                     {!course.assignments?.length ? (
                       <div className="p-8 text-center text-gray-400 text-sm">No assignments yet.</div>
-                    ) : (() => {
-                      const renderAssignmentRow = (a: any) => {
-                        const mySub = a.submissions?.find((s: any) => s.status === 'GRADED' && s.score !== null && s.score !== undefined)
-                          || a.submissions?.find((s: any) => s.status === 'GRADED')
-                          || a.submissions?.[0];
-                        const showGrade = (effectiveRole === 'STUDENT') && mySub && mySub.score !== null && mySub.score !== undefined;
-                        const pct = showGrade && a.points > 0 ? (mySub.score / a.points) * 100 : 0;
-                        const pctColor = pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-[#008EE2]' : pct >= 50 ? 'text-amber-600' : 'text-red-600';
-                        return (
-                          <div key={a.id} className="px-4 py-4 flex items-center hover:bg-gray-50 group cursor-pointer border-b border-[#E1E1E1] last:border-b-0"
-                            onClick={() => loadAssignmentDetail(a.id)}>
-                            <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-2">
-                                <h4 className="font-bold text-[16px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
-                                {a.format && a.format !== 'FILE' && (
-                                  <span className={`px-1.5 py-0.5 text-[16px] font-bold rounded ${
-                                    a.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
-                                    a.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
-                                    'bg-amber-100 text-amber-700'
-                                  }`}>{a.format}</span>
-                                )}
-                              </div>
-                              <p className="text-[16px] text-gray-500 mt-0.5">
-                                {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
-                                {a.timeLimit ? ` • ${a.timeLimit} min` : ''}
-                              </p>
+                    ) : course.assignments.map((a: any) => {
+                      const mySub = a.submissions?.find((s: any) => s.status === 'GRADED' && s.score !== null && s.score !== undefined)
+                        || a.submissions?.find((s: any) => s.status === 'GRADED')
+                        || a.submissions?.[0];
+                      const showGrade = (effectiveRole === 'STUDENT') && mySub && mySub.score !== null && mySub.score !== undefined;
+                      const pct = showGrade && a.points > 0 ? (mySub.score / a.points) * 100 : 0;
+                      const pctColor = pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-[#008EE2]' : pct >= 50 ? 'text-amber-600' : 'text-red-600';
+                      return (
+                        <div key={a.id} className="px-4 py-4 flex items-center hover:bg-gray-50 group cursor-pointer"
+                          onClick={() => loadAssignmentDetail(a.id)}>
+                          <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-bold text-[16px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
+                              {a.format && a.format !== 'FILE' && (
+                                <span className={`px-1.5 py-0.5 text-[16px] font-bold rounded ${
+                                  a.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
+                                  a.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-amber-100 text-amber-700'
+                                }`}>{a.format}</span>
+                              )}
                             </div>
-                            {showGrade ? (
-                              <div className="mr-3 text-right">
-                                <div className={`text-[18px] font-bold ${pctColor}`}>{mySub.score}/{a.points}</div>
-                                <div className="text-[12px] text-gray-500">{pct.toFixed(0)}%</div>
-                              </div>
-                            ) : effectiveRole === 'STUDENT' && mySub?.status === 'MISSING' ? (
-                              <div className="mr-3 text-right">
-                                <div className="text-[13px] text-gray-400 italic">Missing</div>
-                              </div>
-                            ) : null}
-                            <ChevronRight size={18} className="text-gray-300 group-hover:text-[#008EE2]" />
+                            <p className="text-[16px] text-gray-500 mt-0.5">
+                              {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
+                              {a.timeLimit ? ` • ${a.timeLimit} min` : ''}
+                            </p>
                           </div>
-                        );
-                      };
-
-                      if (course.code === 'IBA' && course.modules?.length > 0) {
-                        const sortedModules = [...course.modules].sort((a: any, b: any) => b.name.length - a.name.length);
-                        const groups = new Map<string, any[]>();
-                        const orderedMods: any[] = [...course.modules].sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0));
-                        for (const m of orderedMods) groups.set(m.name, []);
-                        const other: any[] = [];
-                        for (const a of course.assignments) {
-                          const m = sortedModules.find((m: any) => a.title === m.name || a.title.startsWith(`${m.name} - `) || a.title.includes(m.name));
-                          if (m) groups.get(m.name)!.push(a);
-                          else other.push(a);
-                        }
-                        return (
-                          <div>
-                            {orderedMods.map((m: any) => {
-                              const items = groups.get(m.name) || [];
-                              if (items.length === 0) return null;
-                              return (
-                                <div key={m.id}>
-                                  <div className="px-4 py-2 bg-[#F5F5F5] border-b border-[#E1E1E1] font-bold text-[15px] text-[#2D3B45]">
-                                    {m.name}
-                                  </div>
-                                  {items.map(renderAssignmentRow)}
-                                </div>
-                              );
-                            })}
-                            {other.length > 0 && (
-                              <div>
-                                <div className="px-4 py-2 bg-[#F5F5F5] border-b border-[#E1E1E1] font-bold text-[15px] text-[#2D3B45]">Other</div>
-                                {other.map(renderAssignmentRow)}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
-                      return course.assignments.map(renderAssignmentRow);
-                    })()}
+                          {showGrade ? (
+                            <div className="mr-3 text-right">
+                              <div className={`text-[18px] font-bold ${pctColor}`}>{mySub.score}/{a.points}</div>
+                              <div className="text-[12px] text-gray-500">{pct.toFixed(0)}%</div>
+                            </div>
+                          ) : effectiveRole === 'STUDENT' && mySub?.status === 'MISSING' ? (
+                            <div className="mr-3 text-right">
+                              <div className="text-[13px] text-gray-400 italic">Missing</div>
+                            </div>
+                          ) : null}
+                          <ChevronRight size={18} className="text-gray-300 group-hover:text-[#008EE2]" />
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
