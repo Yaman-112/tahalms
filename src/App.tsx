@@ -721,12 +721,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const [peoplePage, setPeoplePage] = useState(1);
   const [peopleRole, setPeopleRole] = useState('');
   const [peopleSearch, setPeopleSearch] = useState('');
+  const [peopleSearchId, setPeopleSearchId] = useState('');
   const [selectedBatchCode, setSelectedBatchCode] = useState<string | null>(null);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { data, loading } = useApi<{ courses: Course[]; total: number }>('/courses?limit=100');
   const { data: peopleData, loading: peopleLoading } = useApi<{ users: any[]; total: number; totalPages: number }>(
     adminActiveSection === 'People'
-      ? `/users?page=${peoplePage}&limit=25${peopleRole ? `&role=${peopleRole}` : ''}${peopleSearch ? `&search=${encodeURIComponent(peopleSearch)}` : ''}`
+      ? `/users?page=${peoplePage}&limit=25${peopleRole ? `&role=${peopleRole}` : ''}${peopleSearch ? `&search=${encodeURIComponent(peopleSearch)}` : ''}${peopleSearchId ? `&searchId=${encodeURIComponent(peopleSearchId)}` : ''}`
       : null
   );
   const [batchSearch, setBatchSearch] = useState('');
@@ -896,6 +897,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                   <input type="text" placeholder="Search by name or email..."
                     value={peopleSearch}
                     onChange={e => { setPeopleSearch(e.target.value); setPeoplePage(1); }}
+                    className="w-full bg-white border border-gray-300 rounded pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+                </div>
+                <div className="relative flex-1 max-w-[240px]">
+                  <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input type="text" placeholder="Search by ID..."
+                    value={peopleSearchId}
+                    onChange={e => { setPeopleSearchId(e.target.value); setPeoplePage(1); }}
                     className="w-full bg-white border border-gray-300 rounded pl-10 pr-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
                 </div>
                 <select value={peopleRole}

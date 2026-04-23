@@ -17,6 +17,7 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 25));
     const role = req.query.role as string | undefined;
     const search = req.query.search as string | undefined;
+    const searchId = req.query.searchId as string | undefined;
     const skip = (page - 1) * limit;
 
     const where: any = {};
@@ -26,6 +27,17 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
         { firstName: { contains: search, mode: 'insensitive' } },
         { lastName: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+    if (searchId) {
+      where.AND = [
+        ...(where.AND || []),
+        {
+          OR: [
+            { id: { contains: searchId, mode: 'insensitive' } },
+            { vNumber: { contains: searchId, mode: 'insensitive' } },
+          ],
+        },
       ];
     }
 
