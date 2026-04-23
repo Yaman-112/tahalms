@@ -2946,7 +2946,6 @@ function CourseView({ courseId }: { courseId: string }) {
                                     <th className="py-3 px-4">Student</th>
                                     <th className="py-3 px-4">Status</th>
                                     <th className="py-3 px-4">Submitted</th>
-                                    <th className="py-3 px-4">Late</th>
                                     <th className="py-3 px-4">Score</th>
                                     <th className="py-3 px-4">Actions</th>
                                   </tr>
@@ -2984,9 +2983,6 @@ function CourseView({ courseId }: { courseId: string }) {
                                         <td className="py-3 px-4 text-[16px] text-gray-500">
                                           {sub.submittedAt ? new Date(sub.submittedAt).toLocaleString() : '-'}
                                         </td>
-                                        <td className="py-3 px-4">
-                                          {sub.isLate ? <span className="px-2 py-0.5 text-[16px] font-bold rounded-full bg-red-100 text-red-600">LATE</span> : <span className="text-gray-400 text-[16px]">On time</span>}
-                                        </td>
                                         <td className="py-3 px-4 font-bold">
                                           {sub.score !== null ? `${sub.score} / ${assignmentDetail.points}` : '-'}
                                         </td>
@@ -3000,7 +2996,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                       {/* Inline Grading Panel for FILE format */}
                                       {isExpandedFile && !isQuizFormat && (
                                         <tr>
-                                          <td colSpan={6} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
+                                          <td colSpan={5} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
                                             <div className="space-y-4">
                                               {sub.filePath && (
                                                 <div>
@@ -3049,7 +3045,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                       {/* Inline Quiz Grading Panel for MCQ/THEORY/MIXED */}
                                       {isExpandedQuiz && isQuizFormat && (
                                         <tr>
-                                          <td colSpan={6} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
+                                          <td colSpan={5} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
                                             <div className="space-y-4">
                                               <h4 className="font-bold text-sm text-[#2D3B45]">Student Answers</h4>
                                               {assignmentQuestions.map((question: any, qIdx: number) => {
