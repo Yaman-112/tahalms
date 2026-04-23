@@ -3083,24 +3083,13 @@ function CourseView({ courseId }: { courseId: string }) {
                                     <th className="py-3 px-4">Status</th>
                                     <th className="py-3 px-4">Submitted</th>
                                     <th className="py-3 px-4">Score</th>
-                                    <th className="py-3 px-4">Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E1E1E1]">
                                   {assignmentDetail.submissions.map((sub: any) => {
-                                    const isQuizFormat = assignmentDetail.format && assignmentDetail.format !== 'FILE';
-                                    const isExpandedFile = gradingSubmissionId === sub.id;
-                                    const isExpandedQuiz = gradingQuizSubmissionId === sub.id;
                                     return (
                                     <React.Fragment key={sub.id}>
-                                      <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => {
-                                        if (isQuizFormat) {
-                                          setGradingQuizSubmissionId(isExpandedQuiz ? null : sub.id);
-                                          setTheoryGrades({});
-                                        } else {
-                                          setGradingSubmissionId(isExpandedFile ? null : sub.id);
-                                        }
-                                      }}>
+                                      <tr className="hover:bg-gray-50">
                                         <td className="py-3 px-4">
                                           <div className="flex items-center space-x-2">
                                             <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-gray-50">
@@ -3122,184 +3111,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                         <td className="py-3 px-4 font-bold">
                                           {sub.score !== null ? `${sub.score} / ${assignmentDetail.points}` : '-'}
                                         </td>
-                                        <td className="py-3 px-4">
-                                          <button className="text-[#008EE2] text-sm hover:underline">
-                                            {(isExpandedFile || isExpandedQuiz) ? 'Close' : 'Grade'}
-                                          </button>
-                                        </td>
                                       </tr>
-
-                                      {/* Inline Grading Panel for FILE format */}
-                                      {isExpandedFile && !isQuizFormat && (
-                                        <tr>
-                                          <td colSpan={5} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
-                                            <div className="space-y-4">
-                                              {sub.filePath && (
-                                                <div>
-                                                  <h4 className="font-bold text-sm text-[#2D3B45] mb-2">Student File: {sub.fileName || 'Submission'}</h4>
-                                                  <iframe
-                                                    src={`/api/submissions/${sub.id}/file?token=${getAccessToken()}`}
-                                                    className="w-full h-[400px] border border-[#E1E1E1] rounded bg-white"
-                                                    title="Student submission"
-                                                  />
-                                                </div>
-                                              )}
-                                              {sub.comment && (
-                                                <div className="bg-white border border-[#E1E1E1] rounded p-3">
-                                                  <div className="text-[16px] text-gray-400 uppercase tracking-wider mb-1">Student Comment</div>
-                                                  <p className="text-[16px] text-[#2D3B45]">{sub.comment}</p>
-                                                </div>
-                                              )}
-                                              <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                  <label className="block text-sm font-bold text-[#2D3B45] mb-1">Score (max {assignmentDetail.points})</label>
-                                                  <input type="number" value={gradeScore} onChange={e => setGradeScore(Number(e.target.value))}
-                                                    max={assignmentDetail.points} min={0}
-                                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
-                                                </div>
-                                              </div>
-                                              <div>
-                                                <label className="block text-sm font-bold text-[#2D3B45] mb-1">Feedback</label>
-                                                <textarea value={gradeFeedback} onChange={e => setGradeFeedback(e.target.value)} rows={3}
-                                                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
-                                                  placeholder="Feedback for the student..." />
-                                              </div>
-                                              <div className="flex items-center space-x-3">
-                                                <button onClick={handleSaveGrade} disabled={savingGrade}
-                                                  className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
-                                                  {savingGrade ? 'Saving...' : 'Save Grade'}
-                                                </button>
-                                                <button onClick={() => setGradingSubmissionId(null)} className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
-                                                  Cancel
-                                                </button>
-                                              </div>
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
-
-                                      {/* Inline Quiz Grading Panel for MCQ/THEORY/MIXED */}
-                                      {isExpandedQuiz && isQuizFormat && (
-                                        <tr>
-                                          <td colSpan={5} className="p-4 bg-[#F5F5F5] border-t border-[#E1E1E1]">
-                                            <div className="space-y-4">
-                                              <h4 className="font-bold text-sm text-[#2D3B45]">Student Answers</h4>
-                                              {assignmentQuestions.map((question: any, qIdx: number) => {
-                                                const answer = question.answers?.find((a: any) => a.submissionId === sub.id);
-                                                const isMCQ = question.type === 'MCQ';
-                                                return (
-                                                  <div key={question.id} className={`border rounded-lg p-4 bg-white ${
-                                                    isMCQ
-                                                      ? answer?.isCorrect ? 'border-green-300' : answer?.isCorrect === false ? 'border-red-300' : 'border-gray-200'
-                                                      : 'border-gray-200'
-                                                  }`}>
-                                                    <div className="flex items-center justify-between mb-2">
-                                                      <div className="flex items-center space-x-2">
-                                                        <span className="text-sm font-bold text-[#2D3B45]">Q{qIdx + 1}. {question.text}</span>
-                                                        <span className={`px-2 py-0.5 text-[16px] font-bold rounded ${isMCQ ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{question.type}</span>
-                                                      </div>
-                                                      <span className="text-sm text-gray-500">{question.points} pts</span>
-                                                    </div>
-
-                                                    {isMCQ && question.options && (
-                                                      <div className="space-y-1 mt-2">
-                                                        {question.options.map((opt: any) => {
-                                                          const isSelected = answer?.selectedOptionId === opt.id;
-                                                          const isCorrectOption = opt.isCorrect;
-                                                          return (
-                                                            <div key={opt.id} className={`px-3 py-2 rounded text-sm flex items-center space-x-2 ${
-                                                              isCorrectOption ? 'bg-green-100 border border-green-300' :
-                                                              isSelected && !isCorrectOption ? 'bg-red-100 border border-red-300' :
-                                                              'bg-gray-50 border border-gray-200'
-                                                            }`}>
-                                                              {isSelected && <span className="font-bold">{isCorrectOption ? <CheckCircle size={14} className="text-green-600" /> : <X size={14} className="text-red-600" />}</span>}
-                                                              {!isSelected && isCorrectOption && <CheckCircle size={14} className="text-green-600" />}
-                                                              {!isSelected && !isCorrectOption && <span className="w-3.5" />}
-                                                              <span>{opt.text}</span>
-                                                            </div>
-                                                          );
-                                                        })}
-                                                        <div className="mt-1 text-[16px] font-bold">
-                                                          {answer?.isCorrect ? (
-                                                            <span className="text-green-600">Correct (+{answer.pointsAwarded ?? question.points})</span>
-                                                          ) : answer?.isCorrect === false ? (
-                                                            <span className="text-red-600">Wrong {assignmentDetail.negativeMarking > 0 ? `(-${assignmentDetail.negativeMarking})` : '(0 pts)'}</span>
-                                                          ) : (
-                                                            <span className="text-gray-400">Not answered</span>
-                                                          )}
-                                                        </div>
-                                                      </div>
-                                                    )}
-
-                                                    {!isMCQ && (
-                                                      <div className="mt-2 space-y-2">
-                                                        <div className="bg-gray-50 border border-gray-200 rounded p-3 text-sm text-[#2D3B45] whitespace-pre-wrap">
-                                                          {answer?.textAnswer || '(no answer)'}
-                                                        </div>
-                                                        {/* Theory grading inputs */}
-                                                        {answer && (
-                                                          <div className="grid grid-cols-2 gap-3 mt-2">
-                                                            <div>
-                                                              <label className="block text-[16px] font-bold text-gray-500 mb-1">Points (max {question.points})</label>
-                                                              <input type="number"
-                                                                value={theoryGrades[answer.id]?.pointsAwarded ?? answer.pointsAwarded ?? 0}
-                                                                onChange={e => setTheoryGrades(prev => ({
-                                                                  ...prev,
-                                                                  [answer.id]: {
-                                                                    pointsAwarded: Math.min(Number(e.target.value), question.points),
-                                                                    feedback: prev[answer.id]?.feedback ?? answer.feedback ?? '',
-                                                                  }
-                                                                }))}
-                                                                max={question.points} min={0}
-                                                                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
-                                                            </div>
-                                                            <div>
-                                                              <label className="block text-[16px] font-bold text-gray-500 mb-1">Feedback</label>
-                                                              <input type="text"
-                                                                value={theoryGrades[answer.id]?.feedback ?? answer.feedback ?? ''}
-                                                                onChange={e => setTheoryGrades(prev => ({
-                                                                  ...prev,
-                                                                  [answer.id]: {
-                                                                    pointsAwarded: prev[answer.id]?.pointsAwarded ?? answer.pointsAwarded ?? 0,
-                                                                    feedback: e.target.value,
-                                                                  }
-                                                                }))}
-                                                                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]"
-                                                                placeholder="Feedback..." />
-                                                            </div>
-                                                          </div>
-                                                        )}
-                                                      </div>
-                                                    )}
-                                                  </div>
-                                                );
-                                              })}
-
-                                              {/* Grade All button for theory questions */}
-                                              {assignmentQuestions.some((q: any) => q.type === 'THEORY') && (
-                                                <div className="flex items-center space-x-3 pt-2">
-                                                  <button onClick={() => handleGradeTheory(sub.id)} disabled={savingTheoryGrades || Object.keys(theoryGrades).length === 0}
-                                                    className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
-                                                    {savingTheoryGrades ? 'Saving...' : 'Save Theory Grades'}
-                                                  </button>
-                                                  <button onClick={() => { setGradingQuizSubmissionId(null); setTheoryGrades({}); }}
-                                                    className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
-                                                    Cancel
-                                                  </button>
-                                                </div>
-                                              )}
-
-                                              {/* If pure MCQ, just show close */}
-                                              {!assignmentQuestions.some((q: any) => q.type === 'THEORY') && (
-                                                <button onClick={() => setGradingQuizSubmissionId(null)}
-                                                  className="px-6 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
-                                                  Close
-                                                </button>
-                                              )}
-                                            </div>
-                                          </td>
-                                        </tr>
-                                      )}
                                     </React.Fragment>
                                     );
                                   })}
