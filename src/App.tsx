@@ -14,7 +14,7 @@ import {
 import { motion } from 'motion/react';
 import { useAuth } from './context/AuthContext';
 import { useApi } from './hooks/useApi';
-import { api, getAccessToken, del } from './api/client';
+import { api, getAccessToken, del, patch } from './api/client';
 import type {
   StudentDashboard, TeacherDashboard, AdminDashboard,
   Course, Assignment, Submission, Message
@@ -739,9 +739,23 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const { data: batchStudents, loading: batchStudentsLoading, refetch: refetchBatchStudents } = useApi<any>(
     selectedBatchCode ? `/enrollments?batchCode=${selectedBatchCode}&page=${batchStudentPage}&limit=50` : null
   );
-  const { data: userProfile, loading: userProfileLoading } = useApi<any>(
+  const { data: userProfile, loading: userProfileLoading, refetch: refetchUserProfile } = useApi<any>(
     selectedUserId ? `/users/${selectedUserId}` : null
   );
+  const stubAlert = (label: string) => alert(`${label} is not available yet.`);
+  const toggleUserActive = async () => {
+    if (!userProfile) return;
+    const res = await patch<any>(`/users/${userProfile.id}`, { isActive: !userProfile.isActive });
+    if (res.success) refetchUserProfile();
+    else alert(res.error || 'Failed to update user');
+  };
+  const deleteUser = async () => {
+    if (!userProfile) return;
+    if (!confirm(`Delete ${userProfile.firstName} ${userProfile.lastName} from TAHA College?`)) return;
+    const res = await del<any>(`/users/${userProfile.id}`);
+    if (res.success) { setSelectedUserId(null); refetchBatchStudents(); refetchBatches(); }
+    else alert(res.error || 'Failed to delete user');
+  };
   const [pageViewTab, setPageViewTab] = useState<'30day' | '1year'>('30day');
   // Dialogs
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
@@ -969,7 +983,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                     <div>
                       {/* Canvas-style breadcrumb */}
                       <div className="text-[13px] text-[#008EE2] mb-3">
-                        <span>TAHA College</span>
+                        <a onClick={() => { setSelectedUserId(null); setAdminActiveSection('Courses'); }} className="hover:underline cursor-pointer">TAHA College</a>
                         <span className="text-gray-400 mx-1">›</span>
                         <span className="text-gray-600">{userProfile.firstName?.toLowerCase()}'s profile</span>
                       </div>
@@ -1004,7 +1018,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         <div className="w-[50px] h-[50px] rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[#008EE2] text-[18px] font-light">
                                           {userProfile.firstName?.[0]}{userProfile.lastName?.[0]}
                                         </div>
-                                        <a className="text-[#008EE2] hover:underline cursor-pointer text-[13px]">Remove avatar picture</a>
+                                        <a onClick={() => stubAlert('Remove avatar picture')} className="text-[#008EE2] hover:underline cursor-pointer text-[13px]">Remove avatar picture</a>
                                       </div>
                                     </td>
                                   </tr>
@@ -1020,19 +1034,19 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               </table>
                               <div className="w-[220px] pl-4 pt-[88px] text-[13px] text-[#2D3B45]">
                                 <div><span className="font-bold">Last request:</span> <span className="text-gray-600">—</span></div>
-                                <a className="text-[#008EE2] hover:underline cursor-pointer">more...</a>
+                                <a onClick={() => stubAlert('Last request details')} className="text-[#008EE2] hover:underline cursor-pointer">more...</a>
                               </div>
                             </div>
                             <div className="mt-2 pt-1 text-[13px] text-[#008EE2]">
-                              <a className="hover:underline cursor-pointer">Edit</a>
+                              <a onClick={() => stubAlert('Edit user')} className="hover:underline cursor-pointer">Edit</a>
                               <span className="text-gray-400 px-1">|</span>
-                              <a className="hover:underline cursor-pointer">Act as User</a>
+                              <a onClick={() => stubAlert('Act as User')} className="hover:underline cursor-pointer">Act as User</a>
                               <span className="text-gray-400 px-1">|</span>
-                              <a className="hover:underline cursor-pointer">Merge with Another User</a>
+                              <a onClick={() => stubAlert('Merge with Another User')} className="hover:underline cursor-pointer">Merge with Another User</a>
                               <span className="text-gray-400 px-1">|</span>
-                              <a className="hover:underline cursor-pointer">{userProfile.isActive ? 'Suspend User' : 'Reactivate User'}</a>
+                              <a onClick={toggleUserActive} className="hover:underline cursor-pointer">{userProfile.isActive ? 'Suspend User' : 'Reactivate User'}</a>
                               <span className="text-gray-400 px-1">|</span>
-                              <a className="hover:underline cursor-pointer text-red-600">Delete from TAHA College</a>
+                              <a onClick={deleteUser} className="hover:underline cursor-pointer text-red-600">Delete from TAHA College</a>
                             </div>
                           </fieldset>
 
@@ -1049,7 +1063,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   </td>
                                   <td className="align-top py-3 px-3 text-[#2D3B45] whitespace-nowrap">TAHA College</td>
                                   <td className="align-top py-3 px-3 text-right w-[30px]">
-                                    <button className="text-gray-400 hover:text-[#008EE2]" title="Edit login">
+                                    <button onClick={() => stubAlert('Edit login')} className="text-gray-400 hover:text-[#008EE2]" title="Edit login">
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                     </button>
                                   </td>
@@ -1057,7 +1071,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               </tbody>
                             </table>
                             <div className="mt-2 text-[13px]">
-                              <a className="text-[#008EE2] hover:underline cursor-pointer">Add Login</a>
+                              <a onClick={() => stubAlert('Add Login')} className="text-[#008EE2] hover:underline cursor-pointer">Add Login</a>
                             </div>
                           </fieldset>
 
@@ -1097,7 +1111,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 {userProfile.enrollments.map((e: any) => (
                                   <div key={e.id} className="flex items-start justify-between py-1.5 border-b border-gray-100 last:border-b-0">
                                     <div className="text-[13px] min-w-0 flex-1">
-                                      <a className="text-[#008EE2] hover:underline cursor-pointer font-medium">
+                                      <a onClick={() => onCourseSelect(e.course.id)} className="text-[#008EE2] hover:underline cursor-pointer font-medium">
                                         {e.course.name}{e.batchCode ? `, ${e.batchCode}` : ''}{e.startDate ? ` - ${new Date(e.startDate).toLocaleDateString()}` : ''}
                                       </a>
                                       <div className="text-[12px] text-gray-500 mt-0.5">
@@ -1107,7 +1121,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         , Enrolled as: Student
                                       </div>
                                     </div>
-                                    <button className="text-gray-400 hover:text-red-500 ml-3 mt-0.5" title="Remove enrollment">
+                                    <button onClick={() => stubAlert('Remove enrollment')} className="text-gray-400 hover:text-red-500 ml-3 mt-0.5" title="Remove enrollment">
                                       <X size={14} />
                                     </button>
                                   </div>
@@ -1165,11 +1179,11 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
 
                         {/* Right sidebar actions */}
                         <aside className="w-[220px] shrink-0 space-y-2">
-                          <button className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                          <button onClick={() => stubAlert(`Message ${userProfile.firstName}`)} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
                             <Inbox size={14} className="shrink-0" />
                             <span>Message {userProfile.firstName}</span>
                           </button>
-                          <button className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                          <button onClick={() => stubAlert('Terminate all sessions')} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
                             <Shield size={14} className="shrink-0" />
                             <span>Terminate all sessions for this user</span>
                           </button>
