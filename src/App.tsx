@@ -1190,10 +1190,20 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               const cutoff = now - (pageViewTab === '30day' ? 30 : 365) * 86400000;
                               const events: { at: Date; action: 'SUBMITTED' | 'GRADED'; title: string; courseCode: string; score: number | null; points: number | null; isLate: boolean }[] = [];
                               for (const s of userSubmissions ?? []) {
+                                // Only show rows that have a real submittedAt — this matches the submission log exactly.
+                                if (!s.submittedAt) continue;
                                 const title = s.assignment?.title ?? 'Assignment';
                                 const courseCode = s.assignment?.course?.code ?? '';
-                                if (s.submittedAt) events.push({ at: new Date(s.submittedAt), action: 'SUBMITTED', title, courseCode, score: null, points: s.assignment?.points ?? null, isLate: !!s.isLate });
-                                if (s.status === 'GRADED' && s.date) events.push({ at: new Date(s.date), action: 'GRADED', title, courseCode, score: s.score, points: s.assignment?.points ?? null, isLate: false });
+                                const action = s.status === 'GRADED' ? 'GRADED' : 'SUBMITTED';
+                                events.push({
+                                  at: new Date(s.submittedAt),
+                                  action,
+                                  title,
+                                  courseCode,
+                                  score: action === 'GRADED' ? s.score : null,
+                                  points: s.assignment?.points ?? null,
+                                  isLate: !!s.isLate,
+                                });
                               }
                               const windowed = events.filter(e => e.at.getTime() >= cutoff).sort((a, b) => b.at.getTime() - a.at.getTime());
                               if (windowed.length === 0) {
