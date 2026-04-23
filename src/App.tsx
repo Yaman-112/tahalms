@@ -1999,9 +1999,17 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
               type="file"
               onChange={handleUpload}
               disabled={uploading}
-              className="text-[14px]"
+              className="hidden"
             />
-            {uploading && <span className="text-[14px] text-gray-500">Uploading…</span>}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-2 bg-[#008EE2] text-white px-4 py-2 rounded text-[14px] font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors"
+            >
+              <Upload size={16} />
+              <span>{uploading ? 'Uploading…' : 'Upload'}</span>
+            </button>
           </div>
           {uploadError && <p className="text-red-600 text-[13px] mt-2">{uploadError}</p>}
         </div>
