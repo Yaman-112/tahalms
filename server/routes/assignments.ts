@@ -80,7 +80,12 @@ router.get('/:id', async (req: AuthRequest, res) => {
     const assignment = await prisma.assignment.findUnique({
       where: { id: req.params.id },
       include: {
-        course: { select: { id: true, name: true, code: true, color: true } },
+        course: {
+          select: {
+            id: true, name: true, code: true, color: true,
+            modules: { select: { id: true, name: true, position: true } },
+          },
+        },
         submissions: req.user!.role !== 'STUDENT'
           ? {
               include: {
@@ -93,12 +98,54 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
     if (!assignment) return error(res, 'Assignment not found', 404);
 
+    // Pilot: only apply submission-log filtering to IBA. Expand to other courses after verification.
+    const FILTERED_COURSE_CODES = new Set(['IBA']);
+
+    let visibleSubmissions: any[] = assignment.submissions;
+    if (
+      req.user!.role !== 'STUDENT' &&
+      FILTERED_COURSE_CODES.has(assignment.course.code) &&
+      assignment.course.modules.length > 0 &&
+      visibleSubmissions.length > 0
+    ) {
+      const sortedModules = [...assignment.course.modules].sort((a, b) => b.name.length - a.name.length);
+      const assignmentModule = sortedModules.find(m =>
+        assignment.title === m.name ||
+        assignment.title.startsWith(`${m.name} - `) ||
+        assignment.title.includes(m.name)
+      );
+
+      if (assignmentModule) {
+        const studentIds = visibleSubmissions.map(s => s.studentId);
+        const enrollments = await prisma.enrollment.findMany({
+          where: { courseId: assignment.courseId, userId: { in: studentIds }, role: 'STUDENT' },
+          select: { userId: true, joinedModulePosition: true },
+        });
+        const joinedByUser = new Map<string, number | null>();
+        for (const e of enrollments) {
+          const prev = joinedByUser.get(e.userId);
+          const cur = e.joinedModulePosition;
+          if (prev === undefined) joinedByUser.set(e.userId, cur);
+          else if (cur != null && (prev == null || cur < prev)) joinedByUser.set(e.userId, cur);
+        }
+
+        visibleSubmissions = visibleSubmissions.filter(s => {
+          const joined = joinedByUser.get(s.studentId);
+          // Rule B: assignment's module is before student's joined module → hide student.
+          if (joined != null && assignmentModule.position < joined) return false;
+          // Rule A: module is on/after start date, but score is a literal 0 → hide from log (DB row untouched).
+          if (s.score === 0) return false;
+          return true;
+        });
+      }
+    }
+
     // Don't expose server file paths to client
     const { attachmentPath, ...rest } = assignment;
     const sanitized = {
       ...rest,
       hasAttachment: !!attachmentPath,
-      submissions: assignment.submissions.map((s: any) => {
+      submissions: visibleSubmissions.map((s: any) => {
         const { filePath, ...subRest } = s;
         return { ...subRest, hasFile: !!filePath };
       }),
