@@ -153,4 +153,17 @@ router.get('/batch-summary', requireRole('ADMIN'), async (req: AuthRequest, res)
   }
 });
 
+// DELETE /api/enrollments/:id — unenroll a student from a course (admin only)
+router.delete('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+  try {
+    const existing = await prisma.enrollment.findUnique({ where: { id: req.params.id } });
+    if (!existing) return error(res, 'Enrollment not found', 404);
+    await prisma.enrollment.delete({ where: { id: req.params.id } });
+    return success(res, { id: req.params.id });
+  } catch (err) {
+    console.error('Delete enrollment error:', err);
+    return error(res, 'Failed to delete enrollment', 500);
+  }
+});
+
 export default router;

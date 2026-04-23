@@ -742,7 +742,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const { data: userProfile, loading: userProfileLoading, refetch: refetchUserProfile } = useApi<any>(
     selectedUserId ? `/users/${selectedUserId}` : null
   );
-  const stubAlert = (label: string) => alert(`${label} is not available yet.`);
   const toggleUserActive = async () => {
     if (!userProfile) return;
     const res = await patch<any>(`/users/${userProfile.id}`, { isActive: !userProfile.isActive });
@@ -755,6 +754,29 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
     const res = await del<any>(`/users/${userProfile.id}`);
     if (res.success) { setSelectedUserId(null); refetchBatchStudents(); refetchBatches(); }
     else alert(res.error || 'Failed to delete user');
+  };
+  const editUserName = async () => {
+    if (!userProfile) return;
+    const firstName = prompt('First name:', userProfile.firstName ?? '');
+    if (firstName === null) return;
+    const lastName = prompt('Last name:', userProfile.lastName ?? '');
+    if (lastName === null) return;
+    const res = await patch<any>(`/users/${userProfile.id}`, { firstName: firstName.trim(), lastName: lastName.trim() });
+    if (res.success) refetchUserProfile();
+    else alert(res.error || 'Failed to update user');
+  };
+  const resetPassword = async () => {
+    if (!userProfile) return;
+    const password = prompt(`Set a new password for ${userProfile.firstName}. Leave blank to cancel.`);
+    if (!password || password.trim().length < 6) { if (password !== null) alert('Password must be at least 6 characters.'); return; }
+    const res = await patch<any>(`/users/${userProfile.id}`, { password: password.trim() });
+    if (res.success) alert('Password updated.');
+    else alert(res.error || 'Failed to update password');
+  };
+  const showLastRequest = () => {
+    if (!userProfile) return;
+    const last = userProfile.lastLoginAt ? new Date(userProfile.lastLoginAt).toLocaleString() : 'Never';
+    alert(`Last login: ${last}\nAccount created: ${userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleString() : '—'}`);
   };
   const [pageViewTab, setPageViewTab] = useState<'30day' | '1year'>('30day');
   // Dialogs
@@ -1018,7 +1040,11 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         <div className="w-[50px] h-[50px] rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[#008EE2] text-[18px] font-light">
                                           {userProfile.firstName?.[0]}{userProfile.lastName?.[0]}
                                         </div>
-                                        <a onClick={() => stubAlert('Remove avatar picture')} className="text-[#008EE2] hover:underline cursor-pointer text-[13px]">Remove avatar picture</a>
+                                        <a onClick={async () => {
+                                          if (!confirm('Remove avatar picture?')) return;
+                                          const res = await patch<any>(`/users/${userProfile.id}`, { avatarUrl: null });
+                                          if (res.success) refetchUserProfile(); else alert(res.error || 'Failed to remove avatar');
+                                        }} className="text-[#008EE2] hover:underline cursor-pointer text-[13px]">Remove avatar picture</a>
                                       </div>
                                     </td>
                                   </tr>
@@ -1034,15 +1060,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               </table>
                               <div className="w-[220px] pl-4 pt-[88px] text-[13px] text-[#2D3B45]">
                                 <div><span className="font-bold">Last request:</span> <span className="text-gray-600">—</span></div>
-                                <a onClick={() => stubAlert('Last request details')} className="text-[#008EE2] hover:underline cursor-pointer">more...</a>
+                                <a onClick={showLastRequest} className="text-[#008EE2] hover:underline cursor-pointer">more...</a>
                               </div>
                             </div>
                             <div className="mt-2 pt-1 text-[13px] text-[#008EE2]">
-                              <a onClick={() => stubAlert('Edit user')} className="hover:underline cursor-pointer">Edit</a>
+                              <a onClick={editUserName} className="hover:underline cursor-pointer">Edit</a>
                               <span className="text-gray-400 px-1">|</span>
-                              <a onClick={() => stubAlert('Act as User')} className="hover:underline cursor-pointer">Act as User</a>
-                              <span className="text-gray-400 px-1">|</span>
-                              <a onClick={() => stubAlert('Merge with Another User')} className="hover:underline cursor-pointer">Merge with Another User</a>
+                              <a onClick={resetPassword} className="hover:underline cursor-pointer">Reset Password</a>
                               <span className="text-gray-400 px-1">|</span>
                               <a onClick={toggleUserActive} className="hover:underline cursor-pointer">{userProfile.isActive ? 'Suspend User' : 'Reactivate User'}</a>
                               <span className="text-gray-400 px-1">|</span>
@@ -1063,7 +1087,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   </td>
                                   <td className="align-top py-3 px-3 text-[#2D3B45] whitespace-nowrap">TAHA College</td>
                                   <td className="align-top py-3 px-3 text-right w-[30px]">
-                                    <button onClick={() => stubAlert('Edit login')} className="text-gray-400 hover:text-[#008EE2]" title="Edit login">
+                                    <button onClick={editUserName} className="text-gray-400 hover:text-[#008EE2]" title="Edit login">
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                     </button>
                                   </td>
@@ -1071,7 +1095,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               </tbody>
                             </table>
                             <div className="mt-2 text-[13px]">
-                              <a onClick={() => stubAlert('Add Login')} className="text-[#008EE2] hover:underline cursor-pointer">Add Login</a>
+                              <a onClick={resetPassword} className="text-[#008EE2] hover:underline cursor-pointer">Reset Password</a>
                             </div>
                           </fieldset>
 
@@ -1121,7 +1145,11 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         , Enrolled as: Student
                                       </div>
                                     </div>
-                                    <button onClick={() => stubAlert('Remove enrollment')} className="text-gray-400 hover:text-red-500 ml-3 mt-0.5" title="Remove enrollment">
+                                    <button onClick={async () => {
+                                      if (!confirm(`Remove enrollment in ${e.course.name}?`)) return;
+                                      const res = await del<any>(`/enrollments/${e.id}`);
+                                      if (res.success) refetchUserProfile(); else alert(res.error || 'Failed to remove enrollment');
+                                    }} className="text-gray-400 hover:text-red-500 ml-3 mt-0.5" title="Remove enrollment">
                                       <X size={14} />
                                     </button>
                                   </div>
@@ -1179,11 +1207,16 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
 
                         {/* Right sidebar actions */}
                         <aside className="w-[220px] shrink-0 space-y-2">
-                          <button onClick={() => stubAlert(`Message ${userProfile.firstName}`)} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                          <button onClick={() => { window.location.href = `mailto:${userProfile.email}?subject=Message from TAHA College`; }} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
                             <Inbox size={14} className="shrink-0" />
                             <span>Message {userProfile.firstName}</span>
                           </button>
-                          <button onClick={() => stubAlert('Terminate all sessions')} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                          <button onClick={async () => {
+                            if (!confirm(`Terminate all sessions for ${userProfile.firstName}? This will log them out and suspend the account until reactivated.`)) return;
+                            const res = await patch<any>(`/users/${userProfile.id}`, { isActive: false });
+                            if (res.success) { refetchUserProfile(); alert('All sessions terminated.'); }
+                            else alert(res.error || 'Failed');
+                          }} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
                             <Shield size={14} className="shrink-0" />
                             <span>Terminate all sessions for this user</span>
                           </button>
