@@ -1237,7 +1237,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                           <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${ev.action === 'GRADED' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>
                                             {ev.action}
                                           </span>
-                                          {ev.isLate && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-red-100 text-red-600">LATE</span>}
                                           {ev.action === 'GRADED' && ev.score != null && ev.points != null && (
                                             <span className="text-[12px] font-bold text-[#2D3B45]">{ev.score} / {ev.points}</span>
                                           )}
