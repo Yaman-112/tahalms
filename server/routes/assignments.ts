@@ -8,6 +8,7 @@ import { success, error } from '../utils/response';
 import { upload, UPLOAD_DIR } from '../middleware/upload';
 import { randomUUID } from 'crypto';
 import { detectHtTrack, getHtFirstSessionDate } from '../utils/ht-schedule';
+import { getCswFirstSessionDateForStudent } from '../utils/csw-schedule';
 
 function saveFile(buffer: Buffer, subDir: string, originalName: string): string {
   const dir = path.join(UPLOAD_DIR, subDir);
@@ -134,7 +135,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
           }
         }
 
-        const isHT = assignment.course.code === 'HT';
+        const courseCode = assignment.course.code;
         const fallbackModuleStart = assignmentModule.startDate;
 
         visibleSubmissions = visibleSubmissions
@@ -142,11 +143,13 @@ router.get('/:id', async (req: AuthRequest, res) => {
           .filter(s => {
             const u = schedByUser.get(s.studentId);
             if (!u || !u.start) return true; // no startDate recorded → don't hide
-            // For HT, use per-track schedule; fall back to Module.startDate otherwise.
-            const moduleStart = isHT
-              ? getHtFirstSessionDate(assignmentModule.name, detectHtTrack(u.classDays)) ?? fallbackModuleStart
-              : fallbackModuleStart;
-            if (!moduleStart) return true; // no calendar to compare against
+            let moduleStart: Date | null = fallbackModuleStart ?? null;
+            if (courseCode === 'HT') {
+              moduleStart = getHtFirstSessionDate(assignmentModule.name, detectHtTrack(u.classDays)) ?? fallbackModuleStart;
+            } else if (courseCode === 'CSW') {
+              moduleStart = getCswFirstSessionDateForStudent(assignmentModule.name, u.start) ?? fallbackModuleStart;
+            }
+            if (!moduleStart) return true;
             return moduleStart >= u.start;
           })
           // Rule A: score = 0 → keep the student visible as GRADED, but blank out submission-log fields.
