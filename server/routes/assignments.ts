@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 import { detectHtTrack, getHtFirstSessionDate } from '../utils/ht-schedule';
 import { getCswFirstSessionDateForStudent } from '../utils/csw-schedule';
 import { getAcFirstSessionDateForStudent } from '../utils/ac-schedule';
+import { getMoaFirstSessionDateForStudent } from '../utils/moa-schedule';
 
 function saveFile(buffer: Buffer, subDir: string, originalName: string): string {
   const dir = path.join(UPLOAD_DIR, subDir);
@@ -151,6 +152,8 @@ router.get('/:id', async (req: AuthRequest, res) => {
               moduleStart = getCswFirstSessionDateForStudent(assignmentModule.name, u.start) ?? fallbackModuleStart;
             } else if (courseCode === 'AC') {
               moduleStart = getAcFirstSessionDateForStudent(assignmentModule.name, u.start) ?? fallbackModuleStart;
+            } else if (courseCode === 'MOA') {
+              moduleStart = getMoaFirstSessionDateForStudent(assignmentModule.name, u.start) ?? fallbackModuleStart;
             }
             if (!moduleStart) return true;
             return moduleStart >= u.start;

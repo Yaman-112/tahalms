@@ -1,0 +1,63 @@
+7/14/2025	MS Excel	Medical Office Administrations
+7/21/2025		Business Communication
+7/28/2025	MS Powerpoint	Business Communication
+8/4/2025		Business Communication
+8/11/2025	MS Access	Business Communication
+8/18/2025		Medical Coding and OHIP Billing
+8/25/2025	MS Word	Medical Coding and OHIP Billing
+9/1/2025		Medical Coding and OHIP Billing
+9/8/2025	MS Excel	Medical Terminology
+9/15/2025		Medical Terminology
+9/22/2025	MS Powerpoint	Medical Terminology
+9/29/2025		Medical Terminology
+10/6/2025	MS Access	Anatomy and Physiology
+10/13/2025		Anatomy and Physiology
+10/20/2025	MS Word	Anatomy and Physiology
+10/27/2025		Anatomy and Physiology
+11/3/2025	MS Excel	Anatomy and Physiology
+11/10/2025		Medical Transcription
+11/17/2025	MS Powerpoint	Medical Transcription
+11/24/2025		Medical Transcription
+12/1/2025	MS Access	Job Strategy
+12/8/2025		Medical Office Administrations
+12/15/2025		Medical Office Administrations
+12/22/2025	Winter Break
+12/29/2025		Medical Office Administrations
+1/5/2026	MS Word	Medical Office Administrations
+1/12/2026		Medical Office Administrations
+1/19/2026	MS Excel	Medical Office Administrations
+1/26/2026		Medical Office Administrations
+2/2/2026	MS Powerpoint	Medical Office Administrations
+2/9/2026		Medical Office Administrations
+2/16/2026	MS Access	Medical Office Administrations
+2/23/2026		Medical Office Administrations
+3/2/2026	MS Word	Business Communication
+3/9/2026		Business Communication
+3/16/2026	MS Excel	Business Communication
+3/23/2026		Business Communication
+3/30/2026	MS Powerpoint	Medical Coding and OHIP Billing
+4/6/2026		Medical Coding and OHIP Billing
+4/13/2026	MS Access	Medical Coding and OHIP Billing
+4/20/2026		Medical Terminology
+4/27/2026	MS Word	Medical Terminology
+5/4/2026		Medical Terminology
+5/11/2026	MS Excel	Medical Terminology
+5/18/2026		Anatomy and Physiology
+5/25/2026	MS Powerpoint	Anatomy and Physiology
+6/1/2026		Anatomy and Physiology
+6/8/2026	MS Access	Anatomy and Physiology
+6/15/2026		Anatomy and Physiology
+6/22/2026	MS Word	Medical Transcription
+6/29/2026		Medical Transcription
+7/6/2026	MS Excel	Medical Transcription
+7/13/2026		Job Strategy
+7/20/2026	MS Powerpoint	Medical Office Administrations
+7/27/2026		Medical Office Administrations
+8/3/2026	MS Access	Medical Office Administrations
+8/10/2026		Medical Office Administrations
+8/17/2026	MS Word	Medical Office Administrations
+8/24/2026		Medical Office Administrations
+8/31/2026	MS Excel	Medical Office Administrations
+9/7/2026		Medical Office Administrations
+9/14/2026	MS Powerpoint	Medical Office Administrations
+9/21/2026		Medical Office Administrations
