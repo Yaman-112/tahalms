@@ -81,6 +81,28 @@ export function getCswFirstSessionDateForStudent(moduleName: string, startDate: 
   return null;
 }
 
+/**
+ * Returns the module's full run for this student: the first session on/after startDate and the
+ * last consecutive session of the same module (before the rotation moves to a different module).
+ */
+export function getCswModuleRun(moduleName: string, startDate: Date): { first: Date; last: Date } | null {
+  const s = load();
+  const start = findCswStartIndex(startDate);
+  if (start < 0) return null;
+  const key = normalize(moduleName);
+  let firstIdx = -1;
+  for (let i = start; i < s.length; i++) {
+    if (s[i].module === key) { firstIdx = i; break; }
+  }
+  if (firstIdx < 0) return null;
+  let lastIdx = firstIdx;
+  for (let i = firstIdx + 1; i < s.length; i++) {
+    if (s[i].module === key) lastIdx = i;
+    else break;
+  }
+  return { first: s[firstIdx].date, last: s[lastIdx].date };
+}
+
 /** Normalize helper exported for callers that compare against module names. */
 export function normalizeCswModuleName(name: string): string {
   return normalize(name);
