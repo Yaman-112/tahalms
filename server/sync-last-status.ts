@@ -40,7 +40,10 @@ async function main() {
   let updated = 0;
   let noUser = 0;
   let noEnroll = 0;
+  let userStatusUpdated = 0;
   const statusCounts: Record<string, number> = {};
+  // Track the status to apply to each user (first matched row per vNumber wins).
+  const userStatusToApply = new Map<string, string>();
 
   for (const row of rows) {
     const studentId = norm(row['Student ID']);
@@ -51,6 +54,11 @@ async function main() {
 
     const userIds = vNumberToUserIds.get(studentId.toLowerCase());
     if (!userIds || userIds.length === 0) { noUser++; continue; }
+
+    // Capture user-level status (first row per user wins).
+    for (const uid of userIds) {
+      if (!userStatusToApply.has(uid)) userStatusToApply.set(uid, lastStatus);
+    }
 
     // Find enrollments for these users. Prefer exact match on batchCode, then courseCode.
     const enrollments = await prisma.enrollment.findMany({
@@ -87,10 +95,21 @@ async function main() {
     }
   }
 
+  // Apply user-level campusStatus
+  if (WRITE) {
+    for (const [uid, status] of userStatusToApply) {
+      await prisma.user.update({ where: { id: uid }, data: { campusStatus: status } });
+      userStatusUpdated++;
+    }
+  } else {
+    userStatusUpdated = userStatusToApply.size;
+  }
+
   console.log('\n=== Summary ===');
   console.log('Rows processed:', rows.length);
   console.log('Enrollments matched:', matched);
   console.log('Enrollments updated:', updated, WRITE ? '(written)' : '(dry-run, pass --write to commit)');
+  console.log('User campusStatus updated:', userStatusUpdated, WRITE ? '(written)' : '(would write)');
   console.log('Rows with no matching user (by Student ID):', noUser);
   console.log('Rows with no matching enrollment:', noEnroll);
   console.log('Status distribution applied:');
