@@ -131,14 +131,25 @@ router.get('/:id', async (req: AuthRequest, res) => {
           else if (cur != null && (prev == null || cur < prev)) joinedByUser.set(e.userId, cur);
         }
 
-        visibleSubmissions = visibleSubmissions.filter(s => {
-          const joined = joinedByUser.get(s.studentId);
+        visibleSubmissions = visibleSubmissions
           // Rule B: assignment's module is before student's joined module → hide student.
-          if (joined != null && assignmentModule.position < joined) return false;
-          // Rule A: module is on/after start date, but score is a literal 0 → hide from log (DB row untouched).
-          if (s.score === 0) return false;
-          return true;
-        });
+          .filter(s => {
+            const joined = joinedByUser.get(s.studentId);
+            return !(joined != null && assignmentModule.position < joined);
+          })
+          // Rule A: score = 0 → keep the student visible as GRADED, but blank out submission-log fields.
+          .map(s => {
+            if (s.score !== 0) return s;
+            return {
+              ...s,
+              status: 'GRADED',
+              submittedAt: null,
+              isLate: false,
+              filePath: null,
+              fileName: null,
+              comment: null,
+            };
+          });
       }
     }
 
