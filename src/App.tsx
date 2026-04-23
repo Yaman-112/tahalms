@@ -1192,6 +1192,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               for (const s of userSubmissions ?? []) {
                                 // Only show rows that have a real submittedAt — this matches the submission log exactly.
                                 if (!s.submittedAt) continue;
+                                // Rule A parity: the assignment submission log blanks zero-score rows' submittedAt,
+                                // so skip them here too to keep both views in sync.
+                                if (s.score === 0) continue;
                                 const title = s.assignment?.title ?? 'Assignment';
                                 const courseCode = s.assignment?.course?.code ?? '';
                                 const action = s.status === 'GRADED' ? 'GRADED' : 'SUBMITTED';
