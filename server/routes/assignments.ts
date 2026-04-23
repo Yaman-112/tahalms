@@ -89,7 +89,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
         course: {
           select: {
             id: true, name: true, code: true, color: true,
-            modules: { select: { id: true, name: true, position: true } },
+            modules: { select: { id: true, name: true, position: true, startDate: true } },
           },
         },
         submissions: req.user!.role !== 'STUDENT'
@@ -121,21 +121,26 @@ router.get('/:id', async (req: AuthRequest, res) => {
         const studentIds = visibleSubmissions.map(s => s.studentId);
         const enrollments = await prisma.enrollment.findMany({
           where: { courseId: assignment.courseId, userId: { in: studentIds }, role: 'STUDENT' },
-          select: { userId: true, joinedModulePosition: true },
+          select: { userId: true, startDate: true },
         });
-        const joinedByUser = new Map<string, number | null>();
+        const startByUser = new Map<string, Date | null>();
         for (const e of enrollments) {
-          const prev = joinedByUser.get(e.userId);
-          const cur = e.joinedModulePosition;
-          if (prev === undefined) joinedByUser.set(e.userId, cur);
-          else if (cur != null && (prev == null || cur < prev)) joinedByUser.set(e.userId, cur);
+          const prev = startByUser.get(e.userId);
+          const cur = e.startDate;
+          // Prefer the earliest startDate if a user has multiple enrollments on the same course.
+          if (prev === undefined) startByUser.set(e.userId, cur);
+          else if (cur != null && (prev == null || cur < prev)) startByUser.set(e.userId, cur);
         }
 
+        const moduleStart = assignmentModule.startDate;
+
         visibleSubmissions = visibleSubmissions
-          // Rule B: assignment's module is before student's joined module → hide student.
+          // Rule B: assignment's module ran before the student's startDate → hide student.
           .filter(s => {
-            const joined = joinedByUser.get(s.studentId);
-            return !(joined != null && assignmentModule.position < joined);
+            if (!moduleStart) return true; // course has no module calendar → nothing to compare
+            const start = startByUser.get(s.studentId);
+            if (!start) return true; // no startDate recorded → don't hide
+            return moduleStart >= start;
           })
           // Rule A: score = 0 → keep the student visible as GRADED, but blank out submission-log fields.
           .map(s => {
