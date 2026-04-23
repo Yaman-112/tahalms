@@ -96,3 +96,31 @@ export function getAcFirstSessionDateForStudent(dbModuleName: string, startDate:
   const rot = getAcRotation(startDate);
   return rot.get(dbModuleName) ?? null;
 }
+
+/**
+ * Returns the module's full run for this student: the first session date on/after startDate where
+ * the module appears, and the last session date where it still appears before the rotation leaves
+ * it permanently. Only sessions within the 13 modules the student is enrolled in (via rotation) are
+ * considered, so later re-appearances in future course cycles are excluded.
+ */
+export function getAcModuleRun(dbModuleName: string, startDate: Date): { first: Date; last: Date } | null {
+  const s = load();
+  const start = findStartIndex(startDate);
+  if (start < 0) return null;
+  // Find the student's enrollment end: the week that introduces their 13th unique module.
+  const seen = new Set<string>();
+  let endIdx = s.length - 1;
+  for (let i = start; i < s.length; i++) {
+    for (const m of s[i].modules) seen.add(m);
+    if (seen.size >= 13) { endIdx = i; break; }
+  }
+  let firstIdx = -1, lastIdx = -1;
+  for (let i = start; i <= endIdx; i++) {
+    if (s[i].modules.includes(dbModuleName)) {
+      if (firstIdx < 0) firstIdx = i;
+      lastIdx = i;
+    }
+  }
+  if (firstIdx < 0) return null;
+  return { first: s[firstIdx].date, last: s[lastIdx].date };
+}
