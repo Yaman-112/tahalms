@@ -773,11 +773,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
     if (res.success) alert('Password updated.');
     else alert(res.error || 'Failed to update password');
   };
-  const showLastRequest = () => {
-    if (!userProfile) return;
-    const last = userProfile.lastLoginAt ? new Date(userProfile.lastLoginAt).toLocaleString() : 'Never';
-    alert(`Last login: ${last}\nAccount created: ${userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleString() : '—'}`);
-  };
   const [pageViewTab, setPageViewTab] = useState<'30day' | '1year'>('30day');
   // Dialogs
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
@@ -1058,10 +1053,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   </tr>
                                 </tbody>
                               </table>
-                              <div className="w-[220px] pl-4 pt-[88px] text-[13px] text-[#2D3B45]">
-                                <div><span className="font-bold">Last request:</span> <span className="text-gray-600">—</span></div>
-                                <a onClick={showLastRequest} className="text-[#008EE2] hover:underline cursor-pointer">more...</a>
-                              </div>
                             </div>
                             <div className="mt-2 pt-1 text-[13px] text-[#008EE2]">
                               <a onClick={editUserName} className="hover:underline cursor-pointer">Edit</a>
