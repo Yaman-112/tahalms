@@ -98,13 +98,9 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
     if (!assignment) return error(res, 'Assignment not found', 404);
 
-    // Pilot: only apply submission-log filtering to IBA. Expand to other courses after verification.
-    const FILTERED_COURSE_CODES = new Set(['IBA', 'AC']);
-
     let visibleSubmissions: any[] = assignment.submissions;
     if (
       req.user!.role !== 'STUDENT' &&
-      FILTERED_COURSE_CODES.has(assignment.course.code) &&
       assignment.course.modules.length > 0 &&
       visibleSubmissions.length > 0
     ) {
