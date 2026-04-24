@@ -780,6 +780,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   const [pageViewTab, setPageViewTab] = useState<'30day' | '1year'>('30day');
   const [showGradesModal, setShowGradesModal] = useState(false);
   const [gradesCourseFilter, setGradesCourseFilter] = useState<string>('all');
+  const [showProgressModal, setShowProgressModal] = useState(false);
   // Dialogs
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [showCreateBatchDialog, setShowCreateBatchDialog] = useState(false);
@@ -1284,6 +1285,10 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             <GraduationCap size={14} className="shrink-0" />
                             <span>Grades</span>
                           </button>
+                          <button onClick={() => setShowProgressModal(true)} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                            <NotebookPen size={14} className="shrink-0" />
+                            <span>Progress</span>
+                          </button>
                           <button onClick={async () => {
                             if (!confirm(`Terminate all sessions for ${userProfile.firstName}? This will log them out and suspend the account until reactivated.`)) return;
                             const res = await patch<any>(`/users/${userProfile.id}`, { isActive: false });
@@ -1386,6 +1391,108 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 </>
                               );
                             })()}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Progress modal */}
+                      {showProgressModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowProgressModal(false)}>
+                          <div className="bg-white rounded-lg shadow-xl w-[850px] max-w-[95vw] max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                              <div>
+                                <h2 className="text-[16px] font-bold text-[#2D3B45]">Course Progress — {userProfile.firstName} {userProfile.lastName}</h2>
+                                <p className="text-[12px] text-gray-500">Per-course module schedule with current module highlighted.</p>
+                              </div>
+                              <button onClick={() => setShowProgressModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                            </div>
+                            <div className="overflow-auto flex-1 p-5 space-y-6">
+                              {(userProfile.enrollments ?? []).length === 0 ? (
+                                <div className="text-center text-gray-500 text-[13px] py-8">No enrollments for this student.</div>
+                              ) : (
+                                (userProfile.enrollments ?? []).map((e: any) => {
+                                  const modules = (e.course?.modules ?? []);
+                                  const now = new Date();
+                                  const modWindow = (m: any, idx: number) => {
+                                    if (!m.startDate) return null;
+                                    const start = new Date(m.startDate);
+                                    const next = modules[idx + 1];
+                                    const end = next?.startDate ? new Date(next.startDate) : new Date(start.getTime() + Math.max(14, Math.ceil((m.hours ?? 45) / 15) * 7) * 86400000);
+                                    return { start, end };
+                                  };
+                                  const enriched = modules.map((m: any, idx: number) => {
+                                    const w = modWindow(m, idx);
+                                    let state: 'completed' | 'current' | 'upcoming' | 'unknown' = 'unknown';
+                                    if (w) {
+                                      if (now >= w.end) state = 'completed';
+                                      else if (now >= w.start) state = 'current';
+                                      else state = 'upcoming';
+                                    }
+                                    return { ...m, window: w, state };
+                                  });
+                                  const totalMods = enriched.length;
+                                  const completedCount = enriched.filter((m: any) => m.state === 'completed').length;
+                                  const currentMod = enriched.find((m: any) => m.state === 'current');
+                                  const progress = totalMods > 0 ? Math.round((completedCount / totalMods) * 100) : 0;
+                                  return (
+                                    <div key={e.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                                      <div className="p-4 bg-gray-50 border-b border-gray-200">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <div>
+                                            <h3 className="font-bold text-[14px] text-[#2D3B45]">{e.course?.name} <span className="text-gray-400 font-normal">({e.course?.code})</span></h3>
+                                            <div className="text-[12px] text-gray-500 mt-0.5">
+                                              {e.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white rounded mr-2">{e.batchCode}</span>}
+                                              {e.startDate && <span>Started {new Date(e.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
+                                            </div>
+                                          </div>
+                                          <div className="text-right">
+                                            <div className="text-2xl font-bold text-[#008EE2]">{progress}%</div>
+                                            <div className="text-[11px] text-gray-500">{completedCount} of {totalMods} modules done</div>
+                                          </div>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                          <div className="bg-[#008EE2] h-2 rounded-full transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
+                                        </div>
+                                        {currentMod ? (
+                                          <div className="mt-3 text-[13px]">
+                                            <span className="text-gray-500">Currently studying:</span> <span className="font-medium text-[#2D3B45]">{currentMod.name}</span>
+                                            {currentMod.window && <span className="text-gray-400 ml-2 text-[11px]">({currentMod.window.start.toLocaleDateString()} → {currentMod.window.end.toLocaleDateString()})</span>}
+                                          </div>
+                                        ) : totalMods > 0 ? (
+                                          <div className="mt-3 text-[13px] text-gray-500">
+                                            {completedCount === totalMods ? 'Course complete.' : completedCount === 0 ? 'Course has not started yet.' : 'Between modules.'}
+                                          </div>
+                                        ) : null}
+                                      </div>
+                                      {totalMods > 0 && (
+                                        <div className="divide-y divide-gray-100">
+                                          {enriched.map((m: any) => (
+                                            <div key={m.id} className={`flex items-center px-4 py-2 text-[12px] ${m.state === 'current' ? 'bg-blue-50' : ''}`}>
+                                              <div className="w-6 shrink-0">
+                                                {m.state === 'completed' ? <CheckCircle size={14} className="text-green-600" /> : m.state === 'current' ? <Clock size={14} className="text-[#008EE2]" /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-300 ml-px" />}
+                                              </div>
+                                              <div className="w-8 shrink-0 text-gray-400 tabular-nums">{m.position}</div>
+                                              <div className="flex-1 min-w-0">
+                                                <div className={`${m.state === 'current' ? 'font-semibold text-[#2D3B45]' : 'text-[#2D3B45]'}`}>{m.name}</div>
+                                                {m.window && (
+                                                  <div className="text-[10px] text-gray-500">{m.window.start.toLocaleDateString()} → {m.window.end.toLocaleDateString()}</div>
+                                                )}
+                                              </div>
+                                              <div className="shrink-0 text-right w-[70px]">
+                                                {m.state === 'completed' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700">Done</span>}
+                                                {m.state === 'current' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">Current</span>}
+                                                {m.state === 'upcoming' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600">Upcoming</span>}
+                                                {m.state === 'unknown' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-500">No date</span>}
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
                           </div>
                         </div>
                       )}

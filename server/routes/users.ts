@@ -79,7 +79,12 @@ router.get('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
         campusStatus: true, shift: true, admissionRep: true,
         enrollments: {
           include: {
-            course: { select: { id: true, name: true, code: true } },
+            course: {
+              select: {
+                id: true, name: true, code: true,
+                modules: { select: { id: true, name: true, position: true, startDate: true, hours: true }, orderBy: { position: 'asc' } },
+              },
+            },
           },
           orderBy: { enrolledAt: 'desc' },
         },
