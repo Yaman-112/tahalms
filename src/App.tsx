@@ -1328,7 +1328,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               const courseCodes = Array.from(new Set(rows.map((r: any) => r.course))).filter(Boolean).sort();
                               const filtered = gradesCourseFilter === 'all' ? rows : rows.filter((r: any) => r.course === gradesCourseFilter);
                               const graded = filtered.filter((r: any) => r.status === 'GRADED').length;
-                              const submittedOnly = filtered.filter((r: any) => r.status === 'SUBMITTED').length;
                               const totalScore = filtered.filter((r: any) => r.status === 'GRADED' && typeof r.score === 'number').reduce((a: number, r: any) => a + r.score, 0);
                               const totalPoints = filtered.filter((r: any) => r.status === 'GRADED').reduce((a: number, r: any) => a + (r.points || 0), 0);
                               return (
@@ -1341,7 +1340,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     </select>
                                     <div className="ml-auto text-gray-600">
                                       <span className="mr-4">Graded: <strong>{graded}</strong></span>
-                                      <span className="mr-4">Submitted: <strong>{submittedOnly}</strong></span>
                                       {totalPoints > 0 && (
                                         <span>Total: <strong>{totalScore}</strong>/{totalPoints} ({Math.round((totalScore / totalPoints) * 100)}%)</span>
                                       )}
