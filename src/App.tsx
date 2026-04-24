@@ -1480,9 +1480,15 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                           </div>
                                         ) : null}
                                       </div>
-                                      {totalMods > 0 && (
+                                      {totalMods > 0 && (() => {
+                                        const upcoming = enriched.filter((m: any) => m.state === 'upcoming');
+                                        if (upcoming.length === 0) return (
+                                          <div className="px-4 py-3 text-[12px] text-gray-500 italic">No upcoming modules.</div>
+                                        );
+                                        return (
                                         <div className="divide-y divide-gray-100">
-                                          {enriched.map((m: any) => (
+                                          <div className="px-4 py-2 text-[11px] font-medium text-gray-500 uppercase tracking-wide bg-gray-50 border-b border-gray-200">Upcoming modules ({upcoming.length})</div>
+                                          {upcoming.map((m: any) => (
                                             <div key={m.id} className={`flex items-center px-4 py-2 text-[12px] ${m.state === 'current' ? 'bg-blue-50' : ''}`}>
                                               <div className="w-6 shrink-0">
                                                 {m.state === 'completed' ? <CheckCircle size={14} className="text-green-600" /> : m.state === 'current' ? <Clock size={14} className="text-[#008EE2]" /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-300 ml-px" />}
@@ -1504,7 +1510,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                             </div>
                                           ))}
                                         </div>
-                                      )}
+                                        );
+                                      })()}
                                     </div>
                                   );
                                 })
