@@ -623,7 +623,7 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
   );
 }
 
-function AdminDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) => void }) {
+function AdminDashboardView({ onCourseSelect, onNavigate }: { onCourseSelect: (id: string) => void; onNavigate: (tab: string) => void }) {
   const { data, loading } = useApi<AdminDashboard>('/dashboard');
 
   if (loading || !data) return <LoadingSpinner />;
@@ -682,9 +682,9 @@ function AdminDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) =
           <div className="mb-10">
             <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-4">
               <h3 className="text-lg font-medium text-[#2D3B45]">Coming Up</h3>
-              <a href="#" className="text-[#008EE2] text-[16px] flex items-center hover:underline">
+              <button type="button" onClick={() => onNavigate('Calendar')} className="text-[#008EE2] text-[16px] flex items-center hover:underline">
                 <Calendar size={12} className="mr-1" /> View Calendar
-              </a>
+              </button>
             </div>
             {data.upcoming.length === 0 ? (
               <p className="text-sm text-gray-500 italic">Nothing upcoming</p>
@@ -700,10 +700,10 @@ function AdminDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) =
           </div>
 
           <div className="space-y-3">
-            <button className="w-full bg-gray-100 hover:bg-gray-200 text-[#2D3B45] text-sm py-2 px-4 rounded transition-colors text-left">
+            <button onClick={() => onNavigate('Admin')} className="w-full bg-gray-100 hover:bg-gray-200 text-[#2D3B45] text-sm py-2 px-4 rounded transition-colors text-left">
               Start a New Course
             </button>
-            <button className="w-full bg-gray-100 hover:bg-gray-200 text-[#2D3B45] text-sm py-2 px-4 rounded transition-colors text-left">
+            <button onClick={() => onNavigate('Admin')} className="w-full bg-gray-100 hover:bg-gray-200 text-[#2D3B45] text-sm py-2 px-4 rounded transition-colors text-left">
               View Grades
             </button>
           </div>
@@ -5231,7 +5231,7 @@ export default function App() {
         {userRole === 'ADMIN' && activeTab === 'Admin' ? (
           <AdminCoursesView onCourseSelect={id => { setSelectedCourseId(id); setActiveTab('Courses'); }} />
         ) : userRole === 'ADMIN' && activeTab === 'Dashboard' && !selectedCourseId ? (
-          <AdminDashboardView onCourseSelect={id => setSelectedCourseId(id)} />
+          <AdminDashboardView onCourseSelect={id => setSelectedCourseId(id)} onNavigate={tab => setActiveTab(tab)} />
         ) : userRole === 'TEACHER' && activeTab === 'Dashboard' && !selectedCourseId ? (
           <TeacherDashboardView onCourseSelect={id => setSelectedCourseId(id)} />
         ) : activeTab === 'Calendar' ? (
