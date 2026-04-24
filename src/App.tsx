@@ -1413,16 +1413,22 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 (userProfile.enrollments ?? []).map((e: any) => {
                                   const modules = (e.course?.modules ?? []);
                                   const now = new Date();
-                                  const modWindow = (m: any, idx: number) => {
+                                  // Chronologically sorted list of module startDates (only modules that have one).
+                                  const sortedStarts = modules
+                                    .filter((m: any) => m.startDate)
+                                    .map((m: any) => new Date(m.startDate).getTime())
+                                    .sort((a: number, b: number) => a - b);
+                                  const modWindow = (m: any) => {
                                     if (!m.startDate) return null;
                                     const start = new Date(m.startDate);
-                                    const next = modules[idx + 1];
-                                    const end = next?.startDate ? new Date(next.startDate) : new Date(start.getTime() + Math.max(14, Math.ceil((m.hours ?? 45) / 15) * 7) * 86400000);
+                                    // End = next chronologically-later module start, or start + duration fallback.
+                                    const nextMs = sortedStarts.find((t: number) => t > start.getTime());
+                                    const end = nextMs ? new Date(nextMs) : new Date(start.getTime() + Math.max(14, Math.ceil((m.hours ?? 45) / 15) * 7) * 86400000);
                                     return { start, end };
                                   };
                                   const studentStart = e.startDate ? new Date(e.startDate) : null;
-                                  const enriched = modules.map((m: any, idx: number) => {
-                                    const w = modWindow(m, idx);
+                                  const enriched = modules.map((m: any) => {
+                                    const w = modWindow(m);
                                     let state: 'completed' | 'current' | 'upcoming' | 'before_enrollment' | 'unknown' = 'unknown';
                                     if (w) {
                                       if (studentStart && w.end < studentStart) state = 'before_enrollment';
@@ -1431,6 +1437,12 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                       else state = 'upcoming';
                                     }
                                     return { ...m, window: w, state };
+                                  });
+                                  // Sort modules chronologically for display (position in DB can be non-chronological for rotation courses)
+                                  enriched.sort((a: any, b: any) => {
+                                    const at = a.window?.start?.getTime() ?? Number.MAX_SAFE_INTEGER;
+                                    const bt = b.window?.start?.getTime() ?? Number.MAX_SAFE_INTEGER;
+                                    return at - bt;
                                   });
                                   // Only count modules that are in the student's enrollment window toward progress
                                   const countable = enriched.filter((m: any) => m.state !== 'before_enrollment');
