@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Book, Calendar, Inbox, Clock, HelpCircle,
   ChevronLeft, Plus, NotebookPen, MoreVertical, ChevronRight,
   Megaphone, FileText, Folder,
-  Menu, Eye, Check, Search, Reply, Archive, Trash2, Shield, Upload, X, AlertCircle, CheckCircle
+  Menu, Eye, Check, Search, Reply, Archive, Trash2, Shield, Upload, X, AlertCircle, CheckCircle, GraduationCap
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useAuth } from './context/AuthContext';
@@ -778,6 +778,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
     else alert(res.error || 'Failed to update password');
   };
   const [pageViewTab, setPageViewTab] = useState<'30day' | '1year'>('30day');
+  const [showGradesModal, setShowGradesModal] = useState(false);
+  const [gradesCourseFilter, setGradesCourseFilter] = useState<string>('all');
   // Dialogs
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [showCreateBatchDialog, setShowCreateBatchDialog] = useState(false);
@@ -1198,11 +1200,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               const cutoff = now - (pageViewTab === '30day' ? 30 : 365) * 86400000;
                               const events: { at: Date; action: 'SUBMITTED' | 'GRADED'; title: string; courseCode: string; score: number | null; points: number | null; isLate: boolean }[] = [];
                               for (const s of userSubmissions ?? []) {
-                                // Only show rows that have a real submittedAt — this matches the submission log exactly.
                                 if (!s.submittedAt) continue;
-                                // Rule A parity: the assignment submission log blanks zero-score rows' submittedAt,
-                                // so skip them here too to keep both views in sync.
-                                if (s.score === 0) continue;
                                 const title = s.assignment?.title ?? 'Assignment';
                                 const courseCode = s.assignment?.course?.code ?? '';
                                 const action = s.status === 'GRADED' ? 'GRADED' : 'SUBMITTED';
@@ -1282,6 +1280,10 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             <Inbox size={14} className="shrink-0" />
                             <span>Message {userProfile.firstName}</span>
                           </button>
+                          <button onClick={() => { setGradesCourseFilter('all'); setShowGradesModal(true); }} className="w-full flex items-center gap-2 px-3 py-2 border border-[#C7CDD1] rounded text-[13px] text-[#2D3B45] hover:bg-gray-50 text-left">
+                            <GraduationCap size={14} className="shrink-0" />
+                            <span>Grades</span>
+                          </button>
                           <button onClick={async () => {
                             if (!confirm(`Terminate all sessions for ${userProfile.firstName}? This will log them out and suspend the account until reactivated.`)) return;
                             const res = await patch<any>(`/users/${userProfile.id}`, { isActive: false });
@@ -1293,6 +1295,100 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           </button>
                         </aside>
                       </div>
+
+                      {/* Grades modal */}
+                      {showGradesModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowGradesModal(false)}>
+                          <div className="bg-white rounded-lg shadow-xl w-[900px] max-w-[95vw] max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                              <div>
+                                <h2 className="text-[16px] font-bold text-[#2D3B45]">Grades — {userProfile.firstName} {userProfile.lastName}</h2>
+                                <p className="text-[12px] text-gray-500">All submissions with a submission date, newest first.</p>
+                              </div>
+                              <button onClick={() => setShowGradesModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                            </div>
+                            {(() => {
+                              const rows = (userSubmissions ?? [])
+                                .filter((s: any) => s.submittedAt)
+                                .map((s: any) => ({
+                                  at: new Date(s.submittedAt),
+                                  course: s.assignment?.course?.code ?? '',
+                                  title: s.assignment?.title ?? 'Assignment',
+                                  status: s.status ?? 'MISSING',
+                                  score: s.score,
+                                  points: s.assignment?.points ?? 0,
+                                  isLate: !!s.isLate,
+                                }))
+                                .sort((a: any, b: any) => b.at.getTime() - a.at.getTime());
+                              const courseCodes = Array.from(new Set(rows.map((r: any) => r.course))).filter(Boolean).sort();
+                              const filtered = gradesCourseFilter === 'all' ? rows : rows.filter((r: any) => r.course === gradesCourseFilter);
+                              const graded = filtered.filter((r: any) => r.status === 'GRADED').length;
+                              const submittedOnly = filtered.filter((r: any) => r.status === 'SUBMITTED').length;
+                              const totalScore = filtered.filter((r: any) => r.status === 'GRADED' && typeof r.score === 'number').reduce((a: number, r: any) => a + r.score, 0);
+                              const totalPoints = filtered.filter((r: any) => r.status === 'GRADED').reduce((a: number, r: any) => a + (r.points || 0), 0);
+                              return (
+                                <>
+                                  <div className="flex items-center gap-3 px-5 py-2 border-b border-gray-100 bg-gray-50 text-[12px]">
+                                    <label className="text-gray-600">Course:</label>
+                                    <select value={gradesCourseFilter} onChange={e => setGradesCourseFilter(e.target.value)} className="border border-gray-300 rounded px-2 py-1 text-[12px]">
+                                      <option value="all">All ({rows.length})</option>
+                                      {courseCodes.map(c => <option key={c} value={c}>{c} ({rows.filter((r: any) => r.course === c).length})</option>)}
+                                    </select>
+                                    <div className="ml-auto text-gray-600">
+                                      <span className="mr-4">Graded: <strong>{graded}</strong></span>
+                                      <span className="mr-4">Submitted: <strong>{submittedOnly}</strong></span>
+                                      {totalPoints > 0 && (
+                                        <span>Total: <strong>{totalScore}</strong>/{totalPoints} ({Math.round((totalScore / totalPoints) * 100)}%)</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="overflow-auto flex-1">
+                                    {filtered.length === 0 ? (
+                                      <div className="flex flex-col items-center justify-center py-12 text-gray-500 text-[13px]">No submissions to show.</div>
+                                    ) : (
+                                      <table className="w-full text-[12px]">
+                                        <thead className="bg-gray-50 sticky top-0">
+                                          <tr className="text-left text-gray-600">
+                                            <th className="px-4 py-2 font-medium w-[130px]">Date</th>
+                                            <th className="px-4 py-2 font-medium w-[70px]">Course</th>
+                                            <th className="px-4 py-2 font-medium">Assignment</th>
+                                            <th className="px-4 py-2 font-medium w-[100px]">Status</th>
+                                            <th className="px-4 py-2 font-medium text-right w-[110px]">Score</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100">
+                                          {filtered.map((r: any, i: number) => (
+                                            <tr key={i} className="hover:bg-gray-50">
+                                              <td className="px-4 py-2 whitespace-nowrap">
+                                                {r.at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                                <div className="text-[10px] text-gray-500">{r.at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
+                                              </td>
+                                              <td className="px-4 py-2 text-gray-700">{r.course}</td>
+                                              <td className="px-4 py-2 text-[#2D3B45]">{r.title}{r.isLate && <span className="ml-2 text-[10px] text-orange-600">LATE</span>}</td>
+                                              <td className="px-4 py-2">
+                                                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${r.status === 'GRADED' ? 'bg-green-100 text-green-700' : r.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                  {r.status}
+                                                </span>
+                                              </td>
+                                              <td className="px-4 py-2 text-right tabular-nums">
+                                                {r.status === 'GRADED' && typeof r.score === 'number' ? (
+                                                  <span className="font-medium">{r.score}<span className="text-gray-400">/{r.points}</span></span>
+                                                ) : (
+                                                  <span className="text-gray-400">—</span>
+                                                )}
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    )}
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
