@@ -2027,31 +2027,15 @@ function AdminAnalyticsHubView() {
 // --- Admin Apps View ---
 
 function AdminAppsView() {
-  const apps = [
-    { name: 'Canvas LMS Sync', status: 'CONNECTED', desc: 'Pulls submissions, scores, and assignments from taha.instructure.com.', action: 'Configure →', color: 'green' },
-    { name: 'Excel Import', status: 'ENABLED', desc: 'Admin → People → Import students/marks from .xlsx files.', action: 'Open', color: 'green' },
-    { name: 'Gmail Integration', status: 'NOT CONNECTED', desc: 'Send emails via Gmail API from the admin inbox.', action: 'Connect', color: 'gray' },
-    { name: 'Google Calendar', status: 'NOT CONNECTED', desc: 'Publish batch schedules to Google Calendar.', action: 'Connect', color: 'gray' },
-    { name: 'Google Drive', status: 'NOT CONNECTED', desc: 'Let students submit directly from Google Drive.', action: 'Connect', color: 'gray' },
-    { name: 'Question Bank Export', status: 'ENABLED', desc: 'Export MCQ and theory question banks for reuse.', action: 'Go to Question Banks', color: 'green' },
-  ];
   return (
     <div>
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-[#2D3B45]">Apps & Integrations</h1>
-        <p className="text-[13px] text-gray-500">Third-party services and built-in tools connected to the platform.</p>
+        <p className="text-[13px] text-gray-500">Third-party services connected to the platform.</p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {apps.map((a, i) => (
-          <div key={i} className="border border-gray-200 rounded-lg p-4 bg-white flex flex-col">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-[14px] font-bold text-[#2D3B45]">{a.name}</h3>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.color === 'green' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{a.status}</span>
-            </div>
-            <p className="text-[12px] text-gray-600 flex-1">{a.desc}</p>
-            <button className="mt-3 text-[12px] text-[#008EE2] hover:underline text-left">{a.action}</button>
-          </div>
-        ))}
+      <div className="flex flex-col items-center justify-center py-16 border border-dashed border-gray-300 rounded-lg">
+        <div className="text-[14px] font-medium text-[#2D3B45]">No app integrations yet</div>
+        <div className="text-[12px] text-gray-500 mt-1">Integrations will appear here once they're connected.</div>
       </div>
     </div>
   );
