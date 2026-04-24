@@ -1942,11 +1942,232 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
             <AdminPermissionsView />
           )}
 
-          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && adminActiveSection !== 'Statistics' && adminActiveSection !== 'Question Banks' && adminActiveSection !== 'Permissions' && (
+          {adminActiveSection === 'Analytics Hub' && (
+            <AdminAnalyticsHubView />
+          )}
+
+          {adminActiveSection === 'Apps' && (
+            <AdminAppsView />
+          )}
+
+          {adminActiveSection === 'Admin Analytics' && (
+            <AdminAnalyticsView />
+          )}
+
+          {!['Courses', 'People', 'Batches', 'Statistics', 'Question Banks', 'Permissions', 'Analytics Hub', 'Apps', 'Admin Analytics'].includes(adminActiveSection) && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <p>{adminActiveSection} — coming soon</p>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Analytics Hub View ---
+
+function AdminAnalyticsHubView() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  React.useEffect(() => {
+    api<any>('/analytics/hub').then(res => { if (res.success) setData(res.data); setLoading(false); });
+  }, []);
+  if (loading) return <div className="text-gray-500 text-sm py-8">Loading analytics…</div>;
+  if (!data) return <div className="text-red-600 text-sm py-8">Failed to load analytics.</div>;
+
+  const metrics = [
+    { label: 'Total users', value: data.users.total, sub: `${data.users.activeLast30} active in 30d` },
+    { label: 'Active students', value: data.users.activeStudents },
+    { label: 'Teachers', value: data.users.teachers },
+    { label: 'Courses', value: data.courses.total, sub: `${data.courses.batches} batches` },
+    { label: 'Submissions (all time)', value: data.submissions.total.toLocaleString() },
+    { label: 'Submissions last 30d', value: data.submissions.last30.toLocaleString(), sub: `${data.submissions.last7.toLocaleString()} in last 7d` },
+    { label: 'Graded last 30d', value: data.submissions.gradedLast30.toLocaleString(), sub: `${data.submissions.last30 ? Math.round((data.submissions.gradedLast30 / data.submissions.last30) * 100) : 0}% of submissions` },
+    { label: 'Admins', value: data.users.admins },
+  ];
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-[#2D3B45]">Analytics Hub</h1>
+        <p className="text-[13px] text-gray-500">High-level pulse of the platform.</p>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        {metrics.map((m, i) => (
+          <div key={i} className="rounded-lg border border-gray-200 p-4 bg-white">
+            <div className="text-[11px] text-gray-500 uppercase tracking-wide">{m.label}</div>
+            <div className="text-2xl font-bold text-[#2D3B45] mt-1">{m.value}</div>
+            {m.sub && <div className="text-[11px] text-gray-500 mt-0.5">{m.sub}</div>}
+          </div>
+        ))}
+      </div>
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-[13px] font-bold text-[#2D3B45]">Top 5 courses — last 30 days by submission volume</div>
+        <table className="w-full text-[13px]">
+          <thead className="bg-gray-50 text-left text-gray-600 text-[11px]"><tr>
+            <th className="px-4 py-2 font-medium w-[80px]">Code</th>
+            <th className="px-4 py-2 font-medium">Name</th>
+            <th className="px-4 py-2 font-medium text-right w-[140px]">Submissions (30d)</th>
+          </tr></thead>
+          <tbody className="divide-y divide-gray-100">
+            {data.topCourses.map((c: any) => (
+              <tr key={c.code}>
+                <td className="px-4 py-2"><span className="text-[11px] font-bold px-2 py-0.5 bg-[#2D3B45] text-white rounded">{c.code}</span></td>
+                <td className="px-4 py-2 text-[#2D3B45]">{c.name}</td>
+                <td className="px-4 py-2 text-right tabular-nums font-medium">{c.count.toLocaleString()}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Apps View ---
+
+function AdminAppsView() {
+  const apps = [
+    { name: 'Canvas LMS Sync', status: 'CONNECTED', desc: 'Pulls submissions, scores, and assignments from taha.instructure.com.', action: 'Configure →', color: 'green' },
+    { name: 'Excel Import', status: 'ENABLED', desc: 'Admin → People → Import students/marks from .xlsx files.', action: 'Open', color: 'green' },
+    { name: 'Gmail Integration', status: 'NOT CONNECTED', desc: 'Send emails via Gmail API from the admin inbox.', action: 'Connect', color: 'gray' },
+    { name: 'Google Calendar', status: 'NOT CONNECTED', desc: 'Publish batch schedules to Google Calendar.', action: 'Connect', color: 'gray' },
+    { name: 'Google Drive', status: 'NOT CONNECTED', desc: 'Let students submit directly from Google Drive.', action: 'Connect', color: 'gray' },
+    { name: 'Question Bank Export', status: 'ENABLED', desc: 'Export MCQ and theory question banks for reuse.', action: 'Go to Question Banks', color: 'green' },
+  ];
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-[#2D3B45]">Apps & Integrations</h1>
+        <p className="text-[13px] text-gray-500">Third-party services and built-in tools connected to the platform.</p>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {apps.map((a, i) => (
+          <div key={i} className="border border-gray-200 rounded-lg p-4 bg-white flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[14px] font-bold text-[#2D3B45]">{a.name}</h3>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${a.color === 'green' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{a.status}</span>
+            </div>
+            <p className="text-[12px] text-gray-600 flex-1">{a.desc}</p>
+            <button className="mt-3 text-[12px] text-[#008EE2] hover:underline text-left">{a.action}</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Analytics (deep) ---
+
+function AdminAnalyticsView() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  React.useEffect(() => {
+    api<any>('/analytics/admin').then(res => { if (res.success) setData(res.data); setLoading(false); });
+  }, []);
+  if (loading) return <div className="text-gray-500 text-sm py-8">Loading analytics…</div>;
+  if (!data) return <div className="text-red-600 text-sm py-8">Failed to load analytics.</div>;
+
+  // Render mini bar chart from timeseries
+  const maxVal = Math.max(1, ...data.timeseries.map((t: any) => t.total));
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-[#2D3B45]">Admin Analytics</h1>
+        <p className="text-[13px] text-gray-500">Submission trends, per-course performance, teacher activity, and data quality alerts.</p>
+      </div>
+
+      {/* Timeseries chart */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-[13px] font-bold text-[#2D3B45]">Submissions per day — last 30 days</div>
+        <div className="p-4">
+          <div className="flex items-end gap-[3px] h-[140px]">
+            {data.timeseries.map((t: any) => {
+              const h = (t.total / maxVal) * 100;
+              const gh = t.total ? (t.graded / t.total) * h : 0;
+              return (
+                <div key={t.date} className="flex-1 flex flex-col justify-end relative group">
+                  <div className="w-full bg-blue-100" style={{ height: `${h}%` }}>
+                    <div className="w-full bg-blue-500" style={{ height: `${(gh / Math.max(h, 1)) * 100}%` }} />
+                  </div>
+                  <div className="invisible group-hover:visible absolute bottom-full left-1/2 -translate-x-1/2 whitespace-nowrap bg-gray-900 text-white text-[10px] px-2 py-1 rounded mb-1 z-10">
+                    {t.date}: {t.total} ({t.graded} graded)
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex items-center gap-4 mt-2 text-[11px] text-gray-600">
+            <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-blue-500" /> Graded</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-blue-100" /> Submitted (ungraded)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Per-course */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-[13px] font-bold text-[#2D3B45]">Per-course activity (last 30 days)</div>
+        <table className="w-full text-[13px]">
+          <thead className="bg-gray-50 text-left text-gray-600 text-[11px]"><tr>
+            <th className="px-4 py-2 font-medium w-[80px]">Code</th>
+            <th className="px-4 py-2 font-medium">Course</th>
+            <th className="px-4 py-2 font-medium text-right w-[100px]">Enrolled</th>
+            <th className="px-4 py-2 font-medium text-right w-[120px]">Submissions</th>
+            <th className="px-4 py-2 font-medium text-right w-[100px]">Graded</th>
+            <th className="px-4 py-2 font-medium text-right w-[110px]">Avg score</th>
+          </tr></thead>
+          <tbody className="divide-y divide-gray-100">
+            {data.perCourse.map((c: any) => (
+              <tr key={c.code}>
+                <td className="px-4 py-2"><span className="text-[11px] font-bold px-2 py-0.5 bg-[#2D3B45] text-white rounded">{c.code}</span></td>
+                <td className="px-4 py-2 text-[#2D3B45]">{c.name}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{c.enrolled}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{c.subsLast30}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{c.gradedCount}</td>
+                <td className="px-4 py-2 text-right tabular-nums">{c.avgScore ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Teacher activity + data quality side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-[13px] font-bold text-[#2D3B45]">Teacher grading activity (last 30 days)</div>
+          {data.teacherStats.length === 0 ? (
+            <div className="p-4 text-gray-500 text-[13px]">No teacher-graded submissions in the last 30 days.</div>
+          ) : (
+            <table className="w-full text-[13px]">
+              <thead className="bg-gray-50 text-left text-gray-600 text-[11px]"><tr>
+                <th className="px-4 py-2 font-medium">Teacher</th>
+                <th className="px-4 py-2 font-medium text-right w-[120px]">Graded</th>
+              </tr></thead>
+              <tbody className="divide-y divide-gray-100">
+                {data.teacherStats.map((t: any, i: number) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2 text-[#2D3B45]">{t.name}</td>
+                    <td className="px-4 py-2 text-right tabular-nums font-medium">{t.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-[13px] font-bold text-[#2D3B45]">Data quality alerts</div>
+          <div className="divide-y divide-gray-100 text-[13px]">
+            {[
+              { label: 'Users without real email', value: data.alerts.usersNoEmail },
+              { label: 'Student enrollments without a batch', value: data.alerts.enrollmentsNoBatch },
+              { label: 'Scored submissions missing a submission date', value: data.alerts.subsNoDate },
+            ].map((a, i) => (
+              <div key={i} className="px-4 py-2 flex items-center justify-between">
+                <span className="text-gray-700">{a.label}</span>
+                <span className={`font-medium tabular-nums ${a.value > 0 ? 'text-amber-700' : 'text-green-700'}`}>{a.value}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
