@@ -799,9 +799,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   );
 
   const adminNavItems = [
-    'Courses', 'Batches', 'People', 'Statistics', 'Permissions', 'Outcomes',
-    'Rubrics', 'Grading', 'Question Banks',
-    'Analytics Hub', 'Apps', 'Admin Analytics'
+    'Courses', 'Batches', 'People', 'Statistics', 'Permissions', 'Question Banks',
+    'Analytics Hub', 'Apps', 'Admin Analytics',
+    'Outcomes', 'Rubrics', 'Grading'
   ];
 
   const filteredCourses = data?.courses.filter(c =>
@@ -1954,7 +1954,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
             <AdminAnalyticsView />
           )}
 
-          {!['Courses', 'People', 'Batches', 'Statistics', 'Question Banks', 'Permissions', 'Analytics Hub', 'Apps', 'Admin Analytics'].includes(adminActiveSection) && (
+          {['Outcomes', 'Rubrics', 'Grading'].includes(adminActiveSection) && (
+            <div>
+              <h1 className="text-2xl font-bold text-[#2D3B45]">{adminActiveSection}</h1>
+            </div>
+          )}
+
+          {!['Courses', 'People', 'Batches', 'Statistics', 'Question Banks', 'Permissions', 'Analytics Hub', 'Apps', 'Admin Analytics', 'Outcomes', 'Rubrics', 'Grading'].includes(adminActiveSection) && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <p>{adminActiveSection} — coming soon</p>
             </div>
