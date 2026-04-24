@@ -6,6 +6,43 @@ import { success, error } from '../utils/response';
 const router = Router();
 router.use(authenticate);
 
+// GET /api/questions/banks — admin overview of all assignments with questions, grouped by course
+router.get('/banks', requireRole('ADMIN'), async (_req: AuthRequest, res) => {
+  try {
+    const assignments = await prisma.assignment.findMany({
+      where: { questions: { some: {} } },
+      select: {
+        id: true, title: true, format: true, points: true, published: true,
+        course: { select: { id: true, code: true, name: true } },
+        questions: { select: { type: true, points: true } },
+      },
+      orderBy: [{ course: { code: 'asc' } }, { title: 'asc' }],
+    });
+    const byCourse = new Map<string, { id: string; code: string; name: string; assignments: any[] }>();
+    for (const a of assignments) {
+      const key = a.course.id;
+      if (!byCourse.has(key)) byCourse.set(key, { id: a.course.id, code: a.course.code, name: a.course.name, assignments: [] });
+      const qCount = a.questions.length;
+      const mcq = a.questions.filter(q => q.type === 'MCQ').length;
+      const theory = a.questions.filter(q => q.type === 'THEORY').length;
+      const qPoints = a.questions.reduce((s, q) => s + (q.points || 0), 0);
+      byCourse.get(key)!.assignments.push({
+        id: a.id, title: a.title, format: a.format, points: a.points, published: a.published,
+        questionCount: qCount, mcqCount: mcq, theoryCount: theory, questionPoints: qPoints,
+      });
+    }
+    const out = Array.from(byCourse.values()).map(c => ({
+      ...c,
+      assignmentCount: c.assignments.length,
+      totalQuestions: c.assignments.reduce((s, a) => s + a.questionCount, 0),
+    }));
+    return success(res, out);
+  } catch (err) {
+    console.error('Get question banks error:', err);
+    return error(res, 'Failed to get question banks', 500);
+  }
+});
+
 // GET /api/questions?assignmentId= — get questions for an assignment
 router.get('/', async (req: AuthRequest, res) => {
   try {

@@ -1935,13 +1935,205 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
             <AdminStatisticsView />
           )}
 
-          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && adminActiveSection !== 'Statistics' && (
+          {adminActiveSection === 'Question Banks' && (
+            <AdminQuestionBanksView />
+          )}
+
+          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && adminActiveSection !== 'Statistics' && adminActiveSection !== 'Question Banks' && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <p>{adminActiveSection} — coming soon</p>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// --- Admin Question Banks View ---
+
+function AdminQuestionBanksView() {
+  const [courses, setCourses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [selectedAsgId, setSelectedAsgId] = useState<string | null>(null);
+  const [questions, setQuestions] = useState<any[] | null>(null);
+  const [qLoading, setQLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  React.useEffect(() => {
+    api<any[]>('/questions/banks').then(res => {
+      if (res.success) setCourses(res.data || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const openAssignment = async (asgId: string) => {
+    setSelectedAsgId(asgId);
+    setQLoading(true);
+    setQuestions(null);
+    const res = await api<any[]>(`/questions?assignmentId=${asgId}`);
+    if (res.success) setQuestions(res.data || []);
+    setQLoading(false);
+  };
+
+  if (loading) return <div className="text-gray-500 text-sm py-8">Loading question banks…</div>;
+
+  const selectedCourse = courses.find(c => c.id === selectedCourseId);
+  const filteredCourses = courses.filter(c =>
+    !search || c.code.toLowerCase().includes(search.toLowerCase()) || c.name.toLowerCase().includes(search.toLowerCase())
+  );
+  const filteredAssignments = selectedCourse
+    ? selectedCourse.assignments.filter((a: any) =>
+        !search || a.title.toLowerCase().includes(search.toLowerCase())
+      )
+    : [];
+  const totalQ = courses.reduce((s, c) => s + c.totalQuestions, 0);
+  const totalA = courses.reduce((s, c) => s + c.assignmentCount, 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#2D3B45]">Question Banks</h1>
+          <p className="text-[13px] text-gray-500">Browse all assignments that have questions attached, across every course.</p>
+        </div>
+        <div className="text-[12px] text-gray-600">
+          <span className="mr-4">Courses with banks: <strong>{courses.length}</strong></span>
+          <span className="mr-4">Assignments: <strong>{totalA}</strong></span>
+          <span>Total questions: <strong>{totalQ}</strong></span>
+        </div>
+      </div>
+
+      {!selectedCourse ? (
+        <div>
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Search courses…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full max-w-md border border-gray-300 rounded px-3 py-1.5 text-[13px]"
+            />
+          </div>
+          {filteredCourses.length === 0 ? (
+            <div className="text-gray-500 text-sm py-6">No courses with question banks.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {filteredCourses.map((c: any) => (
+                <button
+                  key={c.id}
+                  onClick={() => { setSelectedCourseId(c.id); setSearch(''); }}
+                  className="text-left border border-gray-200 rounded-lg p-4 hover:border-[#008EE2] hover:shadow-sm transition"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[11px] font-bold px-2 py-0.5 bg-[#2D3B45] text-white rounded">{c.code}</span>
+                    <span className="text-[11px] text-gray-500">{c.assignmentCount} asg · {c.totalQuestions} Q</span>
+                  </div>
+                  <div className="text-[14px] font-medium text-[#2D3B45]">{c.name}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div>
+          <button
+            onClick={() => { setSelectedCourseId(null); setSelectedAsgId(null); setQuestions(null); setSearch(''); }}
+            className="flex items-center text-[#008EE2] text-sm mb-3 hover:underline"
+          >
+            <ChevronLeft size={16} className="mr-1" /> Back to all courses
+          </button>
+          <h2 className="text-xl font-bold text-[#2D3B45] mb-1">
+            <span className="text-[11px] font-bold px-2 py-0.5 bg-[#2D3B45] text-white rounded mr-2 align-middle">{selectedCourse.code}</span>
+            {selectedCourse.name}
+          </h2>
+          <p className="text-[12px] text-gray-500 mb-3">{selectedCourse.assignmentCount} assignments with questions · {selectedCourse.totalQuestions} total questions</p>
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="Search assignments…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full max-w-md border border-gray-300 rounded px-3 py-1.5 text-[13px]"
+            />
+          </div>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full text-[13px]">
+              <thead className="bg-gray-50 text-left text-gray-600 text-[12px]">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Assignment</th>
+                  <th className="px-4 py-2 font-medium w-[90px]">Format</th>
+                  <th className="px-4 py-2 font-medium text-right w-[80px]">MCQ</th>
+                  <th className="px-4 py-2 font-medium text-right w-[80px]">Theory</th>
+                  <th className="px-4 py-2 font-medium text-right w-[90px]">Points</th>
+                  <th className="px-4 py-2 font-medium w-[90px]">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredAssignments.map((a: any) => (
+                  <tr key={a.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => openAssignment(a.id)}>
+                    <td className="px-4 py-2 text-[#2D3B45]">{a.title}</td>
+                    <td className="px-4 py-2 text-gray-600 uppercase text-[11px]">{a.format}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{a.mcqCount}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{a.theoryCount}</td>
+                    <td className="px-4 py-2 text-right tabular-nums">{a.questionPoints}/{a.points}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${a.published ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {a.published ? 'PUBLISHED' : 'DRAFT'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Questions viewer modal */}
+      {selectedAsgId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => { setSelectedAsgId(null); setQuestions(null); }}>
+          <div className="bg-white rounded-lg shadow-xl w-[800px] max-w-[95vw] max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+              <div>
+                <h3 className="text-[15px] font-bold text-[#2D3B45]">Questions</h3>
+                <p className="text-[11px] text-gray-500">{selectedCourse?.assignments.find((a: any) => a.id === selectedAsgId)?.title}</p>
+              </div>
+              <button onClick={() => { setSelectedAsgId(null); setQuestions(null); }} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+            </div>
+            <div className="overflow-auto flex-1 p-5">
+              {qLoading ? (
+                <div className="text-gray-500 text-sm">Loading…</div>
+              ) : !questions || questions.length === 0 ? (
+                <div className="text-gray-500 text-sm">No questions.</div>
+              ) : (
+                <ol className="space-y-4 list-decimal list-inside">
+                  {questions.map((q: any) => (
+                    <li key={q.id} className="text-[13px]">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded mr-2 align-middle bg-gray-100 text-gray-700">{q.type}</span>
+                      <span className="text-[11px] text-gray-500 ml-2">{q.points} pts</span>
+                      <div className="mt-1 text-[#2D3B45]">{q.text}</div>
+                      {q.type === 'MCQ' && q.options?.length > 0 && (
+                        <ul className="mt-2 space-y-1 ml-5">
+                          {q.options.map((o: any) => (
+                            <li key={o.id} className={`text-[12px] ${o.isCorrect ? 'text-green-700 font-medium' : 'text-gray-700'}`}>
+                              {o.isCorrect ? '✓ ' : '○ '}{o.text}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {q.explanation && (
+                        <div className="mt-2 text-[11px] text-gray-500 italic">Explanation: {q.explanation}</div>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
