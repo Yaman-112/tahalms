@@ -1987,17 +1987,6 @@ function AdminPermissionsView() {
   React.useEffect(() => { loadCounts(); }, []);
   React.useEffect(() => { loadUsers(activeRole, search); }, [activeRole, search]);
 
-  const changeRole = async (user: any, newRole: 'ADMIN' | 'TEACHER' | 'STUDENT') => {
-    if (!confirm(`Change ${user.firstName} ${user.lastName} from ${user.role} to ${newRole}?`)) return;
-    const res = await patch<any>(`/users/${user.id}`, { role: newRole });
-    if (res.success) {
-      loadCounts();
-      loadUsers(activeRole, search);
-    } else {
-      alert(res.error || 'Failed to change role');
-    }
-  };
-
   const permissionMatrix = [
     { area: 'Courses', ADMIN: 'Full CRUD + publish', TEACHER: 'View + grade in own batch', STUDENT: 'View enrolled' },
     { area: 'Users', ADMIN: 'Full CRUD + role changes', TEACHER: 'View own students', STUDENT: 'View own profile' },
@@ -2068,7 +2057,6 @@ function AdminPermissionsView() {
                   <th className="px-4 py-2 font-medium">Name</th>
                   <th className="px-4 py-2 font-medium">Email</th>
                   <th className="px-4 py-2 font-medium w-[90px]">Status</th>
-                  <th className="px-4 py-2 font-medium text-right w-[260px]">Change role</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -2080,17 +2068,6 @@ function AdminPermissionsView() {
                       <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                         {u.isActive ? 'ACTIVE' : 'INACTIVE'}
                       </span>
-                    </td>
-                    <td className="px-4 py-2 text-right space-x-2">
-                      {(['ADMIN', 'TEACHER', 'STUDENT'] as const).filter(r => r !== u.role).map(r => (
-                        <button
-                          key={r}
-                          onClick={() => changeRole(u, r)}
-                          className="text-[11px] px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
-                        >
-                          → {r}
-                        </button>
-                      ))}
                     </td>
                   </tr>
                 ))}
