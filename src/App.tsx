@@ -1981,8 +1981,6 @@ function AdminAnalyticsHubView() {
     { label: 'Active students', value: data.users.activeStudents },
     { label: 'Teachers', value: data.users.teachers },
     { label: 'Courses', value: data.courses.total, sub: `${data.courses.batches} batches` },
-    { label: 'Submissions (all time)', value: data.submissions.total.toLocaleString() },
-    { label: 'Submissions last 30d', value: data.submissions.last30.toLocaleString(), sub: `${data.submissions.last7.toLocaleString()} in last 7d` },
     { label: 'Graded last 30d', value: data.submissions.gradedLast30.toLocaleString(), sub: `${data.submissions.last30 ? Math.round((data.submissions.gradedLast30 / data.submissions.last30) * 100) : 0}% of submissions` },
     { label: 'Admins', value: data.users.admins },
   ];
