@@ -1420,18 +1420,22 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     const end = next?.startDate ? new Date(next.startDate) : new Date(start.getTime() + Math.max(14, Math.ceil((m.hours ?? 45) / 15) * 7) * 86400000);
                                     return { start, end };
                                   };
+                                  const studentStart = e.startDate ? new Date(e.startDate) : null;
                                   const enriched = modules.map((m: any, idx: number) => {
                                     const w = modWindow(m, idx);
-                                    let state: 'completed' | 'current' | 'upcoming' | 'unknown' = 'unknown';
+                                    let state: 'completed' | 'current' | 'upcoming' | 'before_enrollment' | 'unknown' = 'unknown';
                                     if (w) {
-                                      if (now >= w.end) state = 'completed';
+                                      if (studentStart && w.end < studentStart) state = 'before_enrollment';
+                                      else if (now >= w.end) state = 'completed';
                                       else if (now >= w.start) state = 'current';
                                       else state = 'upcoming';
                                     }
                                     return { ...m, window: w, state };
                                   });
-                                  const totalMods = enriched.length;
-                                  const completedCount = enriched.filter((m: any) => m.state === 'completed').length;
+                                  // Only count modules that are in the student's enrollment window toward progress
+                                  const countable = enriched.filter((m: any) => m.state !== 'before_enrollment');
+                                  const totalMods = countable.length;
+                                  const completedCount = countable.filter((m: any) => m.state === 'completed').length;
                                   const currentMod = enriched.find((m: any) => m.state === 'current');
                                   const progress = totalMods > 0 ? Math.round((completedCount / totalMods) * 100) : 0;
                                   return (
@@ -1482,6 +1486,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                                 {m.state === 'completed' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700">Done</span>}
                                                 {m.state === 'current' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">Current</span>}
                                                 {m.state === 'upcoming' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600">Upcoming</span>}
+                                                {m.state === 'before_enrollment' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">Before start</span>}
                                                 {m.state === 'unknown' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-500">No date</span>}
                                               </div>
                                             </div>
