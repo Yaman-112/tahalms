@@ -1939,12 +1939,190 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
             <AdminQuestionBanksView />
           )}
 
-          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && adminActiveSection !== 'Statistics' && adminActiveSection !== 'Question Banks' && (
+          {adminActiveSection === 'Permissions' && (
+            <AdminPermissionsView />
+          )}
+
+          {adminActiveSection !== 'Courses' && adminActiveSection !== 'People' && adminActiveSection !== 'Batches' && adminActiveSection !== 'Statistics' && adminActiveSection !== 'Question Banks' && adminActiveSection !== 'Permissions' && (
             <div className="flex flex-col items-center justify-center py-20 text-gray-400">
               <p>{adminActiveSection} — coming soon</p>
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Admin Permissions View ---
+
+function AdminPermissionsView() {
+  const [counts, setCounts] = useState<{ admin: number; teacher: number; student: number } | null>(null);
+  const [activeRole, setActiveRole] = useState<'ADMIN' | 'TEACHER'>('ADMIN');
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const loadCounts = async () => {
+    const [a, t, s] = await Promise.all([
+      api<any>('/users?role=ADMIN&limit=1'),
+      api<any>('/users?role=TEACHER&limit=1'),
+      api<any>('/users?role=STUDENT&limit=1'),
+    ]);
+    setCounts({
+      admin: a.success ? a.data.total : 0,
+      teacher: t.success ? t.data.total : 0,
+      student: s.success ? s.data.total : 0,
+    });
+  };
+  const loadUsers = async (role: 'ADMIN' | 'TEACHER', q: string) => {
+    setLoading(true);
+    const params = new URLSearchParams({ role, limit: '100' });
+    if (q) params.set('search', q);
+    const res = await api<any>(`/users?${params}`);
+    if (res.success) setUsers(res.data.users || []);
+    setLoading(false);
+  };
+
+  React.useEffect(() => { loadCounts(); }, []);
+  React.useEffect(() => { loadUsers(activeRole, search); }, [activeRole, search]);
+
+  const changeRole = async (user: any, newRole: 'ADMIN' | 'TEACHER' | 'STUDENT') => {
+    if (!confirm(`Change ${user.firstName} ${user.lastName} from ${user.role} to ${newRole}?`)) return;
+    const res = await patch<any>(`/users/${user.id}`, { role: newRole });
+    if (res.success) {
+      loadCounts();
+      loadUsers(activeRole, search);
+    } else {
+      alert(res.error || 'Failed to change role');
+    }
+  };
+
+  const permissionMatrix = [
+    { area: 'Courses', ADMIN: 'Full CRUD + publish', TEACHER: 'View + grade in own batch', STUDENT: 'View enrolled' },
+    { area: 'Users', ADMIN: 'Full CRUD + role changes', TEACHER: 'View own students', STUDENT: 'View own profile' },
+    { area: 'Batches', ADMIN: 'Create, assign, reassign', TEACHER: 'View own', STUDENT: '—' },
+    { area: 'Assignments', ADMIN: 'Create + edit all', TEACHER: 'Create + edit own course', STUDENT: 'Submit' },
+    { area: 'Question Banks', ADMIN: 'Full access', TEACHER: 'Author on own assignments', STUDENT: 'Answer during attempt' },
+    { area: 'Submissions', ADMIN: 'View + grade all', TEACHER: 'Grade own batch', STUDENT: 'View own' },
+    { area: 'Reports & Analytics', ADMIN: 'Full', TEACHER: 'Own batch only', STUDENT: 'Own progress' },
+    { area: 'Platform Settings', ADMIN: 'All', TEACHER: '—', STUDENT: '—' },
+  ];
+
+  return (
+    <div>
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-[#2D3B45]">Permissions</h1>
+        <p className="text-[13px] text-gray-500">Manage who has admin, teacher, or student access on the platform.</p>
+      </div>
+
+      {/* Role counts */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {[
+          { label: 'Admins', value: counts?.admin ?? '—', color: 'bg-red-50 text-red-700 border-red-200', role: 'ADMIN' as const },
+          { label: 'Teachers', value: counts?.teacher ?? '—', color: 'bg-blue-50 text-blue-700 border-blue-200', role: 'TEACHER' as const },
+          { label: 'Students', value: counts?.student ?? '—', color: 'bg-gray-50 text-gray-700 border-gray-200', role: null },
+        ].map((s, i) => (
+          <div
+            key={i}
+            className={`rounded-lg border p-4 ${s.color} ${s.role ? 'cursor-pointer hover:shadow-sm' : ''}`}
+            onClick={() => s.role && setActiveRole(s.role)}
+          >
+            <div className="text-[12px] font-medium uppercase tracking-wide">{s.label}</div>
+            <div className="text-3xl font-bold mt-1">{s.value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Role tabs + user list */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden mb-6">
+        <div className="flex border-b border-gray-200 bg-gray-50">
+          {(['ADMIN', 'TEACHER'] as const).map(r => (
+            <button
+              key={r}
+              onClick={() => setActiveRole(r)}
+              className={`px-4 py-2 text-[13px] ${activeRole === r ? 'bg-white font-semibold text-[#2D3B45] border-b-2 border-[#008EE2]' : 'text-gray-600 hover:text-[#2D3B45]'}`}
+            >
+              {r === 'ADMIN' ? 'Admins' : 'Teachers'}
+            </button>
+          ))}
+          <div className="ml-auto flex items-center pr-3">
+            <input
+              type="text"
+              placeholder={`Search ${activeRole === 'ADMIN' ? 'admins' : 'teachers'}…`}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="border border-gray-300 rounded px-2 py-1 text-[12px] w-56"
+            />
+          </div>
+        </div>
+        <div className="overflow-auto max-h-[400px]">
+          {loading ? (
+            <div className="text-gray-500 text-sm p-4">Loading…</div>
+          ) : users.length === 0 ? (
+            <div className="text-gray-500 text-sm p-4">No {activeRole === 'ADMIN' ? 'admins' : 'teachers'}.</div>
+          ) : (
+            <table className="w-full text-[13px]">
+              <thead className="bg-gray-50 text-left text-gray-600 text-[12px]">
+                <tr>
+                  <th className="px-4 py-2 font-medium">Name</th>
+                  <th className="px-4 py-2 font-medium">Email</th>
+                  <th className="px-4 py-2 font-medium w-[90px]">Status</th>
+                  <th className="px-4 py-2 font-medium text-right w-[260px]">Change role</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {users.map(u => (
+                  <tr key={u.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 font-medium text-[#2D3B45]">{u.firstName} {u.lastName}</td>
+                    <td className="px-4 py-2 text-gray-700">{u.email}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${u.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                        {u.isActive ? 'ACTIVE' : 'INACTIVE'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-right space-x-2">
+                      {(['ADMIN', 'TEACHER', 'STUDENT'] as const).filter(r => r !== u.role).map(r => (
+                        <button
+                          key={r}
+                          onClick={() => changeRole(u, r)}
+                          className="text-[11px] px-2 py-1 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+                        >
+                          → {r}
+                        </button>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {/* Permission matrix */}
+      <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 text-[13px] font-bold text-[#2D3B45]">What each role can do</div>
+        <table className="w-full text-[12px]">
+          <thead className="bg-gray-50 text-left text-gray-600 text-[11px]">
+            <tr>
+              <th className="px-4 py-2 font-medium w-[200px]">Area</th>
+              <th className="px-4 py-2 font-medium">Admin</th>
+              <th className="px-4 py-2 font-medium">Teacher</th>
+              <th className="px-4 py-2 font-medium">Student</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {permissionMatrix.map(row => (
+              <tr key={row.area}>
+                <td className="px-4 py-2 font-medium text-[#2D3B45]">{row.area}</td>
+                <td className="px-4 py-2 text-gray-700">{row.ADMIN}</td>
+                <td className="px-4 py-2 text-gray-700">{row.TEACHER}</td>
+                <td className="px-4 py-2 text-gray-700">{row.STUDENT}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
