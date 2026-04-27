@@ -432,19 +432,34 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     </div>
 
                     {/* Module timeline */}
-                    {modules.length > 0 && (
+                    {modules.length > 0 && (() => {
+                      const moduleStatuses: string[] = modules.map((mod: any, idx: number) => {
+                        if (!mod.startDate) return 'NOT_STARTED';
+                        const mStart = new Date(mod.startDate);
+                        const nextMod = modules[idx + 1];
+                        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                        if (now >= mEnd) return 'COMPLETED';
+                        if (now >= mStart) return 'IN_PROGRESS';
+                        return 'NOT_STARTED';
+                      });
+                      // Keep only the latest-started IN_PROGRESS module current; demote earlier overlaps to COMPLETED.
+                      const inProgIdxs = moduleStatuses
+                        .map((s, i) => (s === 'IN_PROGRESS' ? i : -1))
+                        .filter(i => i >= 0);
+                      if (inProgIdxs.length > 1) {
+                        let keep = inProgIdxs[0];
+                        let keepStart = modules[keep].startDate ? new Date(modules[keep].startDate).getTime() : -Infinity;
+                        for (const i of inProgIdxs) {
+                          const t = modules[i].startDate ? new Date(modules[i].startDate).getTime() : -Infinity;
+                          if (t > keepStart) { keep = i; keepStart = t; }
+                        }
+                        for (const i of inProgIdxs) if (i !== keep) moduleStatuses[i] = 'COMPLETED';
+                      }
+                      return (
                       <div className="px-4 pb-4">
                         <div className="flex items-center space-x-1 mt-2">
                           {modules.map((mod: any, idx: number) => {
-                            // Determine status from dates
-                            let status = 'NOT_STARTED';
-                            if (mod.startDate) {
-                              const mStart = new Date(mod.startDate);
-                              const nextMod = modules[idx + 1];
-                              const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
-                              if (now >= mEnd) status = 'COMPLETED';
-                              else if (now >= mStart) status = 'IN_PROGRESS';
-                            }
+                            const status = moduleStatuses[idx];
                             const isCurrentMod = currentModule?.id === mod.id;
 
                             return (
@@ -467,7 +482,8 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           <div className="flex items-center space-x-1"><span className="w-2 h-2 rounded-sm bg-gray-200" /><span>Upcoming</span></div>
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
 
                     {/* Details row */}
                     <div className="px-4 py-3 bg-gray-50 border-t border-[#E1E1E1] grid grid-cols-2 md:grid-cols-4 gap-2 text-[16px] text-gray-500">
@@ -4379,19 +4395,33 @@ function CourseView({ courseId }: { courseId: string }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#E1E1E1]">
-                    {(course.modules || []).map((mod: any, idx: number) => {
+                    {(() => {
+                      const _mods = course.modules || [];
+                      const _now = new Date();
+                      const _statuses: string[] = _mods.map((mod: any, idx: number) => {
+                        if (!mod.startDate) return 'upcoming';
+                        const mStart = new Date(mod.startDate);
+                        const nextMod = _mods[idx + 1];
+                        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                        if (_now >= mEnd) return 'completed';
+                        if (_now >= mStart) return 'current';
+                        return 'upcoming';
+                      });
+                      const _curIdxs = _statuses.map((s, i) => (s === 'current' ? i : -1)).filter(i => i >= 0);
+                      if (_curIdxs.length > 1) {
+                        let keep = _curIdxs[0];
+                        let keepStart = _mods[keep].startDate ? new Date(_mods[keep].startDate).getTime() : -Infinity;
+                        for (const i of _curIdxs) {
+                          const t = _mods[i].startDate ? new Date(_mods[i].startDate).getTime() : -Infinity;
+                          if (t > keepStart) { keep = i; keepStart = t; }
+                        }
+                        for (const i of _curIdxs) if (i !== keep) _statuses[i] = 'completed';
+                      }
+                      return _mods.map((mod: any, idx: number) => {
                       const modAssignments = (course.assignments || []).filter((a: any) =>
                         a.title.startsWith(mod.name + ' - ') || a.title.startsWith(mod.name + ' -')
                       );
-                      const now = new Date();
-                      let status = 'upcoming';
-                      if (mod.startDate) {
-                        const mStart = new Date(mod.startDate);
-                        const nextMod = (course.modules || [])[idx + 1];
-                        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
-                        if (now >= mEnd) status = 'completed';
-                        else if (now >= mStart) status = 'current';
-                      }
+                      const status = _statuses[idx];
                       return (
                         <tr key={mod.id} className={`${status === 'current' ? 'bg-blue-50' : status === 'completed' ? 'bg-green-50/30' : ''}`}>
                           <td className="px-6 py-3 text-gray-400 font-bold">{idx + 1}</td>
@@ -4427,7 +4457,8 @@ function CourseView({ courseId }: { courseId: string }) {
                           </td>
                         </tr>
                       );
-                    })}
+                    });
+                    })()}
                   </tbody>
                   {(course.modules || []).some((m: any) => m.weight) && (
                     <tfoot>
