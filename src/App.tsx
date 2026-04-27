@@ -2775,11 +2775,10 @@ function AdminStatisticsView() {
 // ─── Course Files Tab ──────────────────────────────────
 function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; userId: string; userRole: string }) {
   const { data, loading } = useApi<any>(`/enrollments?courseId=${courseId}&limit=2000`);
-  if (loading) return <LoadingSpinner />;
-  const allEnrollments = (data?.enrollments || []).filter((e: any) => e.role === 'STUDENT');
-
   // For teachers, filter to batches they actually teach.
   const { data: dashData } = useApi<any>(userRole === 'TEACHER' ? '/dashboard' : null);
+  if (loading) return <LoadingSpinner />;
+  const allEnrollments = (data?.enrollments || []).filter((e: any) => e.role === 'STUDENT');
   const teacherBatchCodes: Set<string> = new Set(
     userRole === 'TEACHER' && dashData?.batches
       ? dashData.batches.filter((b: any) => b.course?.id === courseId).map((b: any) => b.batchCode)
