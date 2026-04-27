@@ -119,6 +119,21 @@ const norm = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
       }
     }
 
+    // For NOT_STARTED modules, fill in the next future session date on this
+    // student's track so the UI can order missed/upcoming modules by when
+    // they'll next be taught (rather than by DB position).
+    for (const [moduleId, row] of rowMap) {
+      if (row.status !== 'NOT_STARTED') continue;
+      const moduleName = modulesRes.rows.find(m => m.id === moduleId)?.name;
+      if (!moduleName) continue;
+      const next = sessions.find(s =>
+        s.start > now &&
+        !/winter break/i.test(s.module) &&
+        norm(s.module) === norm(moduleName)
+      );
+      row.startedAt = next ? next.start : null;
+    }
+
     for (const r of rowMap.values()) allRows.push(r);
     currentByEnrollment.set(e.id, currentModuleId);
   }
