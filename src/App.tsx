@@ -364,26 +364,39 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                 const totalMods = modules.length;
                 const now = new Date();
 
-                // Compute progress based on module start dates
-                const completedModules = modules.filter((m: any) => {
-                  if (!m.startDate) return false;
-                  const mStart = new Date(m.startDate);
-                  // Find next module's start to determine end
-                  const idx = modules.indexOf(m);
-                  const nextMod = modules[idx + 1];
-                  const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
-                  return now >= mEnd; // Module is complete when we've passed its end
-                });
-                const completedCount = completedModules.length;
+                // Prefer authoritative studentProgress + currentModuleId from the
+                // backend. Fall back to date-window logic for courses that haven't
+                // had per-student progress synced yet.
+                const sp: any[] = e.studentProgress || [];
+                const hasSyncedProgress = sp.length > 0;
+                const statusByModuleId = new Map<string, string>(sp.map((p: any) => [p.moduleId, p.status]));
+                const startedByModuleId = new Map<string, string | null>(sp.map((p: any) => [p.moduleId, p.startedAt]));
 
-                // Find current module (started but not yet ended)
-                const currentModule = modules.find((m: any, idx: number) => {
-                  if (!m.startDate) return false;
-                  const mStart = new Date(m.startDate);
-                  const nextMod = modules[idx + 1];
-                  const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
-                  return now >= mStart && now < mEnd;
-                });
+                let completedCount: number;
+                let currentModule: any;
+                if (hasSyncedProgress) {
+                  completedCount = sp.filter((p: any) => p.status === 'COMPLETED').length;
+                  currentModule = e.currentModuleId
+                    ? modules.find((m: any) => m.id === e.currentModuleId)
+                    : modules.find((m: any) => statusByModuleId.get(m.id) === 'IN_PROGRESS');
+                } else {
+                  const completedModules = modules.filter((m: any) => {
+                    if (!m.startDate) return false;
+                    const mStart = new Date(m.startDate);
+                    const idx = modules.indexOf(m);
+                    const nextMod = modules[idx + 1];
+                    const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                    return now >= mEnd;
+                  });
+                  completedCount = completedModules.length;
+                  currentModule = modules.find((m: any, idx: number) => {
+                    if (!m.startDate) return false;
+                    const mStart = new Date(m.startDate);
+                    const nextMod = modules[idx + 1];
+                    const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
+                    return now >= mStart && now < mEnd;
+                  });
+                }
 
                 const progress = totalMods > 0 ? (completedCount / totalMods) * 100 : 0;
 
@@ -433,32 +446,45 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
 
                     {/* Module timeline */}
                     {modules.length > 0 && (() => {
-                      const moduleStatuses: string[] = modules.map((mod: any, idx: number) => {
+                      // For ordering, prefer studentProgress.startedAt when available
+                      // (rotation-correct chronology); else fall back to module.startDate.
+                      const orderedModules = [...modules].sort((a: any, b: any) => {
+                        const at = (hasSyncedProgress && startedByModuleId.get(a.id)) ? new Date(startedByModuleId.get(a.id)!).getTime()
+                                  : (a.startDate ? new Date(a.startDate).getTime() : Number.MAX_SAFE_INTEGER);
+                        const bt = (hasSyncedProgress && startedByModuleId.get(b.id)) ? new Date(startedByModuleId.get(b.id)!).getTime()
+                                  : (b.startDate ? new Date(b.startDate).getTime() : Number.MAX_SAFE_INTEGER);
+                        return at - bt;
+                      });
+                      const moduleStatuses: string[] = orderedModules.map((mod: any, idx: number) => {
+                        if (hasSyncedProgress) return statusByModuleId.get(mod.id) || 'NOT_STARTED';
                         if (!mod.startDate) return 'NOT_STARTED';
                         const mStart = new Date(mod.startDate);
-                        const nextMod = modules[idx + 1];
+                        const nextMod = orderedModules[idx + 1];
                         const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
                         if (now >= mEnd) return 'COMPLETED';
                         if (now >= mStart) return 'IN_PROGRESS';
                         return 'NOT_STARTED';
                       });
-                      // Keep only the latest-started IN_PROGRESS module current; demote earlier overlaps to COMPLETED.
-                      const inProgIdxs = moduleStatuses
-                        .map((s, i) => (s === 'IN_PROGRESS' ? i : -1))
-                        .filter(i => i >= 0);
-                      if (inProgIdxs.length > 1) {
-                        let keep = inProgIdxs[0];
-                        let keepStart = modules[keep].startDate ? new Date(modules[keep].startDate).getTime() : -Infinity;
-                        for (const i of inProgIdxs) {
-                          const t = modules[i].startDate ? new Date(modules[i].startDate).getTime() : -Infinity;
-                          if (t > keepStart) { keep = i; keepStart = t; }
+                      // Only when relying on date-window fallback, collapse multiple IN_PROGRESS to the latest-started.
+                      if (!hasSyncedProgress) {
+                        const inProgIdxs = moduleStatuses
+                          .map((s, i) => (s === 'IN_PROGRESS' ? i : -1))
+                          .filter(i => i >= 0);
+                        if (inProgIdxs.length > 1) {
+                          let keep = inProgIdxs[0];
+                          let keepStart = orderedModules[keep].startDate ? new Date(orderedModules[keep].startDate).getTime() : -Infinity;
+                          for (const i of inProgIdxs) {
+                            const t = orderedModules[i].startDate ? new Date(orderedModules[i].startDate).getTime() : -Infinity;
+                            if (t > keepStart) { keep = i; keepStart = t; }
+                          }
+                          for (const i of inProgIdxs) if (i !== keep) moduleStatuses[i] = 'COMPLETED';
                         }
-                        for (const i of inProgIdxs) if (i !== keep) moduleStatuses[i] = 'COMPLETED';
                       }
+                      const renderModules = orderedModules;
                       return (
                       <div className="px-4 pb-4">
                         <div className="flex items-center space-x-1 mt-2">
-                          {modules.map((mod: any, idx: number) => {
+                          {renderModules.map((mod: any, idx: number) => {
                             const status = moduleStatuses[idx];
                             const isCurrentMod = currentModule?.id === mod.id;
 
@@ -1426,15 +1452,27 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 (userProfile.enrollments ?? []).map((e: any) => {
                                   const modules = (e.course?.modules ?? []);
                                   const now = new Date();
+                                  const sp: any[] = e.studentProgress || [];
+                                  const hasSyncedProgress = sp.length > 0;
+                                  const spByModuleId = new Map<string, any>(sp.map((p: any) => [p.moduleId, p]));
                                   // Chronologically sorted list of module startDates (only modules that have one).
                                   const sortedStarts = modules
                                     .filter((m: any) => m.startDate)
                                     .map((m: any) => new Date(m.startDate).getTime())
                                     .sort((a: number, b: number) => a - b);
                                   const modWindow = (m: any) => {
+                                    // Prefer synced studentProgress dates when available (rotation-correct).
+                                    if (hasSyncedProgress) {
+                                      const p = spByModuleId.get(m.id);
+                                      if (p?.startedAt) {
+                                        const start = new Date(p.startedAt);
+                                        const end = p.completedAt ? new Date(p.completedAt) : new Date(start.getTime() + 14 * 86400000);
+                                        return { start, end };
+                                      }
+                                      return null;
+                                    }
                                     if (!m.startDate) return null;
                                     const start = new Date(m.startDate);
-                                    // End = next chronologically-later module start, or start + duration fallback.
                                     const nextMs = sortedStarts.find((t: number) => t > start.getTime());
                                     const end = nextMs ? new Date(nextMs) : new Date(start.getTime() + Math.max(14, Math.ceil((m.hours ?? 45) / 15) * 7) * 86400000);
                                     return { start, end };
@@ -1443,6 +1481,14 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   const enriched = modules.map((m: any) => {
                                     const w = modWindow(m);
                                     let state: 'completed' | 'current' | 'upcoming' | 'before_enrollment' | 'unknown' = 'unknown';
+                                    if (hasSyncedProgress) {
+                                      const p = spByModuleId.get(m.id);
+                                      const isCurrent = e.currentModuleId === m.id || p?.status === 'IN_PROGRESS';
+                                      if (isCurrent) state = 'current';
+                                      else if (p?.status === 'COMPLETED') state = 'completed';
+                                      else state = 'upcoming';
+                                      return { ...m, window: w, state };
+                                    }
                                     if (w) {
                                       if (studentStart && w.end < studentStart) state = 'before_enrollment';
                                       else if (now >= w.end) state = 'completed';

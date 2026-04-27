@@ -85,6 +85,7 @@ router.get('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
                 modules: { select: { id: true, name: true, position: true, startDate: true, hours: true }, orderBy: { position: 'asc' } },
               },
             },
+            studentProgress: { select: { moduleId: true, status: true, startedAt: true, completedAt: true } },
           },
           orderBy: { enrolledAt: 'desc' },
         },
