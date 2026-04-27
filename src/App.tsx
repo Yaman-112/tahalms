@@ -446,13 +446,22 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
 
                     {/* Module timeline */}
                     {modules.length > 0 && (() => {
-                      // For ordering, prefer studentProgress.startedAt when available
-                      // (rotation-correct chronology); else fall back to module.startDate.
+                      // For ordering, prefer studentProgress.startedAt (rotation-correct
+                      // chronology). Modules without a real student-specific start
+                      // (NOT_STARTED — either missed pre-enrollment or still upcoming
+                      // in the rotation) go to the end so the timeline reads
+                      // completed → current → upcoming left-to-right.
                       const orderedModules = [...modules].sort((a: any, b: any) => {
-                        const at = (hasSyncedProgress && startedByModuleId.get(a.id)) ? new Date(startedByModuleId.get(a.id)!).getTime()
-                                  : (a.startDate ? new Date(a.startDate).getTime() : Number.MAX_SAFE_INTEGER);
-                        const bt = (hasSyncedProgress && startedByModuleId.get(b.id)) ? new Date(startedByModuleId.get(b.id)!).getTime()
-                                  : (b.startDate ? new Date(b.startDate).getTime() : Number.MAX_SAFE_INTEGER);
+                        const aSP = hasSyncedProgress ? startedByModuleId.get(a.id) : null;
+                        const bSP = hasSyncedProgress ? startedByModuleId.get(b.id) : null;
+                        if (hasSyncedProgress) {
+                          if (aSP && !bSP) return -1;
+                          if (!aSP && bSP) return 1;
+                          if (!aSP && !bSP) return (a.position ?? 0) - (b.position ?? 0);
+                          return new Date(aSP!).getTime() - new Date(bSP!).getTime();
+                        }
+                        const at = a.startDate ? new Date(a.startDate).getTime() : Number.MAX_SAFE_INTEGER;
+                        const bt = b.startDate ? new Date(b.startDate).getTime() : Number.MAX_SAFE_INTEGER;
                         return at - bt;
                       });
                       const moduleStatuses: string[] = orderedModules.map((mod: any, idx: number) => {
