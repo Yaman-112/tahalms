@@ -5050,13 +5050,13 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
   if (loading) return <LoadingSpinner />;
 
   // For students, only show submitted assignments and upcoming (not yet due)
-  // ones — hide assignments that are past due with no submission.
+  // ones. An assignment counts as upcoming only if it has a dueDate in the
+  // future; assignments with no due date and no submission are hidden.
   const visibleAssignments = user.role === 'STUDENT'
     ? allAssignments.filter((a: any) => {
         const sub = a.submissions?.[0];
         if (sub && sub.status !== 'MISSING') return true;
-        const pastDue = a.dueDate && new Date() > new Date(a.dueDate);
-        return !pastDue;
+        return !!(a.dueDate && new Date(a.dueDate) > new Date());
       })
     : allAssignments;
 
