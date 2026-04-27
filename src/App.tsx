@@ -1579,9 +1579,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                                   <div className="text-[10px] text-gray-500">{m.window.start.toLocaleDateString()} → {m.window.end.toLocaleDateString()}</div>
                                                 )}
                                               </div>
-                                              <div className="shrink-0 text-right w-[70px]">
-                                                {m.state === 'completed' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700">Done</span>}
-                                                {m.state === 'current' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">Current</span>}
+                                              <div className="shrink-0 text-right w-[170px] self-start">
+                                                {m.state === 'completed' && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700 whitespace-nowrap">This is a past module</span>}
+                                                {m.state === 'current' && <span className="px-2 py-1 text-[14px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider">Scheduled</span>}
                                                 {m.state === 'upcoming' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600">Upcoming</span>}
                                                 {m.state === 'before_enrollment' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">Before start</span>}
                                                 {m.state === 'unknown' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-500">No date</span>}
