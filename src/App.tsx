@@ -1361,7 +1361,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
                               <div>
                                 <h2 className="text-[16px] font-bold text-[#2D3B45]">Grades — {userProfile.firstName} {userProfile.lastName}</h2>
-                                <p className="text-[12px] text-gray-500">All submissions with a submission date, newest first.</p>
+                                <p className="text-[12px] text-gray-500">All submissions, newest first.</p>
                               </div>
                               <button onClick={() => setShowGradesModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
                             </div>
@@ -1405,7 +1405,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                       <table className="w-full text-[12px]">
                                         <thead className="bg-gray-50 sticky top-0">
                                           <tr className="text-left text-gray-600">
-                                            <th className="px-4 py-2 font-medium w-[130px]">Date</th>
                                             <th className="px-4 py-2 font-medium w-[70px]">Course</th>
                                             <th className="px-4 py-2 font-medium">Assignment</th>
                                             <th className="px-4 py-2 font-medium w-[100px]">Status</th>
@@ -1415,10 +1414,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         <tbody className="divide-y divide-gray-100">
                                           {filtered.map((r: any, i: number) => (
                                             <tr key={i} className="hover:bg-gray-50">
-                                              <td className="px-4 py-2 whitespace-nowrap">
-                                                {r.at.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                                <div className="text-[10px] text-gray-500">{r.at.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</div>
-                                              </td>
                                               <td className="px-4 py-2 text-gray-700">{r.course}</td>
                                               <td className="px-4 py-2 text-[#2D3B45]">{r.title}{r.isLate && <span className="ml-2 text-[10px] text-orange-600">LATE</span>}</td>
                                               <td className="px-4 py-2">
