@@ -5049,9 +5049,20 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
 
   if (loading) return <LoadingSpinner />;
 
+  // For students, only show submitted assignments and upcoming (not yet due)
+  // ones — hide assignments that are past due with no submission.
+  const visibleAssignments = user.role === 'STUDENT'
+    ? allAssignments.filter((a: any) => {
+        const sub = a.submissions?.[0];
+        if (sub && sub.status !== 'MISSING') return true;
+        const pastDue = a.dueDate && new Date() > new Date(a.dueDate);
+        return !pastDue;
+      })
+    : allAssignments;
+
   // Group assignments by course
   const byCourse = new Map<string, { course: any; assignments: any[] }>();
-  for (const a of allAssignments) {
+  for (const a of visibleAssignments) {
     const courseId = a.courseId || a.course?.id || 'unknown';
     if (!byCourse.has(courseId)) {
       byCourse.set(courseId, {
@@ -5095,11 +5106,11 @@ function AllAssignmentsView({ user, allAssignments, loading, onLoad, onSelectCou
     <div className="flex-1 flex flex-col overflow-hidden bg-white">
       <header className="h-16 border-b border-[#E1E1E1] flex items-center justify-between px-8 bg-white shrink-0">
         <h1 className="text-3xl font-bold tracking-tight">Assignments</h1>
-        <span className="text-sm text-gray-500">{allAssignments.length} total</span>
+        <span className="text-sm text-gray-500">{visibleAssignments.length} total</span>
       </header>
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-6xl mx-auto">
-          {allAssignments.length === 0 ? (
+          {visibleAssignments.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
               <NotebookPen size={48} className="mx-auto mb-4 opacity-40" />
               <p>No assignments found.</p>
