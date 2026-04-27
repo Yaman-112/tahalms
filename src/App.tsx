@@ -1441,6 +1441,17 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     const bt = b.window?.start?.getTime() ?? Number.MAX_SAFE_INTEGER;
                                     return at - bt;
                                   });
+                                  // Only the latest-started module whose window contains "now" stays current;
+                                  // any earlier overlapping ones are treated as completed (the cohort has moved on).
+                                  const currentIdxs = enriched
+                                    .map((m: any, i: number) => (m.state === 'current' ? i : -1))
+                                    .filter((i: number) => i >= 0);
+                                  if (currentIdxs.length > 1) {
+                                    const keep = currentIdxs[currentIdxs.length - 1];
+                                    currentIdxs.forEach((i: number) => {
+                                      if (i !== keep) enriched[i].state = 'completed';
+                                    });
+                                  }
                                   // Only count modules that are in the student's enrollment window toward progress
                                   const countable = enriched.filter((m: any) => m.state !== 'before_enrollment');
                                   const totalMods = countable.length;
