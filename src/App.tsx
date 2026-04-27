@@ -2773,11 +2773,179 @@ function AdminStatisticsView() {
 // --- Course View ---
 
 // ─── Course Files Tab ──────────────────────────────────
+function CourseStudentDetailView({ studentId, courseId, onBack }: { studentId: string; courseId: string; onBack: () => void }) {
+  const { data: profile, loading: profileLoading } = useApi<any>(`/users/${studentId}`);
+  const { data: subs, loading: subsLoading, refetch } = useApi<any[]>(`/submissions?studentId=${studentId}&courseId=${courseId}`);
+  const [gradingId, setGradingId] = useState<string | null>(null);
+  const [gradeInput, setGradeInput] = useState<string>('');
+  const [savingGrade, setSavingGrade] = useState(false);
+
+  if (profileLoading || !profile) return <LoadingSpinner />;
+  const enrollment = (profile.enrollments || []).find((e: any) => e.course?.id === courseId);
+  const modules = enrollment?.course?.modules ?? [];
+  const sp = enrollment?.studentProgress ?? [];
+  const completed = sp.filter((p: any) => p.status === 'COMPLETED').length;
+  const inProg = sp.find((p: any) => p.status === 'IN_PROGRESS');
+  const currentModule = enrollment?.currentModuleId
+    ? modules.find((m: any) => m.id === enrollment.currentModuleId)
+    : (inProg ? modules.find((m: any) => m.id === inProg.moduleId) : null);
+
+  const submitGrade = async (submissionId: string, points: number) => {
+    setSavingGrade(true);
+    try {
+      const score = parseFloat(gradeInput);
+      if (Number.isNaN(score) || score < 0 || score > points) {
+        alert(`Score must be a number between 0 and ${points}.`);
+        return;
+      }
+      await patch(`/submissions/${submissionId}/grade`, { score });
+      setGradingId(null);
+      setGradeInput('');
+      refetch?.();
+    } catch (err: any) {
+      alert(err?.message || 'Failed to save grade');
+    } finally {
+      setSavingGrade(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <button onClick={onBack} className="flex items-center text-[#008EE2] text-[14px] hover:underline">
+        <ChevronLeft size={16} className="mr-1" /> Back to People
+      </button>
+
+      <div className="border border-[#E1E1E1] rounded-lg p-5 bg-gray-50">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-[#2D3B45]">{profile.firstName} {profile.lastName}</h2>
+            <div className="text-[14px] text-gray-600 mt-1">{profile.email}</div>
+            <div className="flex items-center space-x-3 text-[12px] text-gray-500 mt-2">
+              {enrollment?.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white text-[12px] font-bold rounded">{enrollment.batchCode}</span>}
+              {profile.vNumber && <span>Roll #: {profile.vNumber}</span>}
+              {profile.campus && <span>{profile.campus}</span>}
+              {enrollment?.startDate && <span>Started: {new Date(enrollment.startDate).toLocaleDateString()}</span>}
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-[#008EE2]">{modules.length > 0 ? Math.round((completed / modules.length) * 100) : 0}%</div>
+            <div className="text-[12px] text-gray-500">{completed} of {modules.length} modules</div>
+          </div>
+        </div>
+        {currentModule && (
+          <div className="mt-3 text-[13px]">
+            <span className="text-gray-500">Currently studying:</span>{' '}
+            <span className="font-medium text-[#2D3B45]">{currentModule.name}</span>
+          </div>
+        )}
+      </div>
+
+      {modules.length > 0 && (
+        <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+          <div className="bg-[#2D3B45] text-white px-4 py-2 font-bold">Module Progress</div>
+          <table className="w-full text-[13px]">
+            <thead className="bg-gray-50">
+              <tr className="text-left text-gray-600">
+                <th className="px-4 py-2 font-medium w-12">#</th>
+                <th className="px-4 py-2 font-medium">Module</th>
+                <th className="px-4 py-2 font-medium w-32">Status</th>
+                <th className="px-4 py-2 font-medium w-40">Window</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E1E1E1]">
+              {[...modules]
+                .map((m: any) => {
+                  const p = sp.find((x: any) => x.moduleId === m.id);
+                  return { ...m, _started: p?.startedAt || null, _completed: p?.completedAt || null, _status: p?.status || 'NOT_STARTED' };
+                })
+                .sort((a: any, b: any) => {
+                  const at = a._started ? new Date(a._started).getTime() : Number.MAX_SAFE_INTEGER;
+                  const bt = b._started ? new Date(b._started).getTime() : Number.MAX_SAFE_INTEGER;
+                  return at - bt;
+                })
+                .map((m: any, i: number) => (
+                  <tr key={m.id} className={m._status === 'IN_PROGRESS' ? 'bg-blue-50' : ''}>
+                    <td className="px-4 py-2 text-gray-400">{i + 1}</td>
+                    <td className="px-4 py-2 font-medium text-[#2D3B45]">{m.name}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
+                        m._status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
+                        m._status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-500'
+                      }`}>{m._status}</span>
+                    </td>
+                    <td className="px-4 py-2 text-gray-500 text-[12px]">
+                      {m._started ? new Date(m._started).toLocaleDateString() : '—'}
+                      {m._completed && ' → ' + new Date(m._completed).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+        <div className="bg-[#2D3B45] text-white px-4 py-2 font-bold flex items-center justify-between">
+          <span>Submissions</span>
+          {subs && <span className="text-[12px] opacity-80">{subs.length} total</span>}
+        </div>
+        {subsLoading ? (
+          <div className="p-6"><LoadingSpinner /></div>
+        ) : !subs || subs.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 text-[13px]">No submissions for this course.</div>
+        ) : (
+          <table className="w-full text-[13px]">
+            <thead className="bg-gray-50">
+              <tr className="text-left text-gray-600">
+                <th className="px-4 py-2 font-medium">Assignment</th>
+                <th className="px-4 py-2 font-medium w-24">Status</th>
+                <th className="px-4 py-2 font-medium text-right w-32">Score</th>
+                <th className="px-4 py-2 font-medium w-32"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E1E1E1]">
+              {subs.map((s: any) => (
+                <tr key={s.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-2">{s.assignment?.title}</td>
+                  <td className="px-4 py-2">
+                    <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${s.status === 'GRADED' ? 'bg-green-100 text-green-700' : s.status === 'SUBMITTED' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>{s.status}</span>
+                  </td>
+                  <td className="px-4 py-2 text-right tabular-nums">
+                    {s.status === 'GRADED' && typeof s.score === 'number'
+                      ? <span className="font-medium">{s.score}<span className="text-gray-400">/{s.assignment?.points ?? 0}</span></span>
+                      : <span className="text-gray-400">—</span>}
+                  </td>
+                  <td className="px-4 py-2">
+                    {gradingId === s.id ? (
+                      <div className="flex items-center space-x-1">
+                        <input type="number" min={0} max={s.assignment?.points ?? 100} value={gradeInput} onChange={e => setGradeInput(e.target.value)} placeholder={`/${s.assignment?.points ?? 0}`} className="w-16 border border-gray-300 rounded px-1 py-0.5 text-[12px]" autoFocus />
+                        <button disabled={savingGrade} onClick={() => submitGrade(s.id, s.assignment?.points ?? 0)} className="px-2 py-0.5 bg-[#008EE2] text-white text-[12px] rounded disabled:opacity-50">Save</button>
+                        <button onClick={() => { setGradingId(null); setGradeInput(''); }} className="px-2 py-0.5 text-gray-500 text-[12px]">Cancel</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setGradingId(s.id); setGradeInput(typeof s.score === 'number' ? String(s.score) : ''); }} className="text-[#008EE2] text-[12px] hover:underline">{s.status === 'GRADED' ? 'Edit grade' : 'Grade'}</button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; userId: string; userRole: string }) {
   const { data, loading } = useApi<any>(`/enrollments?courseId=${courseId}&limit=2000`);
   // For teachers, filter to batches they actually teach.
   const { data: dashData } = useApi<any>(userRole === 'TEACHER' ? '/dashboard' : null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   if (loading) return <LoadingSpinner />;
+  if (selectedStudentId) {
+    return <CourseStudentDetailView studentId={selectedStudentId} courseId={courseId} onBack={() => setSelectedStudentId(null)} />;
+  }
   const allEnrollments = (data?.enrollments || []).filter((e: any) => e.role === 'STUDENT');
   const teacherBatchCodes: Set<string> = new Set(
     userRole === 'TEACHER' && dashData?.batches
@@ -2827,8 +2995,8 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
                 </thead>
                 <tbody className="divide-y divide-[#E1E1E1]">
                   {rows.map((e: any) => (
-                    <tr key={e.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2 font-medium text-[#2D3B45]">{`${e.user?.firstName ?? ''} ${e.user?.lastName ?? ''}`.trim()}</td>
+                    <tr key={e.id} className="hover:bg-blue-50 cursor-pointer" onClick={() => setSelectedStudentId(e.userId)}>
+                      <td className="px-4 py-2 font-medium text-[#008EE2] underline">{`${e.user?.firstName ?? ''} ${e.user?.lastName ?? ''}`.trim()}</td>
                       <td className="px-4 py-2 text-gray-600">{e.user?.email}</td>
                       <td className="px-4 py-2 text-gray-500">{e.user?.vNumber || '—'}</td>
                       <td className="px-4 py-2 text-gray-500">{e.user?.campus || e.campus || '—'}</td>

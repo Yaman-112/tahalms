@@ -68,7 +68,7 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
 });
 
 // GET /api/users/:id — get user profile with enrollments (admin only)
-router.get('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+router.get('/:id', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: req.params.id },
