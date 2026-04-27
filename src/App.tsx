@@ -1579,9 +1579,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                                   <div className="text-[10px] text-gray-500">{m.window.start.toLocaleDateString()} → {m.window.end.toLocaleDateString()}</div>
                                                 )}
                                               </div>
-                                              <div className="shrink-0 text-right w-[170px] self-start">
-                                                {m.state === 'completed' && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700 whitespace-nowrap">This is a past module</span>}
-                                                {m.state === 'current' && <span className="px-2 py-1 text-[14px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider">Scheduled</span>}
+                                              <div className="shrink-0 text-right w-[70px]">
+                                                {m.state === 'completed' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-green-100 text-green-700">Done</span>}
+                                                {m.state === 'current' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-blue-100 text-blue-700">Current</span>}
                                                 {m.state === 'upcoming' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600">Upcoming</span>}
                                                 {m.state === 'before_enrollment' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-100 text-amber-700">Before start</span>}
                                                 {m.state === 'unknown' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-500">No date</span>}
@@ -2866,15 +2866,13 @@ function CourseStudentDetailView({ studentId, courseId, onBack }: { studentId: s
                   return at - bt;
                 })
                 .map((m: any, i: number) => (
-                  <tr key={m.id} className={m._status === 'IN_PROGRESS' ? 'bg-blue-50' : ''}>
+                  <tr key={m.id} className={m._status === 'IN_PROGRESS' ? 'bg-blue-50 align-top' : 'align-top'}>
                     <td className="px-4 py-2 text-gray-400">{i + 1}</td>
                     <td className="px-4 py-2 font-medium text-[#2D3B45]">{m.name}</td>
-                    <td className="px-4 py-2">
-                      <span className={`px-2 py-0.5 text-[11px] font-bold rounded-full ${
-                        m._status === 'COMPLETED' ? 'bg-green-100 text-green-700' :
-                        m._status === 'IN_PROGRESS' ? 'bg-blue-100 text-blue-700' :
-                        'bg-gray-100 text-gray-500'
-                      }`}>{m._status}</span>
+                    <td className="px-4 py-2 w-[170px]">
+                      {m._status === 'COMPLETED' && <span className="px-2 py-0.5 text-[11px] font-bold rounded-full bg-green-100 text-green-700 whitespace-nowrap">This is a past module</span>}
+                      {m._status === 'IN_PROGRESS' && <span className="px-2 py-1 text-[14px] font-bold rounded-full bg-blue-100 text-blue-700 uppercase tracking-wider">Scheduled</span>}
+                      {m._status === 'NOT_STARTED' && <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-gray-100 text-gray-600">Upcoming</span>}
                     </td>
                     <td className="px-4 py-2 text-gray-500 text-[12px]">
                       {m._started ? new Date(m._started).toLocaleDateString() : '—'}
