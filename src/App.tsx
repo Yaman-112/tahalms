@@ -497,8 +497,11 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                             const status = moduleStatuses[idx];
                             const isCurrentMod = currentModule?.id === mod.id;
 
+                            const tipDate = hasSyncedProgress
+                              ? (startedByModuleId.get(mod.id) || null)
+                              : (mod.startDate || null);
                             return (
-                              <div key={mod.id} className="group relative flex-1" title={`${mod.name} — ${status}${mod.startDate ? ' (starts ' + new Date(mod.startDate).toLocaleDateString() + ')' : ''}`}>
+                              <div key={mod.id} className="group relative flex-1" title={`${mod.name} — ${status}${tipDate ? ' (' + (status === 'COMPLETED' ? 'taught' : status === 'IN_PROGRESS' ? 'started' : 'starts') + ' ' + new Date(tipDate).toLocaleDateString() + ')' : ''}`}>
                                 <div className={`h-3 rounded-sm ${
                                   status === 'COMPLETED' ? 'bg-green-500' :
                                   status === 'IN_PROGRESS' ? 'bg-[#008EE2] animate-pulse' :
