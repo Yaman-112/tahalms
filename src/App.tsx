@@ -1367,9 +1367,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             </div>
                             {(() => {
                               const rows = (userSubmissions ?? [])
-                                .filter((s: any) => s.submittedAt)
+                                .filter((s: any) => s.submittedAt || s.date)
                                 .map((s: any) => ({
-                                  at: new Date(s.submittedAt),
+                                  at: new Date(s.submittedAt || s.date),
                                   course: s.assignment?.course?.code ?? '',
                                   title: s.assignment?.title ?? 'Assignment',
                                   status: s.status ?? 'MISSING',
