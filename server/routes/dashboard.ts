@@ -88,9 +88,28 @@ async function getStudentDashboard(req: AuthRequest, res: any) {
     }),
   ]);
 
+  // Look up the teacher for each enrollment via its (courseId, batchCode).
+  const batchKeys = enrollments
+    .filter(e => e.batchCode)
+    .map(e => ({ courseId: e.courseId, batchCode: e.batchCode! }));
+  const batchTeachers = batchKeys.length === 0 ? [] : await prisma.batch.findMany({
+    where: { OR: batchKeys.map(k => ({ courseId: k.courseId, batchCode: k.batchCode })) },
+    select: {
+      courseId: true, batchCode: true,
+      teacher: { select: { id: true, firstName: true, lastName: true, email: true, avatarUrl: true } },
+    },
+  });
+  const teacherByKey = new Map<string, any>();
+  for (const b of batchTeachers) teacherByKey.set(`${b.courseId}::${b.batchCode}`, b.teacher);
+
+  const enrollmentsWithTeacher = enrollments.map(e => ({
+    ...e,
+    teacher: e.batchCode ? teacherByKey.get(`${e.courseId}::${e.batchCode}`) ?? null : null,
+  }));
+
   return success(res, {
     profile,
-    enrollments,
+    enrollments: enrollmentsWithTeacher,
     todoItems,
     recentGrades,
     upcomingAssignments,

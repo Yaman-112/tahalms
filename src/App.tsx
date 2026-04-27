@@ -412,6 +412,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                             {e.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{e.batchCode}</span>}
                             {e.campus && <span>{e.campus}</span>}
                             {e.classTime && <span>{e.classTime}</span>}
+                            {e.teacher && <span>Teacher: <span className="font-medium text-[#2D3B45]">{`${e.teacher.firstName ?? ''} ${e.teacher.lastName ?? ''}`.trim() || e.teacher.email}</span></span>}
                           </div>
                         </div>
                       </div>
