@@ -3072,13 +3072,20 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
 
   if (loading) return <LoadingSpinner />;
 
-  const byFolder = new Map<string, any[]>();
+  // Group files under module headings (fall back to folder, then "Course Files").
+  const byModule = new Map<string, { label: string; files: any[]; sortKey: number }>();
   for (const f of files || []) {
-    const k = f.folder || '';
-    if (!byFolder.has(k)) byFolder.set(k, []);
-    byFolder.get(k)!.push(f);
+    const key = f.module?.id || (f.folder ? `__folder__${f.folder}` : '__none__');
+    const label = f.module?.name || (f.folder || 'Course Files');
+    const sortKey = f.module?.id ? 0 : (f.folder ? 1 : 2);
+    if (!byModule.has(key)) byModule.set(key, { label, files: [], sortKey });
+    byModule.get(key)!.files.push(f);
   }
-  const folderKeys = Array.from(byFolder.keys()).sort();
+  const folderKeys = Array.from(byModule.keys()).sort((a, b) => {
+    const A = byModule.get(a)!; const B = byModule.get(b)!;
+    if (A.sortKey !== B.sortKey) return A.sortKey - B.sortKey;
+    return A.label.localeCompare(B.label);
+  });
 
   return (
     <div className="max-w-5xl">
@@ -3123,13 +3130,14 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
           <p>No files yet.</p>
         </div>
       ) : (
-        folderKeys.map(folder => (
-          <div key={folder || 'root'} className="mb-6">
-            <h2 className="text-[15px] font-semibold text-[#2D3B45] mb-2 border-b border-[#E1E1E1] pb-1">
-              {folder || 'Course Files'}
+        folderKeys.map(key => (
+          <div key={key} className="mb-6">
+            <h2 className="text-[15px] font-semibold text-[#2D3B45] mb-2 border-b border-[#E1E1E1] pb-1 flex items-center justify-between">
+              <span>{byModule.get(key)!.label}</span>
+              <span className="text-[12px] text-gray-400 font-normal">{byModule.get(key)!.files.length} file{byModule.get(key)!.files.length === 1 ? '' : 's'}</span>
             </h2>
             <div className="divide-y divide-[#EFEFEF]">
-              {byFolder.get(folder)!.map(f => (
+              {byModule.get(key)!.files.map(f => (
                 <div key={f.id} className="flex items-center py-2 px-2 hover:bg-gray-50 rounded">
                   <div className="flex-1 min-w-0">
                     <div className="text-[14px] text-[#2D3B45] truncate">{f.fileName}</div>
