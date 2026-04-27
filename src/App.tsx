@@ -599,7 +599,9 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center space-x-2">
                           <span className="px-2.5 py-1 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{b.batchCode}</span>
-                          <span className={`px-2 py-0.5 text-[16px] font-bold rounded-full ${status === 'ACTIVE' ? 'bg-green-100 text-green-700' : status === 'COMPLETED' ? 'bg-gray-100 text-gray-500' : 'bg-blue-100 text-blue-700'}`}>{status}</span>
+                          {status !== 'UPCOMING' && (
+                            <span className={`px-2 py-0.5 text-[16px] font-bold rounded-full ${status === 'ACTIVE' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{status}</span>
+                          )}
                         </div>
                         <span className="text-[16px] font-bold text-gray-600">{b.studentCount} students</span>
                       </div>
