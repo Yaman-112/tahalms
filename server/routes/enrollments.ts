@@ -12,7 +12,7 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
     const batchCode = req.query.batchCode as string | undefined;
     const courseId = req.query.courseId as string | undefined;
     const page = Math.max(1, parseInt(req.query.page as string) || 1);
-    const limit = Math.min(100, parseInt(req.query.limit as string) || 50);
+    const limit = Math.min(5000, parseInt(req.query.limit as string) || 50);
     const skip = (page - 1) * limit;
 
     let where: any = {};
