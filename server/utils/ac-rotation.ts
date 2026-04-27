@@ -117,9 +117,34 @@ export function acDbModuleName(scheduleName: string): string | null {
   return NAME_MAP[scheduleName.toLowerCase().trim()] ?? null;
 }
 
-// AC weekend batches (ACW*) are not covered by this schedule.
 export function acIsWeekday(batchCode: string | null | undefined): boolean {
   const c = (batchCode ?? '').toUpperCase();
   if (c.startsWith('ACW')) return false;
   return true;
 }
+
+// AC WEEKEND rotation. One module per session (no filler track on weekends).
+// Each row's window ends at the next row's start.
+export type AcWeekendWindow = { start: Date; end: Date; module: string };
+
+const WKND_RAW: Array<[string, string, string]> = [
+  ['11/14/2025', '11/21/2025', 'MS Windows'],
+  ['11/21/2025', '11/28/2025', 'MS Word'],
+  ['11/28/2025', '12/5/2025',  'MS Outlook'],
+  ['12/5/2025',  '12/12/2025', 'MS PowerPoint'],
+  // 12/12 -> 1/9 spans MS Excel with the winter break embedded; treat as one window.
+  ['12/12/2025', '1/9/2026',   'MS Excel'],
+  ['1/9/2026',   '2/13/2026',  'Office Procedure'],
+  ['2/13/2026',  '2/20/2026',  'Job Search Strategies'],
+  ['2/20/2026',  '5/15/2026',  'Accounting Fundamentals and Bookkeeping'],
+  ['5/15/2026',  '6/26/2026',  'Computerized Accounting with Quickbooks'],
+  ['6/26/2026',  '7/10/2026',  'Payroll Fundamentals 1'],
+  ['7/10/2026',  '7/31/2026',  'Payroll Fundamentals 2'],
+  ['7/31/2026',  '9/18/2026',  'Computerized Accounting with Sage 50'],
+  ['9/18/2026',  '10/16/2026', 'Computerized Accounting with Sage 300'],
+  ['10/16/2026', '11/13/2026', 'Income Tax Theory and Practice'],
+];
+
+export const AC_WEEKEND_WINDOWS: AcWeekendWindow[] = WKND_RAW
+  .map(([s, e, m]) => ({ start: parseMdy(s), end: parseMdy(e), module: m }))
+  .sort((a, b) => a.start.getTime() - b.start.getTime());

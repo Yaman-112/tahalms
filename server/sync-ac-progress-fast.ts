@@ -4,7 +4,7 @@
 // Weekend batches (ACW*) are skipped — no weekend schedule provided.
 import 'dotenv/config';
 import pg from 'pg';
-import { AC_SESSIONS, acDbModuleName, acIsWeekday } from './utils/ac-rotation.js';
+import { AC_SESSIONS, AC_WEEKEND_WINDOWS, acDbModuleName, acIsWeekday } from './utils/ac-rotation.js';
 
 const APPLY = process.argv.includes('--apply');
 const FORCE = process.argv.includes('--force');
@@ -94,14 +94,20 @@ const pool = new pg.Pool({
   for (const b of batchesRes.rows) batchIdByCode.set(b.batch_code, b.id);
   const fallbackBatchId = batchesRes.rows[0]?.id ?? '';
 
+  // Build the weekend program windows (single track, no filler).
+  const weekendWindows: Window[] = [];
+  for (const w of AC_WEEKEND_WINDOWS) {
+    if (/winter break/i.test(w.module)) continue;
+    const mod = resolveModule(w.module);
+    if (!mod) continue;
+    weekendWindows.push({ moduleId: mod.id, start: w.start, end: w.end });
+  }
+
   const now = new Date();
-  // Skip weekend batches; we don't have their schedule.
-  const eligible = enrRes.rows.filter(e => acIsWeekday(e.batch_code));
-  const skippedWeekend = enrRes.rows.length - eligible.length;
-  const targets = FORCE ? eligible : eligible.filter(e => !e.current_module_id);
+  const targets = FORCE ? enrRes.rows : enrRes.rows.filter(e => !e.current_module_id);
   console.log(`Total AC enrollments with startDate: ${enrRes.rows.length}`);
-  console.log(`  weekend (ACW*) skipped:            ${skippedWeekend}`);
-  console.log(`  weekday eligible:                  ${eligible.length}`);
+  console.log(`  weekday: ${enrRes.rows.filter(e => acIsWeekday(e.batch_code)).length}`);
+  console.log(`  weekend: ${enrRes.rows.filter(e => !acIsWeekday(e.batch_code)).length}`);
   console.log(`To process: ${targets.length} ${FORCE ? '(force)' : '(remaining only)'}`);
   console.log(`Today (UTC): ${now.toISOString().slice(0, 10)}`);
   console.log(`Mode: ${APPLY ? 'APPLY' : 'DRY-RUN'}`);
@@ -147,13 +153,21 @@ const pool = new pg.Pool({
       return current;
     };
 
-    apply(fillerWindows, false);
-    const programCurrent = apply(programWindows, true);
+    let programCurrent: string | null = null;
+    let allWindowsForNext: Window[];
+    if (acIsWeekday(e.batch_code)) {
+      apply(fillerWindows, false);
+      programCurrent = apply(programWindows, true);
+      allWindowsForNext = [...programWindows, ...fillerWindows];
+    } else {
+      programCurrent = apply(weekendWindows, true);
+      allWindowsForNext = weekendWindows;
+    }
 
-    // For NOT_STARTED, set startedAt to next future window's start (program OR filler, whichever is sooner).
+    // For NOT_STARTED, set startedAt to next future window's start.
     for (const [moduleId, row] of rowMap) {
       if (row.status !== 'NOT_STARTED') continue;
-      const nexts = [...programWindows, ...fillerWindows]
+      const nexts = allWindowsForNext
         .filter(w => w.moduleId === moduleId && w.start > now)
         .map(w => w.start.getTime());
       if (nexts.length) row.startedAt = new Date(Math.min(...nexts));
