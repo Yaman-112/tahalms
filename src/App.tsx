@@ -2773,6 +2773,80 @@ function AdminStatisticsView() {
 // --- Course View ---
 
 // ─── Course Files Tab ──────────────────────────────────
+function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; userId: string; userRole: string }) {
+  const { data, loading } = useApi<any>(`/enrollments?courseId=${courseId}&limit=2000`);
+  if (loading) return <LoadingSpinner />;
+  const allEnrollments = (data?.enrollments || []).filter((e: any) => e.role === 'STUDENT');
+
+  // For teachers, filter to batches they actually teach.
+  const { data: dashData } = useApi<any>(userRole === 'TEACHER' ? '/dashboard' : null);
+  const teacherBatchCodes: Set<string> = new Set(
+    userRole === 'TEACHER' && dashData?.batches
+      ? dashData.batches.filter((b: any) => b.course?.id === courseId).map((b: any) => b.batchCode)
+      : []
+  );
+  const visible = userRole === 'TEACHER'
+    ? allEnrollments.filter((e: any) => e.batchCode && teacherBatchCodes.has(e.batchCode))
+    : allEnrollments;
+
+  // Group by batchCode
+  const byBatch = new Map<string, any[]>();
+  for (const e of visible) {
+    const key = e.batchCode || '(no batch)';
+    if (!byBatch.has(key)) byBatch.set(key, []);
+    byBatch.get(key)!.push(e);
+  }
+  const batchKeys = [...byBatch.keys()].sort();
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-[#2D3B45]">People</h2>
+        <span className="text-[14px] text-gray-500">{visible.length} student{visible.length === 1 ? '' : 's'} across {batchKeys.length} batch{batchKeys.length === 1 ? '' : 'es'}</span>
+      </div>
+      {visible.length === 0 ? (
+        <div className="text-center py-12 text-gray-400">No enrolled students.</div>
+      ) : (
+        batchKeys.map(bc => {
+          const rows = byBatch.get(bc)!;
+          return (
+            <div key={bc} className="border border-[#E1E1E1] rounded-lg overflow-hidden">
+              <div className="bg-[#2D3B45] text-white px-4 py-2 flex items-center justify-between">
+                <span className="font-bold">{bc}</span>
+                <span className="text-[12px] opacity-80">{rows.length} student{rows.length === 1 ? '' : 's'}</span>
+              </div>
+              <table className="w-full text-[13px]">
+                <thead className="bg-gray-50">
+                  <tr className="text-left text-gray-600">
+                    <th className="px-4 py-2 font-medium">Name</th>
+                    <th className="px-4 py-2 font-medium">Email</th>
+                    <th className="px-4 py-2 font-medium">Roll #</th>
+                    <th className="px-4 py-2 font-medium">Campus</th>
+                    <th className="px-4 py-2 font-medium">Start</th>
+                    <th className="px-4 py-2 font-medium text-right">Progress</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E1E1E1]">
+                  {rows.map((e: any) => (
+                    <tr key={e.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-2 font-medium text-[#2D3B45]">{`${e.user?.firstName ?? ''} ${e.user?.lastName ?? ''}`.trim()}</td>
+                      <td className="px-4 py-2 text-gray-600">{e.user?.email}</td>
+                      <td className="px-4 py-2 text-gray-500">{e.user?.vNumber || '—'}</td>
+                      <td className="px-4 py-2 text-gray-500">{e.user?.campus || e.campus || '—'}</td>
+                      <td className="px-4 py-2 text-gray-500">{e.startDate ? new Date(e.startDate).toLocaleDateString() : '—'}</td>
+                      <td className="px-4 py-2 text-right tabular-nums text-[#008EE2] font-medium">{e.progress?.moduleProgress != null ? `${e.progress.moduleProgress}%` : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })
+      )}
+    </div>
+  );
+}
+
 function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: string; canUpload: boolean; canDelete: (uploaderId: string | null) => boolean; userId: string }) {
   const { data: files, loading, refetch } = useApi<any[]>(`/courses/${courseId}/files`);
   const [uploading, setUploading] = useState(false);
@@ -4688,6 +4762,8 @@ function CourseView({ courseId }: { courseId: string }) {
               canDelete={(uploaderId) => !viewAsStudent && (user?.role === 'ADMIN' || uploaderId === user?.id)}
               userId={user?.id || ''}
             />
+          ) : activeSection === 'People' && !viewAsStudent && (user?.role === 'TEACHER' || user?.role === 'ADMIN') ? (
+            <CoursePeopleTab courseId={courseId} userId={user?.id || ''} userRole={user?.role || ''} />
           ) : (
             <div className="flex flex-col items-center justify-center text-gray-400 py-20">
               <p>This section is currently empty or under construction.</p>
