@@ -136,13 +136,19 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
       },
       orderBy: { batchCode: 'asc' },
     }).then(async (teacherBatches) => {
+      // Count students per (courseId, batchCode) — only role=STUDENT, and
+      // scoped to the batch's own course so same-named batches in other
+      // courses don't bleed into the count.
       const counts = await prisma.enrollment.groupBy({
-        by: ['batchCode'],
-        where: { batchCode: { in: teacherBatches.map(b => b.batchCode) } },
+        by: ['courseId', 'batchCode'],
+        where: {
+          role: 'STUDENT',
+          OR: teacherBatches.map(b => ({ courseId: b.courseId, batchCode: b.batchCode })),
+        },
         _count: true,
       });
       const countMap: Record<string, number> = {};
-      counts.forEach(c => { if (c.batchCode) countMap[c.batchCode] = c._count; });
+      counts.forEach(c => { if (c.batchCode) countMap[`${c.courseId}::${c.batchCode}`] = c._count; });
 
       // Get progress stats per batch
       const progressCounts = await prisma.studentProgress.groupBy({
@@ -169,7 +175,7 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
 
         return {
           ...b,
-          studentCount: countMap[b.batchCode] || 0,
+          studentCount: countMap[`${b.courseId}::${b.batchCode}`] || 0,
           currentModulePosition: currentModulePos,
           currentModuleName: currentModule?.name || null,
           totalModules,
