@@ -4776,38 +4776,6 @@ function CourseView({ courseId }: { courseId: string }) {
                 </table>
               </div>
 
-              {/* Assessment Summary */}
-              <div className="border border-[#E1E1E1] rounded-lg overflow-hidden">
-                <div className="bg-[#008744] text-white px-6 py-4">
-                  <h2 className="text-lg font-bold">Grading Structure</h2>
-                </div>
-                <div className="p-6">
-                  <p className="text-sm text-gray-600 mb-4">Each module's assessments total 100 points. The module weight determines its contribution to the final course grade.</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {(() => {
-                      const types: Record<string, number> = {};
-                      (course.assignments || []).forEach((a: any) => {
-                        const t = (a.title.split(' - ').pop() || '').trim().replace(/\s*\d+$/, '');
-                        types[t] = (types[t] || 0) + 1;
-                      });
-                      return Object.entries(types).map(([type, count]) => (
-                        <div key={type} className={`rounded-lg p-3 text-center ${
-                          /Final/i.test(type) ? 'bg-red-50 border border-red-200' :
-                          /Midterm/i.test(type) ? 'bg-amber-50 border border-amber-200' :
-                          /Quiz/i.test(type) ? 'bg-purple-50 border border-purple-200' :
-                          /Assignment/i.test(type) ? 'bg-blue-50 border border-blue-200' :
-                          /Participation/i.test(type) ? 'bg-green-50 border border-green-200' :
-                          /Practical/i.test(type) ? 'bg-teal-50 border border-teal-200' :
-                          'bg-gray-50 border border-gray-200'
-                        }`}>
-                          <div className="text-xl font-bold">{count}</div>
-                          <div className="text-[16px] text-gray-600">{type}</div>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                </div>
-              </div>
             </div>
           ) : activeSection === 'Settings' ? (
             <div className="max-w-4xl">
