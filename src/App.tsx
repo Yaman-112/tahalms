@@ -5934,11 +5934,6 @@ export default function App() {
           <div className="flex items-center space-x-4">
             <img src="/taha-logo-full.png" alt="TAHA College" className="h-8 w-auto" />
           </div>
-          <div className="flex items-center space-x-4">
-            <a href="#" className="hover:underline">Privacy Policy</a>
-            <a href="#" className="hover:underline">Cookie Notice</a>
-            <a href="#" className="hover:underline">Acceptable Use Policy</a>
-          </div>
         </footer>
       </main>
     </div>
