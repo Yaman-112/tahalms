@@ -149,9 +149,11 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
       return error(res, 'User not found', 404);
     }
 
-    // Mask AUDITOR as ADMIN for the frontend.
+    // Mask AUDITOR as ADMIN for the frontend, but expose isAuditor so
+    // the UI can hide auditor-irrelevant fields (active/inactive status,
+    // suspend buttons, etc.) without leaking the masked role.
     if (user.role === 'AUDITOR') {
-      return success(res, { ...user, role: 'ADMIN' });
+      return success(res, { ...user, role: 'ADMIN', isAuditor: true });
     }
     return success(res, user);
   } catch (err) {

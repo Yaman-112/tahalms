@@ -1012,11 +1012,11 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                               }`}>{u.role}</span>
                             </td>
                             <td className="py-4 px-4">
-                              {u.isActive ? (
+                              {!(user as any)?.isAuditor && (u.isActive ? (
                                 <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-green-100 text-green-700">Active</span>
                               ) : (
                                 <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>
-                              )}
+                              ))}
                             </td>
                           </tr>
                         ))}
