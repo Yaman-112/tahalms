@@ -988,7 +988,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           <th className="py-4 px-4">Name</th>
                           <th className="py-4 px-4">Email</th>
                           <th className="py-4 px-4">Role</th>
-                          <th className="py-4 px-4">Status</th>
+                          {!(user as any)?.isAuditor && <th className="py-4 px-4">Status</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -1012,13 +1012,15 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 'bg-gray-100 text-gray-600'
                               }`}>{u.role}</span>
                             </td>
-                            <td className="py-4 px-4">
-                              {!(user as any)?.isAuditor && (u.isActive ? (
-                                <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-green-100 text-green-700">Active</span>
-                              ) : (
-                                <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>
-                              ))}
-                            </td>
+                            {!(user as any)?.isAuditor && (
+                              <td className="py-4 px-4">
+                                {u.isActive ? (
+                                  <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-green-100 text-green-700">Active</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 text-[16px] font-medium rounded-full bg-red-100 text-red-600">Inactive</span>
+                                )}
+                              </td>
+                            )}
                           </tr>
                         ))}
                       </tbody>
