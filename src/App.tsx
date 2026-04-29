@@ -773,6 +773,7 @@ function AdminDashboardView({ onCourseSelect, onNavigate }: { onCourseSelect: (i
 // --- Admin Courses View ---
 
 function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => void }) {
+  const { user } = useAuth();
   const [adminActiveSection, setAdminActiveSection] = useState('Courses');
   const [searchQuery, setSearchQuery] = useState('');
   const [peoplePage, setPeoplePage] = useState(1);
