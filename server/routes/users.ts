@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import prisma from '../db';
 import { authenticate, requireRole, denyAuditor, isAuditor, auditorScope, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
@@ -9,6 +10,54 @@ const router = Router();
 
 // All user routes require authentication
 router.use(authenticate);
+
+// GET /api/users/share-links?auditorEmail=audit@tahacollege.ca
+// Mints a 2-month student-impersonation JWT for each student in the auditor's
+// scope. Returns ready-to-share URLs of the form `<origin>/?access_token=<jwt>`.
+// Admin-only (auditors are blocked by the global write guard? No — this is GET.
+// We explicitly forbid auditors so they can't exfiltrate their own share links.)
+router.get('/share-links', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+  try {
+    if (req.user?.actualRole === 'AUDITOR') {
+      return error(res, 'Admin only', 403);
+    }
+    const auditorEmail = (req.query.auditorEmail as string) || 'audit@tahacollege.ca';
+    const auditor = await prisma.user.findUnique({ where: { email: auditorEmail } });
+    if (!auditor || (auditor as any).role !== 'AUDITOR') {
+      return error(res, 'Auditor user not found', 404);
+    }
+    const vNumbers = (auditor as any).scopedStudentIds || [];
+    if (vNumbers.length === 0) {
+      return success(res, { links: [], count: 0 });
+    }
+
+    const students = await prisma.user.findMany({
+      where: { vNumber: { in: vNumbers }, role: 'STUDENT' },
+      select: { id: true, vNumber: true, firstName: true, lastName: true, email: true },
+      orderBy: { vNumber: 'asc' },
+    });
+
+    const origin = (req.headers.origin as string) || `${req.protocol}://${req.get('host')}`;
+    const links = students.map(s => {
+      const token = jwt.sign(
+        { userId: s.id, role: 'STUDENT' },
+        process.env.JWT_SECRET!,
+        { expiresIn: '60d' }
+      );
+      return {
+        vNumber: s.vNumber,
+        name: `${s.firstName} ${s.lastName}`.trim(),
+        email: s.email,
+        url: `${origin}/?access_token=${token}`,
+      };
+    });
+
+    return success(res, { links, count: links.length, expiresInDays: 60 });
+  } catch (err) {
+    console.error('Share-links error:', err);
+    return error(res, 'Failed to generate share links', 500);
+  }
+});
 
 // GET /api/users — list users (admin only, with pagination)
 router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {

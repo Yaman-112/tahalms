@@ -23,6 +23,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // On mount, verify the stored token is still valid
   useEffect(() => {
+    // Magic share-link: ?access_token=<jwt> drops the user into the app as
+    // that user (used for per-student share links). Wipe any prior session
+    // first so two share-links opened in the same browser don't bleed
+    // into each other, then strip the token from the URL.
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('access_token');
+    if (urlToken) {
+      clearTokens();
+      setTokens(urlToken, '');
+      params.delete('access_token');
+      const newSearch = params.toString();
+      const newUrl = window.location.pathname + (newSearch ? `?${newSearch}` : '') + window.location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+
     const token = localStorage.getItem('accessToken');
     if (!token) {
       setIsLoading(false);
