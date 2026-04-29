@@ -26,6 +26,10 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
     // Auditor can only see their scoped students (and never other admins/teachers).
     const scope = auditorScope(req);
     if (scope !== null) {
+      // If the UI is asking for a non-STUDENT role tab, return an empty list.
+      if (where.role && where.role !== 'STUDENT') {
+        return success(res, { users: [], total: 0, page, limit, totalPages: 0 });
+      }
       where.role = 'STUDENT';
       where.vNumber = { in: scope };
     }
