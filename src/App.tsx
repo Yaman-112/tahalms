@@ -1161,14 +1161,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                           </fieldset>
 
                           {/* Student Information (TAHA-specific fields) */}
-                          {(userProfile.campus || userProfile.program || userProfile.shift || userProfile.contactNo || userProfile.address || userProfile.startDate || userProfile.finishDate || userProfile.campusStatus || userProfile.admissionRep) && (
+                          {(userProfile.campus || userProfile.program || userProfile.shift || userProfile.contactNo || userProfile.startDate || userProfile.finishDate || userProfile.campusStatus || userProfile.admissionRep) && (
                             <fieldset className="border border-[#C7CDD1] rounded px-4 pt-2 pb-4 mb-4">
                               <legend className="px-2 text-[14px] font-bold text-[#2D3B45]">Student Information</legend>
                               <table className="w-full text-[14px]">
                                 <tbody>
                                   {[
                                     { label: 'Contact', value: userProfile.contactNo },
-                                    { label: 'Address', value: userProfile.address },
                                     { label: 'Campus', value: userProfile.campus },
                                     { label: 'Program', value: userProfile.program },
                                     { label: 'Shift', value: userProfile.shift },
