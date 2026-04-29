@@ -65,7 +65,6 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
           lastName: true,
           role: true,
           isActive: true,
-          isActive: true,
         },
       }),
       prisma.user.count({ where }),
