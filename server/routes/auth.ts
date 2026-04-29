@@ -27,9 +27,17 @@ router.post('/login', async (req, res) => {
       return error(res, 'Invalid credentials', 401);
     }
 
-    // Generate tokens
+    // AUDITOR is exposed to the frontend as ADMIN (so the admin UI renders),
+    // but the backend uses actualRole + scope for read-only access + filtering.
+    const exposedRole = user.role === 'AUDITOR' ? 'ADMIN' : user.role;
+    const tokenPayload: any = { userId: user.id, role: exposedRole };
+    if (user.role === 'AUDITOR') {
+      tokenPayload.actualRole = 'AUDITOR';
+      tokenPayload.scope = (user as any).scopedStudentIds || [];
+    }
+
     const accessToken = jwt.sign(
-      { userId: user.id, role: user.role },
+      tokenPayload,
       process.env.JWT_SECRET!,
       { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
@@ -57,7 +65,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        role: user.role,
+        role: exposedRole,
         avatarUrl: user.avatarUrl,
       },
     });
@@ -87,8 +95,14 @@ router.post('/refresh', async (req, res) => {
       return error(res, 'Invalid or expired refresh token', 401);
     }
 
+    const exposedRole = stored.user.role === 'AUDITOR' ? 'ADMIN' : stored.user.role;
+    const tokenPayload: any = { userId: stored.user.id, role: exposedRole };
+    if (stored.user.role === 'AUDITOR') {
+      tokenPayload.actualRole = 'AUDITOR';
+      tokenPayload.scope = (stored.user as any).scopedStudentIds || [];
+    }
     const accessToken = jwt.sign(
-      { userId: stored.user.id, role: stored.user.role },
+      tokenPayload,
       process.env.JWT_SECRET!,
       { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
     );
@@ -135,6 +149,10 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
       return error(res, 'User not found', 404);
     }
 
+    // Mask AUDITOR as ADMIN for the frontend.
+    if (user.role === 'AUDITOR') {
+      return success(res, { ...user, role: 'ADMIN' });
+    }
     return success(res, user);
   } catch (err) {
     console.error('Get me error:', err);

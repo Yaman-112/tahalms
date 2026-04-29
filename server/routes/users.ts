@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import prisma from '../db';
-import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, denyAuditor, isAuditor, auditorScope, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
 import { success, error } from '../utils/response';
 
@@ -22,6 +22,13 @@ router.get('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
 
     const where: any = {};
     if (role) where.role = role.toUpperCase();
+
+    // Auditor can only see their scoped students (and never other admins/teachers).
+    const scope = auditorScope(req);
+    if (scope !== null) {
+      where.role = 'STUDENT';
+      where.vNumber = { in: scope };
+    }
     if (search) {
       where.OR = [
         { firstName: { contains: search, mode: 'insensitive' } },
@@ -93,6 +100,15 @@ router.get('/:id', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res
     });
 
     if (!user) return error(res, 'User not found', 404);
+
+    // Auditor scope check: must be a STUDENT and their vNumber must be in scope.
+    const scope = auditorScope(req);
+    if (scope !== null) {
+      if (user.role !== 'STUDENT' || !user.vNumber || !scope.includes(user.vNumber)) {
+        return error(res, 'User not found', 404);
+      }
+    }
+
     return success(res, user);
   } catch (err) {
     console.error('Get user error:', err);
@@ -101,7 +117,7 @@ router.get('/:id', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res
 });
 
 // POST /api/users — create a user (admin only)
-router.post('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+router.post('/', requireRole('ADMIN'), denyAuditor, async (req: AuthRequest, res) => {
   try {
     const { email, password, firstName, lastName, role } = req.body;
 
@@ -157,7 +173,7 @@ router.post('/', requireRole('ADMIN'), async (req: AuthRequest, res) => {
 });
 
 // PATCH /api/users/:id — update a user (admin only)
-router.patch('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+router.patch('/:id', requireRole('ADMIN'), denyAuditor, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { firstName, lastName, role, isActive, password } = req.body;
@@ -213,7 +229,7 @@ router.patch('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
 });
 
 // DELETE /api/users/:id — deactivate user (admin only, soft delete)
-router.delete('/:id', requireRole('ADMIN'), async (req: AuthRequest, res) => {
+router.delete('/:id', requireRole('ADMIN'), denyAuditor, async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 

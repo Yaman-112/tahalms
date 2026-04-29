@@ -33,8 +33,27 @@ app.use(cors({
 app.use(express.json({ limit: '50mb' }));
 app.use(cookieParser());
 
-// Routes
+// Block all writes from AUDITOR accounts (read-only enforcement).
+// Auth routes (login/logout/refresh) are mounted before this guard.
 app.use('/api/auth', authRoutes);
+
+import jwt from 'jsonwebtoken';
+app.use((req, res, next) => {
+  if (!['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) return next();
+  const header = req.headers.authorization;
+  let token: string | undefined;
+  if (header?.startsWith('Bearer ')) token = header.split(' ')[1];
+  else if (req.query.token) token = req.query.token as string;
+  if (!token) return next();
+  try {
+    const p = jwt.verify(token, process.env.JWT_SECRET!) as any;
+    if (p?.actualRole === 'AUDITOR') {
+      return res.status(403).json({ success: false, error: 'Read-only auditor account' });
+    }
+  } catch { /* let downstream auth handle invalid tokens */ }
+  next();
+});
+
 app.use('/api/users', userRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/assignments', assignmentRoutes);

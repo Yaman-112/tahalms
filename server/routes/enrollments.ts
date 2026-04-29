@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from '../db';
-import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, auditorScope, AuthRequest } from '../middleware/auth';
 import { success, error } from '../utils/response';
 
 const router = Router();
@@ -18,6 +18,11 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
     let where: any = {};
     if (batchCode) where.batchCode = batchCode;
     if (courseId) where.courseId = courseId;
+
+    const scope = auditorScope(req);
+    if (scope !== null) {
+      where.user = { role: 'STUDENT', vNumber: { in: scope } };
+    }
 
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
