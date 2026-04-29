@@ -3303,6 +3303,9 @@ function CourseView({ courseId }: { courseId: string }) {
     if (!newAssignTitle || !newAssignPoints) return;
     setCreating(true);
 
+    const targetBatchesArr = bankTargetMode === 'BATCH' ? [...bankTargetBatches] : [];
+    const targetStudentsArr = bankTargetMode === 'STUDENT' ? [...bankTargetStudents] : [];
+
     if (newAssignFormat === 'FILE') {
       // Existing FILE-based creation
       const formData = new FormData();
@@ -3316,6 +3319,8 @@ function CourseView({ courseId }: { courseId: string }) {
       formData.append('allowedFormats', newAssignFormats);
       formData.append('published', String(newAssignPublished));
       if (newAssignFile) formData.append('file', newAssignFile);
+      formData.append('targetBatches', JSON.stringify(targetBatchesArr));
+      formData.append('targetStudents', JSON.stringify(targetStudentsArr));
       const res = await api<any>('/assignments', { method: 'POST', body: formData });
       if (res.success) {
         resetCreateForm();
@@ -3336,6 +3341,8 @@ function CourseView({ courseId }: { courseId: string }) {
       formData.append('negativeMarking', String(newAssignNegativeMarking));
       formData.append('shuffleQuestions', String(newAssignShuffleQuestions));
       formData.append('showResults', String(newAssignShowResults));
+      formData.append('targetBatches', JSON.stringify(targetBatchesArr));
+      formData.append('targetStudents', JSON.stringify(targetStudentsArr));
 
       const res = await api<any>('/assignments', { method: 'POST', body: formData });
       if (res.success && res.data?.id) {
@@ -3378,17 +3385,8 @@ function CourseView({ courseId }: { courseId: string }) {
     setBuilderQuestions([]);
   };
 
-  const openBankFlow = async () => {
-    setShowBankFlow(true);
-    setBankSourceId(''); setBankQuestions([]); setBankSelectedQuestionIds(new Set());
-    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set());
-    setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
-    setNewAssignPoints(100); setNewAssignDueDate('');
-    setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
-    setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
-    const banksRes = await api<any>(`/assignments/banks?courseId=${courseId}`);
-    if (banksRes.success) setBankList(banksRes.data || []);
-    // Load batches + students of this course for target picker
+  const loadTargetData = async () => {
+    if (courseBatches.length > 0 || courseStudents.length > 0) return; // cached
     const enrollsRes = await api<any>(`/enrollments?courseId=${courseId}&limit=5000`);
     if (enrollsRes.success) {
       const enrolls = enrollsRes.data?.enrollments || [];
@@ -3404,6 +3402,44 @@ function CourseView({ courseId }: { courseId: string }) {
       setCourseBatches([...batchSet.values()].sort((a, b) => a.batchCode.localeCompare(b.batchCode)));
       setCourseStudents([...studentMap.values()].sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)));
     }
+  };
+
+  const openBankFlow = async (preselectSourceId?: string) => {
+    setActiveSection('Assignments');
+    setShowBankFlow(true);
+    setBankSourceId(''); setBankQuestions([]); setBankSelectedQuestionIds(new Set());
+    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set());
+    setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
+    setNewAssignPoints(100); setNewAssignDueDate('');
+    setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
+    setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
+    const banksRes = await api<any>(`/assignments/banks?courseId=${courseId}`);
+    if (banksRes.success) setBankList(banksRes.data || []);
+    await loadTargetData();
+    if (preselectSourceId) await onPickBankSource(preselectSourceId);
+  };
+
+  const openCreateAssignment = async () => {
+    setShowCreateAssignment(true);
+    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set());
+    await loadTargetData();
+  };
+
+  const [previewBankId, setPreviewBankId] = useState<string | null>(null);
+  const [previewBankQuestions, setPreviewBankQuestions] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (activeSection === 'Question Banks' && bankList.length === 0) {
+      api<any>(`/assignments/banks?courseId=${courseId}`).then(res => {
+        if (res.success) setBankList(res.data || []);
+      });
+    }
+  }, [activeSection, courseId]);
+
+  const openBankPreview = async (bankId: string) => {
+    setPreviewBankId(bankId);
+    const res = await api<any>(`/assignments/${bankId}/questions`);
+    if (res.success) setPreviewBankQuestions(res.data || []);
   };
 
   const onPickBankSource = async (sourceId: string) => {
@@ -3566,6 +3602,7 @@ function CourseView({ courseId }: { courseId: string }) {
 
   const teacherNavItems = [
     { label: 'Home' }, { label: 'Announcements' }, { label: 'Assignments' },
+    { label: 'Question Banks' },
     { label: 'Grades' }, { label: 'People' }, { label: 'Pages' },
     { label: 'Files' }, { label: 'Syllabus' }, { label: 'Rubrics' },
     { label: 'Quizzes' }, { label: 'Settings' }
@@ -4065,6 +4102,61 @@ function CourseView({ courseId }: { courseId: string }) {
                       </>
                     )}
 
+                    {/* Target picker */}
+                    <div className="border-t border-[#E1E1E1] pt-5">
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-2">Assign to</label>
+                      <div className="space-y-2">
+                        <label className="flex items-center text-sm">
+                          <input type="radio" name="newAssignTargetMode" checked={bankTargetMode === 'COURSE'} onChange={() => setBankTargetMode('COURSE')} className="mr-2" />
+                          All students in this course (course-wide)
+                        </label>
+                        <label className="flex items-center text-sm">
+                          <input type="radio" name="newAssignTargetMode" checked={bankTargetMode === 'BATCH'} onChange={() => setBankTargetMode('BATCH')} className="mr-2" />
+                          Specific batches
+                        </label>
+                        <label className="flex items-center text-sm">
+                          <input type="radio" name="newAssignTargetMode" checked={bankTargetMode === 'STUDENT'} onChange={() => setBankTargetMode('STUDENT')} className="mr-2" />
+                          Specific students
+                        </label>
+                      </div>
+                      {bankTargetMode === 'BATCH' && (
+                        <div className="mt-3 border border-gray-200 rounded max-h-48 overflow-y-auto">
+                          {courseBatches.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">No batches in this course.</div>
+                          ) : courseBatches.map((b: any) => (
+                            <label key={b.batchCode} className="flex items-center px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer">
+                              <input type="checkbox" className="mr-2"
+                                checked={bankTargetBatches.has(b.batchCode)}
+                                onChange={e => {
+                                  const next = new Set(bankTargetBatches);
+                                  if (e.target.checked) next.add(b.batchCode); else next.delete(b.batchCode);
+                                  setBankTargetBatches(next);
+                                }} />
+                              {b.batchCode} <span className="text-gray-400 ml-2">({b.count} students)</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                      {bankTargetMode === 'STUDENT' && (
+                        <div className="mt-3 border border-gray-200 rounded max-h-64 overflow-y-auto">
+                          {courseStudents.length === 0 ? (
+                            <div className="px-3 py-2 text-sm text-gray-500">No students enrolled.</div>
+                          ) : courseStudents.map((s: any) => (
+                            <label key={s.id} className="flex items-center px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer">
+                              <input type="checkbox" className="mr-2"
+                                checked={bankTargetStudents.has(s.id)}
+                                onChange={e => {
+                                  const next = new Set(bankTargetStudents);
+                                  if (e.target.checked) next.add(s.id); else next.delete(s.id);
+                                  setBankTargetStudents(next);
+                                }} />
+                              {s.firstName} {s.lastName} <span className="text-gray-400 ml-2">{s.email}</span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex items-center space-x-3">
                       <label className="flex items-center space-x-2 text-sm text-[#2D3B45]">
                         <input type="checkbox" checked={newAssignPublished} onChange={e => setNewAssignPublished(e.target.checked)} className="rounded border-gray-300" />
@@ -4072,7 +4164,9 @@ function CourseView({ courseId }: { courseId: string }) {
                       </label>
                     </div>
                     <div className="flex items-center space-x-3 pt-4 border-t border-[#E1E1E1]">
-                      <button onClick={handleCreateAssignment} disabled={!newAssignTitle || creating || (newAssignFormat !== 'FILE' && builderQuestions.length === 0)}
+                      <button onClick={handleCreateAssignment} disabled={!newAssignTitle || creating || (newAssignFormat !== 'FILE' && builderQuestions.length === 0) ||
+                        (bankTargetMode === 'BATCH' && bankTargetBatches.size === 0) ||
+                        (bankTargetMode === 'STUDENT' && bankTargetStudents.size === 0)}
                         className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
                         {creating ? 'Creating...' : 'Create Assignment'}
                       </button>
@@ -4507,11 +4601,11 @@ function CourseView({ courseId }: { courseId: string }) {
                     <span className="font-bold text-[16px]">Assignments ({course.assignments?.length || 0})</span>
                     {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
                       <div className="flex items-center space-x-2">
-                        <button onClick={openBankFlow}
+                        <button onClick={() => openBankFlow()}
                           className="flex items-center space-x-1 bg-purple-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                           <Plus size={16} /> <span>From Question Bank</span>
                         </button>
-                        <button onClick={() => setShowCreateAssignment(true)}
+                        <button onClick={openCreateAssignment}
                           className="flex items-center space-x-1 bg-[#008EE2] text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
                           <Plus size={16} /> <span>New Assignment</span>
                         </button>
@@ -4564,6 +4658,85 @@ function CourseView({ courseId }: { courseId: string }) {
                     })}
                   </div>
                 </div>
+              )}
+            </div>
+          ) : activeSection === 'Question Banks' ? (
+            <div className="max-w-5xl">
+              {previewBankId ? (
+                <div>
+                  <button onClick={() => { setPreviewBankId(null); setPreviewBankQuestions([]); }} className="flex items-center text-[#008EE2] text-sm mb-4 hover:underline">
+                    <ChevronLeft size={16} className="mr-1" /> Back to Banks
+                  </button>
+                  {(() => {
+                    const bank = bankList.find(b => b.id === previewBankId);
+                    return (
+                      <>
+                        <h2 className="text-[24px] font-medium text-[#2D3B45]">{bank?.title}</h2>
+                        <div className="text-sm text-gray-500 mb-4">
+                          {previewBankQuestions.length} questions ·
+                          {' '}{previewBankQuestions.filter(q => q.type === 'MCQ').length} MCQ ·
+                          {' '}{previewBankQuestions.filter(q => q.type === 'THEORY').length} Theory ·
+                          {' '}Total {previewBankQuestions.reduce((s, q) => s + (q.points || 0), 0)} pts
+                        </div>
+                        <div className="mb-6">
+                          <button onClick={() => { setPreviewBankId(null); openBankFlow(bank?.id); }}
+                            className="px-4 py-2 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition-colors">
+                            Use this bank → Create Assignment
+                          </button>
+                        </div>
+                        <div className="border border-[#E1E1E1] rounded divide-y divide-[#E1E1E1] bg-white">
+                          {previewBankQuestions.map((q: any, i: number) => (
+                            <div key={q.id} className="p-4">
+                              <div className="flex items-start">
+                                <span className="text-gray-400 mr-2 text-sm font-medium">{i + 1}.</span>
+                                <div className="flex-1">
+                                  <div className="text-sm text-[#2D3B45]">{q.text}</div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    <span className={`px-2 py-0.5 rounded ${q.type === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : 'bg-purple-100 text-purple-700'}`}>{q.type}</span>
+                                    <span className="ml-2">{q.points} pts</span>
+                                  </div>
+                                  {q.type === 'MCQ' && q.options?.length > 0 && (
+                                    <ul className="mt-2 ml-2 space-y-0.5">
+                                      {q.options.map((o: any) => (
+                                        <li key={o.id} className={`text-sm ${o.isCorrect ? 'text-green-700 font-medium' : 'text-gray-600'}`}>
+                                          {o.isCorrect ? '✓ ' : '○ '}{o.text}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              ) : (
+                <>
+                  <h1 className="text-[28px] font-medium text-[#2D3B45] mb-2">Question Banks</h1>
+                  <p className="text-sm text-gray-500 mb-6">Existing question pools for {course.code}. Click a bank to preview, or use it to create a new assignment for any batch or student.</p>
+                  {bankList.length === 0 ? (
+                    <div className="border border-[#E1E1E1] rounded p-8 text-center text-gray-400 text-sm">No question banks found in this course.</div>
+                  ) : (
+                    <div className="border border-[#E1E1E1] rounded divide-y divide-[#E1E1E1] bg-white">
+                      {bankList.map((b: any) => (
+                        <div key={b.id} className="px-4 py-3 flex items-center hover:bg-gray-50">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[15px] font-medium text-[#2D3B45] truncate">{b.title}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {b._count.questions} questions · {b.points} pts ·
+                              <span className={`ml-2 px-2 py-0.5 rounded ${b.format === 'FILE' ? 'bg-gray-100 text-gray-600' : b.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : b.format === 'THEORY' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>{b.format}</span>
+                            </div>
+                          </div>
+                          <button onClick={() => openBankPreview(b.id)} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 mr-2">Preview</button>
+                          <button onClick={() => openBankFlow(b.id)} className="px-3 py-1 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition-colors">Use</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : activeSection === 'Grades' ? (
