@@ -681,6 +681,7 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
 }
 
 function AdminDashboardView({ onCourseSelect, onNavigate }: { onCourseSelect: (id: string) => void; onNavigate: (tab: string) => void }) {
+  const { user } = useAuth();
   const { data, loading } = useApi<AdminDashboard>('/dashboard');
 
   if (loading || !data) return <LoadingSpinner />;
@@ -695,10 +696,12 @@ function AdminDashboardView({ onCourseSelect, onNavigate }: { onCourseSelect: (i
         <div className="flex-1 overflow-y-auto p-8">
           {/* Stats */}
           <div className="grid grid-cols-3 gap-6 mb-12">
-            <div className="bg-[#008EE2] text-white rounded-lg p-6">
-              <div className="text-4xl font-bold">{data.stats.totalStudents}</div>
-              <div className="text-sm opacity-80 mt-1">Active Students</div>
-            </div>
+            {!(user as any)?.isAuditor && (
+              <div className="bg-[#008EE2] text-white rounded-lg p-6">
+                <div className="text-4xl font-bold">{data.stats.totalStudents}</div>
+                <div className="text-sm opacity-80 mt-1">Active Students</div>
+              </div>
+            )}
             <div className="bg-[#2D3B45] text-white rounded-lg p-6">
               <div className="text-4xl font-bold">{data.stats.totalTeachers}</div>
               <div className="text-sm opacity-80 mt-1">Teachers</div>
