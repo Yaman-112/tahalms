@@ -305,11 +305,35 @@ model Assignment {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
   submissions Submission[]
   questions   Question[]
+  targets     AssignmentTarget[]
 
   @@map("assignments")
+}
+
+// Per-assignment visibility scope. No rows = course-wide (visible to everyone
+// enrolled in the course). One or more rows narrow the audience to specific
+// batches and/or specific students. A row with kind=BATCH/targetId=batchCode
+// makes it visible to anyone whose enrollment.batchCode matches; kind=STUDENT
+// means a single user.
+enum AssignmentTargetKind {
+  BATCH
+  STUDENT
+}
+
+model AssignmentTarget {
+  id           String               @id @default(cuid())
+  assignmentId String               @map("assignment_id")
+  kind         AssignmentTargetKind
+  targetId     String               @map("target_id")  // batch.batchCode or user.id
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([assignmentId, kind, targetId])
+  @@index([kind, targetId])
+  @@map("assignment_targets")
 }
 
 model Question {

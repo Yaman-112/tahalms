@@ -43,11 +43,33 @@ router.get('/', async (req: AuthRequest, res) => {
       include: {
         course: { select: { id: true, name: true, code: true, color: true } },
         _count: { select: { submissions: true, questions: true } },
+        targets: { select: { kind: true, targetId: true } },
         ...(role === 'STUDENT' ? {
           submissions: { where: { studentId: userId }, select: { id: true, status: true, score: true, submittedAt: true, isLate: true } },
         } : {}),
       },
     });
+
+    // Targeted-visibility filter for students: if an assignment has any
+    // AssignmentTarget rows it's no longer course-wide; only students who
+    // match a BATCH or STUDENT target see it.
+    if (role === 'STUDENT' && assignments.length > 0) {
+      const targeted = assignments.filter(a => a.targets.length > 0);
+      if (targeted.length > 0) {
+        const enrolls = await prisma.enrollment.findMany({
+          where: { userId, courseId: { in: [...new Set(targeted.map(a => a.courseId))] } },
+          select: { batchCode: true },
+        });
+        const myBatches = new Set(enrolls.map(e => e.batchCode).filter(Boolean) as string[]);
+        assignments = assignments.filter(a => {
+          if (a.targets.length === 0) return true; // course-wide
+          return a.targets.some(t =>
+            (t.kind === 'BATCH' && t.targetId && myBatches.has(t.targetId)) ||
+            (t.kind === 'STUDENT' && t.targetId === userId)
+          );
+        });
+      }
+    }
 
     // HT: hide assignments without an uploaded question bank (no questions attached).
     // FILE-format assignments don't use question banks, so they remain visible.
@@ -96,6 +118,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
             modules: { select: { id: true, name: true, position: true, startDate: true } },
           },
         },
+        targets: { select: { kind: true, targetId: true } },
         submissions: req.user!.role !== 'STUDENT'
           ? {
               include: {
@@ -108,7 +131,40 @@ router.get('/:id', async (req: AuthRequest, res) => {
 
     if (!assignment) return error(res, 'Assignment not found', 404);
 
+    // Targeted-visibility check for students: if assignment has targets,
+    // student must be in batch list OR student list to load it.
+    if (req.user!.role === 'STUDENT' && assignment.targets.length > 0) {
+      const myEnrolls = await prisma.enrollment.findMany({
+        where: { userId: req.user!.userId, courseId: assignment.courseId },
+        select: { batchCode: true },
+      });
+      const myBatches = new Set(myEnrolls.map(e => e.batchCode).filter(Boolean) as string[]);
+      const allowed = assignment.targets.some(t =>
+        (t.kind === 'BATCH' && t.targetId && myBatches.has(t.targetId)) ||
+        (t.kind === 'STUDENT' && t.targetId === req.user!.userId)
+      );
+      if (!allowed) return error(res, 'Assignment not found', 404);
+    }
+
     let visibleSubmissions: any[] = assignment.submissions;
+
+    // For non-student viewers, if assignment is targeted, hide submissions
+    // from anyone outside the target audience.
+    if (req.user!.role !== 'STUDENT' && assignment.targets.length > 0 && visibleSubmissions.length > 0) {
+      const batchTargets = assignment.targets.filter(t => t.kind === 'BATCH').map(t => t.targetId);
+      const studentTargets = new Set(assignment.targets.filter(t => t.kind === 'STUDENT').map(t => t.targetId));
+      let batchStudentIds = new Set<string>();
+      if (batchTargets.length > 0) {
+        const inBatch = await prisma.enrollment.findMany({
+          where: { batchCode: { in: batchTargets }, courseId: assignment.courseId, role: 'STUDENT' },
+          select: { userId: true },
+        });
+        batchStudentIds = new Set(inBatch.map(e => e.userId));
+      }
+      visibleSubmissions = visibleSubmissions.filter(s =>
+        studentTargets.has(s.studentId) || batchStudentIds.has(s.studentId)
+      );
+    }
 
     // Auditor scope: only include submissions from students in scope.
     const scope = auditorScope(req);
@@ -253,11 +309,31 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (
       },
     });
 
+    // Optional targets: req.body.targetBatches and req.body.targetStudents may
+    // be JSON-stringified arrays (multipart) or arrays (json). Empty/absent
+    // means course-wide visibility.
+    const parseList = (v: any): string[] => {
+      if (!v) return [];
+      if (Array.isArray(v)) return v.filter(Boolean);
+      try { const p = JSON.parse(v); return Array.isArray(p) ? p.filter(Boolean) : []; } catch { return []; }
+    };
+    const targetBatches = parseList(req.body.targetBatches);
+    const targetStudents = parseList(req.body.targetStudents);
+    if (targetBatches.length > 0 || targetStudents.length > 0) {
+      await prisma.assignmentTarget.createMany({
+        data: [
+          ...targetBatches.map((b: string) => ({ assignmentId: assignment.id, kind: 'BATCH' as const, targetId: b })),
+          ...targetStudents.map((u: string) => ({ assignmentId: assignment.id, kind: 'STUDENT' as const, targetId: u })),
+        ],
+        skipDuplicates: true,
+      });
+    }
+
     await createAuditLog({
       tableName: 'assignments',
       recordId: assignment.id,
       action: 'INSERT',
-      newValues: { courseId, title, type, points, dueDate },
+      newValues: { courseId, title, type, points, dueDate, targetBatches, targetStudents },
       changedById: req.user!.userId,
       ipAddress: req.ip,
     });
@@ -335,6 +411,194 @@ router.delete('/:id/attachment', requireRole('ADMIN', 'TEACHER'), async (req: Au
   } catch (err) {
     console.error('Delete attachment error:', err);
     return error(res, 'Failed to delete attachment', 500);
+  }
+});
+
+// GET /api/assignments/banks?courseId=xxx
+// Lists candidate "banks" — i.e., existing assignments with at least one
+// question, in this course. Teacher uses this to pick a source for a new
+// targeted assignment.
+router.get('/banks', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const courseId = req.query.courseId as string | undefined;
+    const where: any = { questions: { some: {} } };
+    if (courseId) where.courseId = courseId;
+    const banks = await prisma.assignment.findMany({
+      where,
+      orderBy: { title: 'asc' },
+      select: {
+        id: true, title: true, type: true, format: true, points: true,
+        course: { select: { id: true, code: true, name: true } },
+        _count: { select: { questions: true } },
+      },
+    });
+    return success(res, banks);
+  } catch (err) {
+    console.error('List banks error:', err);
+    return error(res, 'Failed to list question banks', 500);
+  }
+});
+
+// GET /api/assignments/:id/questions — full question + option list, for the
+// "pick questions from this bank" UI.
+router.get('/:id/questions', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const questions = await prisma.question.findMany({
+      where: { assignmentId: req.params.id },
+      orderBy: { position: 'asc' },
+      include: { options: { orderBy: { position: 'asc' } } },
+    });
+    return success(res, questions);
+  } catch (err) {
+    console.error('List bank questions error:', err);
+    return error(res, 'Failed to list questions', 500);
+  }
+});
+
+// POST /api/assignments/from-bank
+// Creates a new assignment by copying selected questions out of an existing
+// "bank" assignment (sourceAssignmentId), into a new course-targeted or
+// batch-/student-targeted assignment.
+router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const {
+      sourceAssignmentId, questionIds, courseId, title, description, type, format,
+      points, dueDate, instructions, timeLimit, shuffleQuestions, showResults,
+      negativeMarking, targetBatches, targetStudents,
+    } = req.body;
+
+    if (!sourceAssignmentId || !Array.isArray(questionIds) || questionIds.length === 0) {
+      return error(res, 'sourceAssignmentId and a non-empty questionIds[] are required');
+    }
+    if (!courseId || !title) return error(res, 'courseId and title are required');
+
+    const source = await prisma.assignment.findUnique({
+      where: { id: sourceAssignmentId },
+      include: { questions: { include: { options: true } } },
+    });
+    if (!source) return error(res, 'Source assignment not found', 404);
+    if (source.courseId !== courseId) {
+      return error(res, 'Source assignment must belong to the same course');
+    }
+
+    const chosenSet = new Set<string>(questionIds);
+    const chosen = source.questions.filter(q => chosenSet.has(q.id));
+    if (chosen.length === 0) return error(res, 'No matching questions in the source assignment');
+
+    const totalPoints = typeof points === 'number'
+      ? points
+      : chosen.reduce((s, q) => s + (q.points || 0), 0);
+
+    const newAssignment = await prisma.assignment.create({
+      data: {
+        courseId,
+        title,
+        description: description || null,
+        type: type?.toUpperCase() === 'QUIZ' ? 'QUIZ' : 'ASSIGNMENT',
+        format: format && ['FILE','MCQ','THEORY','MIXED'].includes(format.toUpperCase())
+          ? format.toUpperCase() as any
+          : 'MCQ',
+        points: totalPoints,
+        dueDate: dueDate ? new Date(dueDate) : null,
+        instructions: instructions || null,
+        timeLimit: typeof timeLimit === 'number' ? timeLimit : null,
+        shuffleQuestions: !!shuffleQuestions,
+        showResults: showResults !== undefined ? !!showResults : true,
+        negativeMarking: typeof negativeMarking === 'number' ? negativeMarking : 0,
+      },
+    });
+
+    // Copy questions and their options
+    for (let i = 0; i < chosen.length; i++) {
+      const q = chosen[i];
+      const newQ = await prisma.question.create({
+        data: {
+          assignmentId: newAssignment.id,
+          type: q.type,
+          text: q.text,
+          points: q.points,
+          position: i,
+          required: q.required,
+          explanation: q.explanation,
+          wordLimit: q.wordLimit,
+        },
+      });
+      if (q.options.length > 0) {
+        await prisma.questionOption.createMany({
+          data: q.options.map(o => ({
+            questionId: newQ.id,
+            text: o.text,
+            isCorrect: o.isCorrect,
+            position: o.position,
+          })),
+        });
+      }
+    }
+
+    // Targets
+    const batches = Array.isArray(targetBatches) ? targetBatches.filter(Boolean) : [];
+    const students = Array.isArray(targetStudents) ? targetStudents.filter(Boolean) : [];
+    if (batches.length > 0 || students.length > 0) {
+      await prisma.assignmentTarget.createMany({
+        data: [
+          ...batches.map((b: string) => ({ assignmentId: newAssignment.id, kind: 'BATCH' as const, targetId: b })),
+          ...students.map((u: string) => ({ assignmentId: newAssignment.id, kind: 'STUDENT' as const, targetId: u })),
+        ],
+        skipDuplicates: true,
+      });
+    }
+
+    await createAuditLog({
+      tableName: 'assignments',
+      recordId: newAssignment.id,
+      action: 'INSERT',
+      newValues: { courseId, title, sourceAssignmentId, questionCount: chosen.length, targetBatches: batches, targetStudents: students },
+      changedById: req.user!.userId,
+      ipAddress: req.ip,
+    });
+
+    return success(res, { ...newAssignment, questionCount: chosen.length }, 201);
+  } catch (err) {
+    console.error('from-bank error:', err);
+    return error(res, 'Failed to create assignment from bank', 500);
+  }
+});
+
+// GET /api/assignments/:id/targets — list current targets (teacher/admin)
+router.get('/:id/targets', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const targets = await prisma.assignmentTarget.findMany({
+      where: { assignmentId: req.params.id },
+      orderBy: [{ kind: 'asc' }, { targetId: 'asc' }],
+    });
+    return success(res, targets);
+  } catch (err) {
+    console.error('List targets error:', err);
+    return error(res, 'Failed to list targets', 500);
+  }
+});
+
+// PUT /api/assignments/:id/targets — replace the target set (teacher/admin)
+router.put('/:id/targets', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const { targetBatches, targetStudents } = req.body;
+    const batches = Array.isArray(targetBatches) ? targetBatches.filter(Boolean) : [];
+    const students = Array.isArray(targetStudents) ? targetStudents.filter(Boolean) : [];
+
+    await prisma.assignmentTarget.deleteMany({ where: { assignmentId: req.params.id } });
+    if (batches.length > 0 || students.length > 0) {
+      await prisma.assignmentTarget.createMany({
+        data: [
+          ...batches.map((b: string) => ({ assignmentId: req.params.id, kind: 'BATCH' as const, targetId: b })),
+          ...students.map((u: string) => ({ assignmentId: req.params.id, kind: 'STUDENT' as const, targetId: u })),
+        ],
+        skipDuplicates: true,
+      });
+    }
+    return success(res, { message: 'Targets updated', batches: batches.length, students: students.length });
+  } catch (err) {
+    console.error('Update targets error:', err);
+    return error(res, 'Failed to update targets', 500);
   }
 });
 
