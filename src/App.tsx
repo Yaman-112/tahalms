@@ -1370,9 +1370,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             </div>
                             {(() => {
                               const rows = (userSubmissions ?? [])
-                                .filter((s: any) => s.submittedAt || s.date)
+                                .filter((s: any) => s.submittedAt || s.date || s.status === 'GRADED')
                                 .map((s: any) => ({
-                                  at: new Date(s.submittedAt || s.date),
+                                  at: s.submittedAt || s.date ? new Date(s.submittedAt || s.date) : null,
                                   course: s.assignment?.course?.code ?? '',
                                   title: s.assignment?.title ?? 'Assignment',
                                   status: s.status ?? 'MISSING',
@@ -1380,7 +1380,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                   points: s.assignment?.points ?? 0,
                                   isLate: !!s.isLate,
                                 }))
-                                .sort((a: any, b: any) => b.at.getTime() - a.at.getTime());
+                                .sort((a: any, b: any) => (b.at?.getTime() ?? 0) - (a.at?.getTime() ?? 0));
                               const courseCodes = Array.from(new Set(rows.map((r: any) => r.course))).filter(Boolean).sort();
                               const filtered = gradesCourseFilter === 'all' ? rows : rows.filter((r: any) => r.course === gradesCourseFilter);
                               const graded = filtered.filter((r: any) => r.status === 'GRADED').length;
