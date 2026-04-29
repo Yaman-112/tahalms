@@ -2,7 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import prisma from '../db';
-import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
+import { authenticate, requireRole, auditorScope, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
 import { success, error } from '../utils/response';
 import { upload, UPLOAD_DIR } from '../middleware/upload';
@@ -37,6 +37,12 @@ router.get('/', async (req: AuthRequest, res) => {
 
     if (assignmentId) where.assignmentId = assignmentId;
     if (courseId) where.assignment = { courseId };
+
+    // Auditors only see submissions from students within their scope.
+    const scope = auditorScope(req);
+    if (scope !== null) {
+      where.student = { role: 'STUDENT', vNumber: { in: scope } };
+    }
 
     const submissions = await prisma.submission.findMany({
       where,
