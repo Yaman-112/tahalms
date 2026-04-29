@@ -3428,6 +3428,49 @@ function CourseView({ courseId }: { courseId: string }) {
   const [previewBankId, setPreviewBankId] = useState<string | null>(null);
   const [previewBankQuestions, setPreviewBankQuestions] = useState<any[]>([]);
 
+  // Manage-targets modal (assignment detail view)
+  const [showTargetsModal, setShowTargetsModal] = useState(false);
+  const [editTargetMode, setEditTargetMode] = useState<'COURSE' | 'BATCH' | 'STUDENT'>('COURSE');
+  const [editTargetBatches, setEditTargetBatches] = useState<Set<string>>(new Set());
+  const [editTargetStudents, setEditTargetStudents] = useState<Set<string>>(new Set());
+  const [editTargetSaving, setEditTargetSaving] = useState(false);
+
+  const openTargetsModal = async () => {
+    if (!assignmentDetail) return;
+    await loadTargetData();
+    const targets = assignmentDetail.targets || [];
+    const batches = new Set<string>(targets.filter((t: any) => t.kind === 'BATCH').map((t: any) => t.targetId));
+    const students = new Set<string>(targets.filter((t: any) => t.kind === 'STUDENT').map((t: any) => t.targetId));
+    if (batches.size > 0 && students.size === 0) setEditTargetMode('BATCH');
+    else if (students.size > 0 && batches.size === 0) setEditTargetMode('STUDENT');
+    else if (batches.size > 0 || students.size > 0) setEditTargetMode('BATCH'); // mixed -> default to BATCH tab
+    else setEditTargetMode('COURSE');
+    setEditTargetBatches(batches);
+    setEditTargetStudents(students);
+    setShowTargetsModal(true);
+  };
+
+  const saveTargets = async () => {
+    if (!assignmentDetail) return;
+    setEditTargetSaving(true);
+    const body: any = {
+      targetBatches: editTargetMode === 'BATCH' ? [...editTargetBatches] : [],
+      targetStudents: editTargetMode === 'STUDENT' ? [...editTargetStudents] : [],
+    };
+    const res = await api<any>(`/assignments/${assignmentDetail.id}/targets`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    });
+    setEditTargetSaving(false);
+    if (res.success) {
+      setShowTargetsModal(false);
+      // refresh detail
+      loadAssignmentDetail(assignmentDetail.id);
+    } else {
+      alert(res.error || 'Failed to update targets');
+    }
+  };
+
   React.useEffect(() => {
     if (activeSection === 'Question Banks' && bankList.length === 0) {
       api<any>(`/assignments/banks?courseId=${courseId}`).then(res => {
@@ -4187,8 +4230,16 @@ function CourseView({ courseId }: { courseId: string }) {
                     <div>
                       {/* Assignment Header */}
                       <div className="border-b border-[#E1E1E1] pb-6 mb-6">
-                        <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">{assignmentDetail.title}</h2>
-                        <div className="flex items-center space-x-4 text-[16px] text-gray-500">
+                        <div className="flex items-start justify-between">
+                          <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">{assignmentDetail.title}</h2>
+                          {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                            <button onClick={openTargetsModal}
+                              className="px-3 py-1.5 border border-purple-600 text-purple-700 rounded text-sm font-medium hover:bg-purple-50 transition-colors">
+                              Manage Targets
+                            </button>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-4 text-[16px] text-gray-500 flex-wrap">
                           <span className="font-bold text-[#2D3B45]">{assignmentDetail.points} pts</span>
                           {assignmentDetail.format && (
                             <span className={`px-2 py-0.5 text-[16px] font-bold rounded-full ${
@@ -4201,8 +4252,88 @@ function CourseView({ courseId }: { courseId: string }) {
                           {assignmentDetail.dueDate && <span>Due: {new Date(assignmentDetail.dueDate).toLocaleString()}</span>}
                           {assignmentDetail.timeLimit && <span>{assignmentDetail.timeLimit} min</span>}
                           {!assignmentDetail.published && <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-[16px] font-bold rounded-full">UNPUBLISHED</span>}
+                          {assignmentDetail.targets?.length > 0 && (
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-[12px] font-bold rounded-full">
+                              {assignmentDetail.targets.filter((t: any) => t.kind === 'BATCH').length > 0 && `${assignmentDetail.targets.filter((t: any) => t.kind === 'BATCH').length} batches`}
+                              {assignmentDetail.targets.filter((t: any) => t.kind === 'BATCH').length > 0 && assignmentDetail.targets.filter((t: any) => t.kind === 'STUDENT').length > 0 && ' · '}
+                              {assignmentDetail.targets.filter((t: any) => t.kind === 'STUDENT').length > 0 && `${assignmentDetail.targets.filter((t: any) => t.kind === 'STUDENT').length} students`}
+                            </span>
+                          )}
                         </div>
                       </div>
+
+                      {/* Manage Targets Modal */}
+                      {showTargetsModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowTargetsModal(false)}>
+                          <div className="bg-white rounded-lg shadow-xl w-[700px] max-w-[95vw] max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                              <h2 className="text-[16px] font-bold text-[#2D3B45]">Manage Targets — {assignmentDetail.title}</h2>
+                              <button onClick={() => setShowTargetsModal(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                            </div>
+                            <div className="px-5 py-4 overflow-y-auto flex-1">
+                              <div className="space-y-2 mb-4">
+                                <label className="flex items-center text-sm">
+                                  <input type="radio" name="editTargetMode" checked={editTargetMode === 'COURSE'} onChange={() => setEditTargetMode('COURSE')} className="mr-2" />
+                                  All students in this course (course-wide)
+                                </label>
+                                <label className="flex items-center text-sm">
+                                  <input type="radio" name="editTargetMode" checked={editTargetMode === 'BATCH'} onChange={() => setEditTargetMode('BATCH')} className="mr-2" />
+                                  Specific batches
+                                </label>
+                                <label className="flex items-center text-sm">
+                                  <input type="radio" name="editTargetMode" checked={editTargetMode === 'STUDENT'} onChange={() => setEditTargetMode('STUDENT')} className="mr-2" />
+                                  Specific students
+                                </label>
+                              </div>
+                              {editTargetMode === 'BATCH' && (
+                                <div className="border border-gray-200 rounded max-h-64 overflow-y-auto">
+                                  {courseBatches.length === 0 ? (
+                                    <div className="px-3 py-2 text-sm text-gray-500">No batches in this course.</div>
+                                  ) : courseBatches.map((b: any) => (
+                                    <label key={b.batchCode} className="flex items-center px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer">
+                                      <input type="checkbox" className="mr-2"
+                                        checked={editTargetBatches.has(b.batchCode)}
+                                        onChange={e => {
+                                          const next = new Set(editTargetBatches);
+                                          if (e.target.checked) next.add(b.batchCode); else next.delete(b.batchCode);
+                                          setEditTargetBatches(next);
+                                        }} />
+                                      {b.batchCode} <span className="text-gray-400 ml-2">({b.count} students)</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                              {editTargetMode === 'STUDENT' && (
+                                <div className="border border-gray-200 rounded max-h-72 overflow-y-auto">
+                                  {courseStudents.length === 0 ? (
+                                    <div className="px-3 py-2 text-sm text-gray-500">No students enrolled.</div>
+                                  ) : courseStudents.map((s: any) => (
+                                    <label key={s.id} className="flex items-center px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer">
+                                      <input type="checkbox" className="mr-2"
+                                        checked={editTargetStudents.has(s.id)}
+                                        onChange={e => {
+                                          const next = new Set(editTargetStudents);
+                                          if (e.target.checked) next.add(s.id); else next.delete(s.id);
+                                          setEditTargetStudents(next);
+                                        }} />
+                                      {s.firstName} {s.lastName} <span className="text-gray-400 ml-2">{s.email}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex justify-end space-x-2 px-5 py-3 border-t border-gray-200">
+                              <button onClick={() => setShowTargetsModal(false)} className="px-4 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Cancel</button>
+                              <button onClick={saveTargets} disabled={editTargetSaving ||
+                                (editTargetMode === 'BATCH' && editTargetBatches.size === 0) ||
+                                (editTargetMode === 'STUDENT' && editTargetStudents.size === 0)}
+                                className="px-4 py-1.5 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                {editTargetSaving ? 'Saving…' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Description & Instructions */}
                       {assignmentDetail.description && (
