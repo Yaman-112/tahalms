@@ -106,6 +106,29 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
+// GET /api/assignments/banks?courseId=xxx
+// Registered BEFORE /:id so Express doesn't match "banks" as an id param.
+router.get('/banks', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const courseId = req.query.courseId as string | undefined;
+    const where: any = { questions: { some: {} } };
+    if (courseId) where.courseId = courseId;
+    const banks = await prisma.assignment.findMany({
+      where,
+      orderBy: { title: 'asc' },
+      select: {
+        id: true, title: true, type: true, format: true, points: true,
+        course: { select: { id: true, code: true, name: true } },
+        _count: { select: { questions: true } },
+      },
+    });
+    return success(res, banks);
+  } catch (err) {
+    console.error('List banks error:', err);
+    return error(res, 'Failed to list question banks', 500);
+  }
+});
+
 // GET /api/assignments/:id
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
@@ -411,31 +434,6 @@ router.delete('/:id/attachment', requireRole('ADMIN', 'TEACHER'), async (req: Au
   } catch (err) {
     console.error('Delete attachment error:', err);
     return error(res, 'Failed to delete attachment', 500);
-  }
-});
-
-// GET /api/assignments/banks?courseId=xxx
-// Lists candidate "banks" — i.e., existing assignments with at least one
-// question, in this course. Teacher uses this to pick a source for a new
-// targeted assignment.
-router.get('/banks', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
-  try {
-    const courseId = req.query.courseId as string | undefined;
-    const where: any = { questions: { some: {} } };
-    if (courseId) where.courseId = courseId;
-    const banks = await prisma.assignment.findMany({
-      where,
-      orderBy: { title: 'asc' },
-      select: {
-        id: true, title: true, type: true, format: true, points: true,
-        course: { select: { id: true, code: true, name: true } },
-        _count: { select: { questions: true } },
-      },
-    });
-    return success(res, banks);
-  } catch (err) {
-    console.error('List banks error:', err);
-    return error(res, 'Failed to list question banks', 500);
   }
 });
 
