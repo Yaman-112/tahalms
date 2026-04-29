@@ -48,7 +48,7 @@ router.get('/share-links', requireRole('ADMIN'), async (req: AuthRequest, res) =
         vNumber: s.vNumber,
         name: `${s.firstName} ${s.lastName}`.trim(),
         email: s.email,
-        url: `${origin}/?access_token=${token}`,
+        url: `${origin}/access/${token}`,
       };
     });
 

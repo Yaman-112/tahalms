@@ -69,6 +69,27 @@ app.use('/api/questions', questionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api', fileRoutes);
 
+// Magic share-link landing page. Drops the JWT into localStorage and
+// redirects to "/" so the existing SPA boots as that user. Works with any
+// frontend build (no client-side change required).
+app.get('/access/:token', (req, res) => {
+  const token = String(req.params.token || '');
+  // Light validation — only allow JWT-shaped strings.
+  if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(token)) {
+    return res.status(400).send('Invalid token');
+  }
+  res.set('Cache-Control', 'no-store');
+  res.send(`<!doctype html><meta charset="utf-8"><title>Loading…</title>
+<script>
+  try {
+    localStorage.removeItem('user');
+    localStorage.removeItem('refreshToken');
+    localStorage.setItem('accessToken', ${JSON.stringify(token)});
+  } catch (e) {}
+  location.replace('/');
+</script>`);
+});
+
 // Health check
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
