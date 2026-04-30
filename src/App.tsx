@@ -4872,6 +4872,72 @@ function CourseView({ courseId }: { courseId: string }) {
             </div>
           ) : activeSection === 'Grades' ? (
             (() => {
+              // PSW: render a fixed reference table (display-only, not linked
+              // to assignments / submissions). Used only for the static view
+              // of weights and assessment items per the program syllabus.
+              if (course.code === 'PSW') {
+                const PSW_TABLE: { module: string; weight: number; items: { name: string; pts: number }[] }[] = [
+                  { module: 'PSW Foundations',                                              weight: 7.86,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Safety and Mobility',                                          weight: 5.71,  items: [{ name: 'Theory', pts: 60 }, { name: 'Practical', pts: 10 }, { name: 'Assignment', pts: 30 }] },
+                  { module: 'Body Systems',                                                 weight: 5.71,  items: [{ name: 'Theory 1', pts: 50 }, { name: 'Theory 2', pts: 50 }] },
+                  { module: 'Assisting with Personal Hygiene',                              weight: 4.29,  items: [{ name: 'Theory', pts: 60 }, { name: 'Practical', pts: 40 }] },
+                  { module: 'Abuse and Neglect',                                            weight: 2.14,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Household Management, Nutrition and Hydration',                weight: 3.57,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment 1', pts: 20 }, { name: 'Assignment 2', pts: 20 }] },
+                  { module: 'Care Planning / Restorative Care / Documentation / Working in the Community', weight: 4.29, items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment 1', pts: 20 }, { name: 'Assignment 2', pts: 20 }] },
+                  { module: 'Assisting the Family, Growth and Development',                 weight: 3.57,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Assisting the Dying Person',                                   weight: 4.29,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Assisting with Medications',                                   weight: 2.86,  items: [{ name: 'Theory', pts: 60 }, { name: 'Practical', pts: 20 }, { name: 'Assignment 1', pts: 10 }, { name: 'Assignment 2', pts: 10 }] },
+                  { module: 'Cognitive / Mental Health Issues and Brain Injuries',          weight: 5.71,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment 1', pts: 20 }, { name: 'Assignment 2', pts: 20 }] },
+                  { module: 'Health Conditions',                                            weight: 5.71,  items: [{ name: 'Theory', pts: 80 }, { name: 'Assignment', pts: 20 }] },
+                  { module: 'Gentle Persuasive Approaches in Dementia Care',                weight: 1.43,  items: [{ name: 'Theory', pts: 100 }] },
+                  { module: 'Clinical Placement (Facility)',                                weight: 28.57, items: [{ name: 'Practical', pts: 100 }] },
+                  { module: 'Clinical Placement (Community)',                               weight: 14.29, items: [{ name: 'Practical', pts: 100 }] },
+                ];
+                const totalWeight = PSW_TABLE.reduce((s, m) => s + m.weight, 0);
+                const totalAssessments = PSW_TABLE.reduce((s, m) => s + m.items.length, 0);
+                return (
+                  <div className="max-w-5xl">
+                    <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">Grading Structure</h2>
+                    <p className="text-sm text-gray-500 mb-6">{PSW_TABLE.length} modules · {totalAssessments} assessments · Total weight {totalWeight.toFixed(2)}%</p>
+                    <table className="w-full border-collapse border border-[#E1E1E1] text-[14px] bg-white">
+                      <thead>
+                        <tr className="bg-[#2D3B45] text-white">
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-12">#</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-left">Module</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-24">Weight</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-20"># Items</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-left">Assignments Inside (pts)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[#2D3B45]">
+                        {PSW_TABLE.map((row, i) => (
+                          <tr key={row.module} className="hover:bg-gray-50 align-top">
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center font-bold">{i + 1}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2">{row.module}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center font-medium">{row.weight.toFixed(2)}%</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center">{row.items.length}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2">
+                              {row.items.map((it, idx) => (
+                                <span key={idx} className="inline-block mr-2">
+                                  {it.name} ({it.pts} pts){idx < row.items.length - 1 ? ',' : ''}
+                                </span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-[#F5F5F5] font-bold">
+                          <td className="border border-[#E1E1E1] px-3 py-2"></td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-right">TOTAL</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-center">{totalWeight.toFixed(2)}%</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-center">{totalAssessments}</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              }
+
               // Compute bifurcation data for each module
               const moduleData = (course.modules || []).map((mod: any) => {
                 const assignments = (course.assignments || []).filter((a: any) =>
