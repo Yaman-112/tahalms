@@ -860,7 +860,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
   );
 
   const adminNavItems = [
-    'Courses', 'Batches', 'People', 'Statistics', 'Permissions', 'Question Banks',
+    'Courses', 'Batches', 'People',
+    ...(((user as any)?.isAuditor) ? [] : ['Statistics']),
+    'Permissions', 'Question Banks',
     'Analytics Hub', 'Apps', 'Admin Analytics',
     'Outcomes', 'Rubrics', 'Grading'
   ];
