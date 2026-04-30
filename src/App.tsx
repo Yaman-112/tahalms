@@ -307,6 +307,7 @@ function CourseFileCard({ course, expanded, onToggle }: { course: { id: string; 
 }
 
 function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) => void }) {
+  const { user } = useAuth();
   const { data, loading } = useApi<any>('/dashboard');
 
   if (loading || !data) return <LoadingSpinner />;
@@ -5858,7 +5859,7 @@ function CourseView({ courseId }: { courseId: string }) {
                         )}
 
                         <h2 className="text-[18px] font-bold text-[#2D3B45] mb-4 border-b-2 border-[#008EE2] pb-2">
-                          Module Grades
+                          {isStudentViewer ? 'Module Grades' : 'Course Structure'}
                         </h2>
                         <table className="w-full border-collapse text-[16px] mb-10">
                           <thead>
@@ -5867,9 +5868,11 @@ function CourseView({ courseId }: { courseId: string }) {
                               <th className="border border-[#3d4d5a] px-3 py-2.5 text-left font-medium">Module</th>
                               <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-16">Weight</th>
                               <th className="border border-[#3d4d5a] px-3 py-2.5 text-left font-medium">Assessments</th>
-                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-20">Score</th>
-                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-16">%</th>
-                              <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-20">Weighted</th>
+                              {isStudentViewer && <>
+                                <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-20">Score</th>
+                                <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-16">%</th>
+                                <th className="border border-[#3d4d5a] px-2 py-2.5 text-center font-medium w-20">Weighted</th>
+                              </>}
                             </tr>
                           </thead>
                           <tbody className="text-[#2D3B45]">
@@ -5893,17 +5896,19 @@ function CourseView({ courseId }: { courseId: string }) {
                                       );
                                     })}
                                   </td>
-                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
-                                    {hasGrades ? `${m.moduleScore}/${m.moduleMax}` : '—'}
-                                  </td>
-                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
-                                    {hasGrades ? (
-                                      <span className={`${m.modulePct >= 70 ? 'text-green-600' : m.modulePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{m.modulePct.toFixed(0)}%</span>
-                                    ) : '—'}
-                                  </td>
-                                  <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008744]">
-                                    {hasGrades ? `${m.contribution.toFixed(2)}%` : '—'}
-                                  </td>
+                                  {isStudentViewer && <>
+                                    <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
+                                      {hasGrades ? `${m.moduleScore}/${m.moduleMax}` : '—'}
+                                    </td>
+                                    <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
+                                      {hasGrades ? (
+                                        <span className={`${m.modulePct >= 70 ? 'text-green-600' : m.modulePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{m.modulePct.toFixed(0)}%</span>
+                                      ) : '—'}
+                                    </td>
+                                    <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008744]">
+                                      {hasGrades ? `${m.contribution.toFixed(2)}%` : '—'}
+                                    </td>
+                                  </>}
                                 </tr>
                               );
                             })}
@@ -5913,14 +5918,18 @@ function CourseView({ courseId }: { courseId: string }) {
                               <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}>TOTAL</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{(course.code === 'IBA' ? 100 : totalWeight).toFixed(2)}%</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalAssignments} assessments</td>
-                              <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}></td>
-                              <td className="border border-[#3d4d5a] px-2 py-3 text-center text-[#4FC3F7]">{hasAnyGrade ? `${overallGrade.toFixed(2)}%` : '—'}</td>
+                              {isStudentViewer && <>
+                                <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}></td>
+                                <td className="border border-[#3d4d5a] px-2 py-3 text-center text-[#4FC3F7]">{hasAnyGrade ? `${overallGrade.toFixed(2)}%` : '—'}</td>
+                              </>}
                             </tr>
+                            {isStudentViewer && (
                             <tr className="bg-[#3d4d5a] text-white font-bold text-[16px]">
                               <td className="border border-[#3d4d5a] px-2 py-3" colSpan={5}>AVERAGE (across attempted modules)</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{attemptedModules.length} / {moduleData.length}</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center text-[#4FC3F7]">{hasAnyGrade ? `${averagePct.toFixed(2)}%` : '—'}</td>
                             </tr>
+                            )}
                           </tfoot>
                         </table>
                       </>
