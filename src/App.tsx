@@ -5433,7 +5433,9 @@ function CourseView({ courseId }: { courseId: string }) {
                 const practicalPts = practical.reduce((s: number, a: any) => s + a.points, 0);
                 const totalPts = theoryPts + practicalPts;
 
-                return { mod, assignments, theory, practical, theoryPts, practicalPts, totalPts, weight: mod.weight || 0 };
+                // For IBA, every module is a flat 4.17% (per syllabus table) regardless of DB value.
+                const weight = course.code === 'IBA' ? 4.17 : (mod.weight || 0);
+                return { mod, assignments, theory, practical, theoryPts, practicalPts, totalPts, weight };
               });
 
               const totalWeight = moduleData.reduce((s: number, m: any) => s + m.weight, 0);
