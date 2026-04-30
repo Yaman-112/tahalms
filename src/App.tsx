@@ -6974,8 +6974,10 @@ export default function App() {
           <SidebarItem icon={Book} label="Courses"
             active={isCoursesDrawerOpen || activeTab === 'Courses'}
             onClick={() => { setIsCoursesDrawerOpen(!isCoursesDrawerOpen); setIsAccountDrawerOpen(false); }} />
-          <SidebarItem icon={NotebookPen} label="Assignments" active={activeTab === 'Assignments'}
-            onClick={() => { setActiveTab('Assignments'); setSelectedCourseId(null); closeDrawers(); }} />
+          {!(user as any)?.isAuditor && (
+            <SidebarItem icon={NotebookPen} label="Assignments" active={activeTab === 'Assignments'}
+              onClick={() => { setActiveTab('Assignments'); setSelectedCourseId(null); closeDrawers(); }} />
+          )}
           <SidebarItem icon={Calendar} label="Calendar" active={activeTab === 'Calendar'}
             onClick={() => { setActiveTab('Calendar'); setSelectedCourseId(null); closeDrawers(); }} />
           <SidebarItem icon={Inbox} label="Inbox" active={activeTab === 'Inbox'}
