@@ -349,6 +349,61 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
             </div>
           )}
 
+          {/* Upcoming & Due Assignments */}
+          {(() => {
+            const now = Date.now();
+            const all: any[] = data.upcomingAssignments || [];
+            const upcoming = all.filter(a => a.dueDate && new Date(a.dueDate).getTime() >= now);
+            const due = all.filter(a => a.dueDate && new Date(a.dueDate).getTime() < now);
+            if (upcoming.length === 0 && due.length === 0) return null;
+            return (
+              <div className="border border-[#E1E1E1] rounded-lg p-5 mb-8 bg-white">
+                <h2 className="text-lg font-bold text-[#2D3B45] mb-3 flex items-center">
+                  <Clock size={18} className="mr-2 text-[#008EE2]" />
+                  Upcoming & Due Assignments
+                </h2>
+                {due.length > 0 && (
+                  <div className="mb-4">
+                    <div className="text-[13px] font-bold text-red-600 mb-2 uppercase tracking-wide">Overdue ({due.length})</div>
+                    <ul className="divide-y divide-gray-100">
+                      {due.map((a: any) => (
+                        <li key={a.id} className="py-2 flex items-center justify-between text-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-[#2D3B45] truncate">{a.title}</div>
+                            <div className="text-xs text-gray-500">
+                              {a.course && <span className="mr-2 text-[#008EE2]">{a.course.code}</span>}
+                              <span className="text-red-600 font-medium">Due {new Date(a.dueDate).toLocaleString()}</span>
+                              {a.points != null && <span className="ml-2 text-gray-400">· {a.points} pts</span>}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {upcoming.length > 0 && (
+                  <div>
+                    <div className="text-[13px] font-bold text-[#008EE2] mb-2 uppercase tracking-wide">Coming Up ({upcoming.length})</div>
+                    <ul className="divide-y divide-gray-100">
+                      {upcoming.map((a: any) => (
+                        <li key={a.id} className="py-2 flex items-center justify-between text-sm">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-[#2D3B45] truncate">{a.title}</div>
+                            <div className="text-xs text-gray-500">
+                              {a.course && <span className="mr-2 text-[#008EE2]">{a.course.code}</span>}
+                              <span>Due {new Date(a.dueDate).toLocaleString()}</span>
+                              {a.points != null && <span className="ml-2 text-gray-400">· {a.points} pts</span>}
+                            </div>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* My Courses / Enrollments */}
           <h2 className="text-lg font-bold text-[#2D3B45] mb-4 border-b border-gray-200 pb-2">
             My Courses ({enrollments.length})

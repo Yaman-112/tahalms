@@ -77,11 +77,21 @@ async function getStudentDashboard(req: AuthRequest, res: any) {
       },
     }),
 
-    // Upcoming assignments
+    // Upcoming + recently-overdue-unsubmitted assignments. The frontend
+    // splits these into two buckets (Coming Up vs Overdue) by comparing
+    // dueDate to now.
     prisma.assignment.findMany({
       where: {
         course: { enrollments: { some: { userId } } },
-        dueDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
+        published: true,
+        dueDate: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days for overdue
+          lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // next 14 days upcoming
+        },
+        // Hide assignments the student has already completed
+        NOT: {
+          submissions: { some: { studentId: userId, status: { in: ['SUBMITTED', 'GRADED'] } } },
+        },
       },
       orderBy: { dueDate: 'asc' },
       include: { course: { select: { id: true, name: true, code: true, color: true } } },
