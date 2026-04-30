@@ -364,6 +364,79 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                 const totalMods = modules.length;
                 const now = new Date();
 
+                // IBA-specific schedule (rolling 2-week rotation, two tracks).
+                // Used to override progress + current module since the per-
+                // student StudentProgress table is not synced for IBA.
+                const IBA_SCHED: { date: string; track: 'weekday' | 'weekend'; module: string }[] = [
+                  { date: '2025-08-04', track: 'weekday', module: 'Macro Economics' },{ date: '2025-08-18', track: 'weekday', module: 'Computer Applications in Business' },
+                  { date: '2025-09-01', track: 'weekday', module: 'Business Law' },{ date: '2025-09-15', track: 'weekday', module: 'Business Ethics' },
+                  { date: '2025-09-29', track: 'weekday', module: 'English Fundamentals' },{ date: '2025-10-13', track: 'weekday', module: 'Statistics for Business' },
+                  { date: '2025-10-27', track: 'weekday', module: 'Fundamentals of Accounting' },{ date: '2025-11-10', track: 'weekday', module: 'Strategic Management' },
+                  { date: '2025-11-24', track: 'weekday', module: 'International Law' },{ date: '2025-11-28', track: 'weekend', module: 'Introduction to HRM' },
+                  { date: '2025-12-08', track: 'weekday', module: 'E Commerce & Digital Marketing' },{ date: '2025-12-12', track: 'weekend', module: 'Management Fundamentals' },
+                  { date: '2025-12-29', track: 'weekday', module: 'Leadership' },{ date: '2026-01-02', track: 'weekend', module: 'Sales Management' },
+                  { date: '2026-01-12', track: 'weekday', module: 'Intercultural Communication' },{ date: '2026-01-16', track: 'weekend', module: 'Project Management' },
+                  { date: '2026-01-26', track: 'weekday', module: 'Cross Cultural Management' },{ date: '2026-01-30', track: 'weekend', module: 'Fundamentals of Marketing' },
+                  { date: '2026-02-09', track: 'weekday', module: 'International Business Strategy' },{ date: '2026-02-13', track: 'weekend', module: 'Operations Research' },
+                  { date: '2026-02-23', track: 'weekday', module: 'International Banking & Finance' },{ date: '2026-02-27', track: 'weekend', module: 'Organizational Behaviour' },
+                  { date: '2026-03-09', track: 'weekday', module: 'Entrepreneurship' },{ date: '2026-03-13', track: 'weekend', module: 'Strategic Management' },
+                  { date: '2026-03-23', track: 'weekday', module: 'Introduction to HRM' },{ date: '2026-03-27', track: 'weekend', module: 'Micro Economics' },
+                  { date: '2026-04-06', track: 'weekday', module: 'Management Fundamentals' },{ date: '2026-04-10', track: 'weekend', module: 'Macro Economics' },
+                  { date: '2026-04-20', track: 'weekday', module: 'Sales Management' },{ date: '2026-04-24', track: 'weekend', module: 'Statistics for Business' },
+                  { date: '2026-05-04', track: 'weekday', module: 'Project Management' },{ date: '2026-05-08', track: 'weekend', module: 'Fundamentals of Accounting' },
+                  { date: '2026-05-18', track: 'weekday', module: 'Fundamentals of Marketing' },{ date: '2026-05-22', track: 'weekend', module: 'Computer Applications in Business' },
+                  { date: '2026-06-01', track: 'weekday', module: 'Operations Research' },{ date: '2026-06-05', track: 'weekend', module: 'Business Law' },
+                  { date: '2026-06-15', track: 'weekday', module: 'Organizational Behaviour' },{ date: '2026-06-19', track: 'weekend', module: 'Business Ethics' },
+                  { date: '2026-06-29', track: 'weekday', module: 'Micro Economics' },{ date: '2026-07-03', track: 'weekend', module: 'English Fundamentals' },
+                  { date: '2026-07-13', track: 'weekday', module: 'Macro Economics' },{ date: '2026-07-17', track: 'weekend', module: 'International Law' },
+                  { date: '2026-07-27', track: 'weekday', module: 'Computer Applications in Business' },{ date: '2026-07-31', track: 'weekend', module: 'E Commerce & Digital Marketing' },
+                  { date: '2026-08-10', track: 'weekday', module: 'Business Law' },{ date: '2026-08-14', track: 'weekend', module: 'Leadership' },
+                  { date: '2026-08-24', track: 'weekday', module: 'Business Ethics' },{ date: '2026-08-28', track: 'weekend', module: 'Entrepreneurship' },
+                  { date: '2026-09-07', track: 'weekday', module: 'English Fundamentals' },{ date: '2026-09-11', track: 'weekend', module: 'Intercultural Communication' },
+                  { date: '2026-09-21', track: 'weekday', module: 'Statistics for Business' },{ date: '2026-09-25', track: 'weekend', module: 'Cross Cultural Management' },
+                  { date: '2026-10-05', track: 'weekday', module: 'Fundamentals of Accounting' },{ date: '2026-10-09', track: 'weekend', module: 'International Business Strategy' },
+                  { date: '2026-10-19', track: 'weekday', module: 'Strategic Management' },{ date: '2026-10-23', track: 'weekend', module: 'International Banking & Finance' },
+                ];
+                const ibaIsCourse = e.course?.code === 'IBA';
+                let ibaOverride: { completed: number; current: any } | null = null;
+                if (ibaIsCourse) {
+                  const startStr = e.startDate || (user as any)?.startDate;
+                  const startDate = startStr ? new Date(startStr) : null;
+                  // Track: weekday by default; weekend if batchCode starts with IBAW (not IBAWCOOP except IBAWCOOP also weekday per util — keep simple: only IBAW prefix is weekend)
+                  const bc = (e.batchCode || '').toUpperCase();
+                  const track: 'weekday' | 'weekend' = bc.startsWith('IBAW') ? 'weekend' : 'weekday';
+                  const norm = (s: string) => s.toLowerCase().replace(/anis(ational|ation|ed|ing|e)/g, 'aniz$1');
+                  const trackSched = IBA_SCHED.filter(s => s.track === track).map(s => ({ ...s, when: new Date(s.date + 'T00:00:00Z') })).sort((a, b) => a.when.getTime() - b.when.getTime());
+                  // For each session, end = next same-track session.start (or +7d for last)
+                  const inWindow = trackSched.filter(s => (!startDate || s.when.getTime() >= startDate.getTime()));
+                  // Find current session: latest one with start <= now AND nextStart > now
+                  let currentSession: any = null;
+                  for (let i = 0; i < inWindow.length; i++) {
+                    const s = inWindow[i];
+                    const next = inWindow[i + 1];
+                    const endTs = next ? next.when.getTime() : s.when.getTime() + 7 * 86400000;
+                    if (now.getTime() >= s.when.getTime() && now.getTime() < endTs) { currentSession = s; break; }
+                  }
+                  // Completed modules: distinct module names whose latest session ended strictly before now
+                  const lastEndByModule = new Map<string, number>();
+                  for (let i = 0; i < inWindow.length; i++) {
+                    const s = inWindow[i];
+                    const next = inWindow[i + 1];
+                    const endTs = next ? next.when.getTime() : s.when.getTime() + 7 * 86400000;
+                    const prev = lastEndByModule.get(s.module);
+                    lastEndByModule.set(s.module, prev !== undefined ? Math.max(prev, endTs) : endTs);
+                  }
+                  let completed = 0;
+                  for (const [name, endTs] of lastEndByModule) {
+                    if (endTs <= now.getTime() && (!currentSession || norm(currentSession.module) !== norm(name))) completed++;
+                  }
+                  // Map current module name to a Module record (best-effort; uses spelling-tolerant compare)
+                  const matchModule = currentSession
+                    ? modules.find((m: any) => norm(m.name) === norm(currentSession.module))
+                    : null;
+                  ibaOverride = { completed, current: matchModule || (currentSession ? { name: currentSession.module } : null) };
+                }
+
                 // Prefer authoritative studentProgress + currentModuleId from the
                 // backend. Fall back to date-window logic for courses that haven't
                 // had per-student progress synced yet.
@@ -374,7 +447,11 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
 
                 let completedCount: number;
                 let currentModule: any;
-                if (hasSyncedProgress) {
+                if (ibaOverride) {
+                  // For IBA, derive from rotation schedule + per-student startDate
+                  completedCount = ibaOverride.completed;
+                  currentModule = ibaOverride.current;
+                } else if (hasSyncedProgress) {
                   completedCount = sp.filter((p: any) => p.status === 'COMPLETED').length;
                   currentModule = e.currentModuleId
                     ? modules.find((m: any) => m.id === e.currentModuleId)
