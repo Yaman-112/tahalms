@@ -594,9 +594,15 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                             const status = moduleStatuses[idx];
                             const isCurrentMod = currentModule?.id === mod.id;
 
-                            const tipDate = hasSyncedProgress
-                              ? (startedByModuleId.get(mod.id) || null)
-                              : (mod.startDate || null);
+                            // For IBA students, prefer the rotation-derived window
+                            // start (per their startDate + track) over the
+                            // unreliable program-level Module.startDate.
+                            const ibaW = ibaIsCourse && ibaWindowByName ? ibaWindowByName.get(norm(mod.name)) : null;
+                            const tipDate = ibaW
+                              ? new Date(ibaW.start).toISOString()
+                              : (hasSyncedProgress
+                                ? (startedByModuleId.get(mod.id) || null)
+                                : (mod.startDate || null));
                             return (
                               <div key={mod.id} className="group relative flex-1" title={`${mod.name} — ${status}${tipDate ? ' (' + (status === 'COMPLETED' ? 'taught' : status === 'IN_PROGRESS' ? 'started' : 'starts') + ' ' + new Date(tipDate).toLocaleDateString() + ')' : ''}`}>
                                 <div className={`h-3 rounded-sm ${
