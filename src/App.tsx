@@ -1554,7 +1554,70 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     .filter((m: any) => m.startDate)
                                     .map((m: any) => new Date(m.startDate).getTime())
                                     .sort((a: number, b: number) => a - b);
+                                  // IBA-specific: rotation schedule overrides per-student windows.
+                                  const ibaModWindowByName = new Map<string, { start: Date; end: Date }>();
+                                  const norm = (s: string) => s.toLowerCase().replace(/anis(ational|ation|ed|ing|e)/g, 'aniz$1');
+                                  if (e.course?.code === 'IBA') {
+                                    const IBA_SCHED: { date: string; track: 'weekday' | 'weekend'; module: string }[] = [
+                                      { date: '2025-08-04', track: 'weekday', module: 'Macro Economics' },{ date: '2025-08-18', track: 'weekday', module: 'Computer Applications in Business' },
+                                      { date: '2025-09-01', track: 'weekday', module: 'Business Law' },{ date: '2025-09-15', track: 'weekday', module: 'Business Ethics' },
+                                      { date: '2025-09-29', track: 'weekday', module: 'English Fundamentals' },{ date: '2025-10-13', track: 'weekday', module: 'Statistics for Business' },
+                                      { date: '2025-10-27', track: 'weekday', module: 'Fundamentals of Accounting' },{ date: '2025-11-10', track: 'weekday', module: 'Strategic Management' },
+                                      { date: '2025-11-24', track: 'weekday', module: 'International Law' },{ date: '2025-11-28', track: 'weekend', module: 'Introduction to HRM' },
+                                      { date: '2025-12-08', track: 'weekday', module: 'E Commerce & Digital Marketing' },{ date: '2025-12-12', track: 'weekend', module: 'Management Fundamentals' },
+                                      { date: '2025-12-29', track: 'weekday', module: 'Leadership' },{ date: '2026-01-02', track: 'weekend', module: 'Sales Management' },
+                                      { date: '2026-01-12', track: 'weekday', module: 'Intercultural Communication' },{ date: '2026-01-16', track: 'weekend', module: 'Project Management' },
+                                      { date: '2026-01-26', track: 'weekday', module: 'Cross Cultural Management' },{ date: '2026-01-30', track: 'weekend', module: 'Fundamentals of Marketing' },
+                                      { date: '2026-02-09', track: 'weekday', module: 'International Business Strategy' },{ date: '2026-02-13', track: 'weekend', module: 'Operations Research' },
+                                      { date: '2026-02-23', track: 'weekday', module: 'International Banking & Finance' },{ date: '2026-02-27', track: 'weekend', module: 'Organizational Behaviour' },
+                                      { date: '2026-03-09', track: 'weekday', module: 'Entrepreneurship' },{ date: '2026-03-13', track: 'weekend', module: 'Strategic Management' },
+                                      { date: '2026-03-23', track: 'weekday', module: 'Introduction to HRM' },{ date: '2026-03-27', track: 'weekend', module: 'Micro Economics' },
+                                      { date: '2026-04-06', track: 'weekday', module: 'Management Fundamentals' },{ date: '2026-04-10', track: 'weekend', module: 'Macro Economics' },
+                                      { date: '2026-04-20', track: 'weekday', module: 'Sales Management' },{ date: '2026-04-24', track: 'weekend', module: 'Statistics for Business' },
+                                      { date: '2026-05-04', track: 'weekday', module: 'Project Management' },{ date: '2026-05-08', track: 'weekend', module: 'Fundamentals of Accounting' },
+                                      { date: '2026-05-18', track: 'weekday', module: 'Fundamentals of Marketing' },{ date: '2026-05-22', track: 'weekend', module: 'Computer Applications in Business' },
+                                      { date: '2026-06-01', track: 'weekday', module: 'Operations Research' },{ date: '2026-06-05', track: 'weekend', module: 'Business Law' },
+                                      { date: '2026-06-15', track: 'weekday', module: 'Organizational Behaviour' },{ date: '2026-06-19', track: 'weekend', module: 'Business Ethics' },
+                                      { date: '2026-06-29', track: 'weekday', module: 'Micro Economics' },{ date: '2026-07-03', track: 'weekend', module: 'English Fundamentals' },
+                                      { date: '2026-07-13', track: 'weekday', module: 'Macro Economics' },{ date: '2026-07-17', track: 'weekend', module: 'International Law' },
+                                      { date: '2026-07-27', track: 'weekday', module: 'Computer Applications in Business' },{ date: '2026-07-31', track: 'weekend', module: 'E Commerce & Digital Marketing' },
+                                      { date: '2026-08-10', track: 'weekday', module: 'Business Law' },{ date: '2026-08-14', track: 'weekend', module: 'Leadership' },
+                                      { date: '2026-08-24', track: 'weekday', module: 'Business Ethics' },{ date: '2026-08-28', track: 'weekend', module: 'Entrepreneurship' },
+                                      { date: '2026-09-07', track: 'weekday', module: 'English Fundamentals' },{ date: '2026-09-11', track: 'weekend', module: 'Intercultural Communication' },
+                                      { date: '2026-09-21', track: 'weekday', module: 'Statistics for Business' },{ date: '2026-09-25', track: 'weekend', module: 'Cross Cultural Management' },
+                                      { date: '2026-10-05', track: 'weekday', module: 'Fundamentals of Accounting' },{ date: '2026-10-09', track: 'weekend', module: 'International Business Strategy' },
+                                      { date: '2026-10-19', track: 'weekday', module: 'Strategic Management' },{ date: '2026-10-23', track: 'weekend', module: 'International Banking & Finance' },
+                                    ];
+                                    const bc = (e.batchCode || '').toUpperCase();
+                                    const track: 'weekday' | 'weekend' = bc.startsWith('IBAW') ? 'weekend' : 'weekday';
+                                    const studentStartTs = e.startDate ? new Date(e.startDate).getTime() : 0;
+                                    const trackSched = IBA_SCHED.filter(s => s.track === track)
+                                      .map(s => ({ ...s, when: new Date(s.date + 'T00:00:00Z') }))
+                                      .sort((a, b) => a.when.getTime() - b.when.getTime());
+                                    const inWindow = trackSched.filter(s => s.when.getTime() >= studentStartTs);
+                                    // For each session, end = next same-track session.start (or +7d for last).
+                                    // For a given module, use the FIRST occurrence's window after the
+                                    // student's startDate. Skip later cycles so the window stays tight.
+                                    for (let i = 0; i < inWindow.length; i++) {
+                                      const s = inWindow[i];
+                                      const next = inWindow[i + 1];
+                                      const end = next ? next.when : new Date(s.when.getTime() + 7 * 86400000);
+                                      const key = norm(s.module);
+                                      const existing = ibaModWindowByName.get(key);
+                                      if (!existing) {
+                                        ibaModWindowByName.set(key, { start: s.when, end });
+                                      } else if (next && norm(next.module) === key && next.when.getTime() === existing.end.getTime()) {
+                                        // Adjacent same-track same-module session extends the same instance
+                                        ibaModWindowByName.set(key, { start: existing.start, end });
+                                      }
+                                    }
+                                  }
                                   const modWindow = (m: any) => {
+                                    // IBA: use rotation-derived windows.
+                                    if (e.course?.code === 'IBA') {
+                                      const w = ibaModWindowByName.get(norm(m.name));
+                                      return w || null;
+                                    }
                                     // Prefer synced studentProgress dates when available (rotation-correct).
                                     if (hasSyncedProgress) {
                                       const p = spByModuleId.get(m.id);
