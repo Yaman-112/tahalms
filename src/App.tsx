@@ -5391,11 +5391,11 @@ function CourseView({ courseId }: { courseId: string }) {
               }
 
               // Compute bifurcation data for each module
-              // For IBA, restrict the per-module assessments to only the
-              // canonical three: "- Final", "- Participation", "- Participation (Assignment)".
-              // Anything else (Mid Term Exam, Exam 1, Class Home Work, etc.)
-              // is hidden from the gradebook.
-              const ibaAllowedSuffix = (s: string) => {
+              // Restrict per-module assessments to only the canonical three
+              // ("- Final", "- Participation", "- Participation (Assignment)")
+              // for every course that uses the dynamic gradebook. Hides
+              // Mid Term Exam, Exam 1, Class Home Work, etc.
+              const allowedSuffix = (s: string) => {
                 const t = s.trim();
                 return t === 'Final' || t === 'Participation' || t === 'Participation (Assignment)';
               };
@@ -5403,12 +5403,10 @@ function CourseView({ courseId }: { courseId: string }) {
                 let assignments = (course.assignments || []).filter((a: any) =>
                   a.title.startsWith(mod.name + ' - ') || a.title.startsWith(mod.name + ' -')
                 );
-                if (course.code === 'IBA') {
-                  assignments = assignments.filter((a: any) => {
-                    const sfx = (a.title.split(' - ').pop() || '');
-                    return ibaAllowedSuffix(sfx);
-                  });
-                }
+                assignments = assignments.filter((a: any) => {
+                  const sfx = (a.title.split(' - ').pop() || '');
+                  return allowedSuffix(sfx);
+                });
 
                 const theory = assignments.filter((a: any) =>
                   /Final|Quiz|Midterm|Exam|Test|Theory/i.test(a.title.split(' - ').pop() || '')
