@@ -398,16 +398,17 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                   { date: '2026-10-19', track: 'weekday', module: 'Strategic Management' },{ date: '2026-10-23', track: 'weekend', module: 'International Banking & Finance' },
                 ];
                 const ibaIsCourse = e.course?.code === 'IBA';
+                const norm = (s: string) => s.toLowerCase().replace(/anis(ational|ation|ed|ing|e)/g, 'aniz$1');
                 let ibaOverride: { completed: number; current: any } | null = null;
+                let ibaWindowByName: Map<string, { start: number; end: number }> | null = null;
+                let ibaCurrentName: string | null = null;
                 if (ibaIsCourse) {
                   const startStr = e.startDate || (user as any)?.startDate;
                   const startDate = startStr ? new Date(startStr) : null;
-                  // Track: weekday by default; weekend if batchCode starts with IBAW (not IBAWCOOP except IBAWCOOP also weekday per util — keep simple: only IBAW prefix is weekend)
+                  // Track: weekday by default; weekend if batchCode starts with IBAW
                   const bc = (e.batchCode || '').toUpperCase();
                   const track: 'weekday' | 'weekend' = bc.startsWith('IBAW') ? 'weekend' : 'weekday';
-                  const norm = (s: string) => s.toLowerCase().replace(/anis(ational|ation|ed|ing|e)/g, 'aniz$1');
                   const trackSched = IBA_SCHED.filter(s => s.track === track).map(s => ({ ...s, when: new Date(s.date + 'T00:00:00Z') })).sort((a, b) => a.when.getTime() - b.when.getTime());
-                  // For each session, end = next same-track session.start (or +7d for last)
                   const inWindow = trackSched.filter(s => (!startDate || s.when.getTime() >= startDate.getTime()));
                   // Find current session: latest one with start <= now AND nextStart > now
                   let currentSession: any = null;
@@ -417,20 +418,23 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     const endTs = next ? next.when.getTime() : s.when.getTime() + 7 * 86400000;
                     if (now.getTime() >= s.when.getTime() && now.getTime() < endTs) { currentSession = s; break; }
                   }
-                  // Completed modules: distinct module names whose latest session ended strictly before now
-                  const lastEndByModule = new Map<string, number>();
+                  ibaCurrentName = currentSession ? norm(currentSession.module) : null;
+                  // For each module, take the FIRST occurrence's window (after startDate).
+                  ibaWindowByName = new Map();
                   for (let i = 0; i < inWindow.length; i++) {
                     const s = inWindow[i];
                     const next = inWindow[i + 1];
                     const endTs = next ? next.when.getTime() : s.when.getTime() + 7 * 86400000;
-                    const prev = lastEndByModule.get(s.module);
-                    lastEndByModule.set(s.module, prev !== undefined ? Math.max(prev, endTs) : endTs);
+                    const key = norm(s.module);
+                    const existing = ibaWindowByName.get(key);
+                    if (!existing) ibaWindowByName.set(key, { start: s.when.getTime(), end: endTs });
+                    else if (next && norm(next.module) === key && next.when.getTime() === existing.end) ibaWindowByName.set(key, { start: existing.start, end: endTs });
                   }
+                  // Completed: modules whose first-window ended before now AND aren't the current one
                   let completed = 0;
-                  for (const [name, endTs] of lastEndByModule) {
-                    if (endTs <= now.getTime() && (!currentSession || norm(currentSession.module) !== norm(name))) completed++;
+                  for (const [name, w] of ibaWindowByName) {
+                    if (w.end <= now.getTime() && name !== ibaCurrentName) completed++;
                   }
-                  // Map current module name to a Module record (best-effort; uses spelling-tolerant compare)
                   const matchModule = currentSession
                     ? modules.find((m: any) => norm(m.name) === norm(currentSession.module))
                     : null;
@@ -530,6 +534,12 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       // in the rotation) go to the end so the timeline reads
                       // completed → current → upcoming left-to-right.
                       const orderedModules = [...modules].sort((a: any, b: any) => {
+                        // For IBA, sort by the rotation-window start
+                        if (ibaIsCourse && ibaWindowByName) {
+                          const at = ibaWindowByName.get(norm(a.name))?.start ?? Number.MAX_SAFE_INTEGER;
+                          const bt = ibaWindowByName.get(norm(b.name))?.start ?? Number.MAX_SAFE_INTEGER;
+                          return at - bt;
+                        }
                         const aSP = hasSyncedProgress ? startedByModuleId.get(a.id) : null;
                         const bSP = hasSyncedProgress ? startedByModuleId.get(b.id) : null;
                         if (hasSyncedProgress) {
@@ -543,6 +553,14 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         return at - bt;
                       });
                       const moduleStatuses: string[] = orderedModules.map((mod: any, idx: number) => {
+                        if (ibaIsCourse && ibaWindowByName) {
+                          const w = ibaWindowByName.get(norm(mod.name));
+                          if (!w) return 'NOT_STARTED';
+                          if (ibaCurrentName === norm(mod.name)) return 'IN_PROGRESS';
+                          if (now.getTime() >= w.end) return 'COMPLETED';
+                          if (now.getTime() >= w.start) return 'IN_PROGRESS';
+                          return 'NOT_STARTED';
+                        }
                         if (hasSyncedProgress) return statusByModuleId.get(mod.id) || 'NOT_STARTED';
                         if (!mod.startDate) return 'NOT_STARTED';
                         const mStart = new Date(mod.startDate);
