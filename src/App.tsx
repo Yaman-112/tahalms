@@ -5655,6 +5655,31 @@ function CourseView({ courseId }: { courseId: string }) {
                 }
                 return false;
               };
+              // True if module's first window has ENDED before today (so it's
+              // overdue, not the current in-progress one). Used to count
+              // "missing" modules as 0% in the average.
+              const ibaEndedByName = new Map<string, number>();
+              if (course.code === 'IBA') {
+                const startStr = (user as any)?.startDate;
+                if (startStr) {
+                  const start = new Date(startStr);
+                  const today = new Date();
+                  // Build first-occurrence end timestamps per module from schedule
+                  const sorted = [...IBA_SCHEDULE].map(s => ({ ...s, when: new Date(s.date + 'T00:00:00Z') })).sort((a, b) => a.when.getTime() - b.when.getTime());
+                  for (let i = 0; i < sorted.length; i++) {
+                    const s = sorted[i];
+                    if (s.when.getTime() < start.getTime() || s.when.getTime() > today.getTime()) continue;
+                    const next = sorted.slice(i + 1).find(x => x.track === s.track);
+                    const endTs = next ? next.when.getTime() : s.when.getTime() + 7 * 86400000;
+                    const key = norm(s.module);
+                    if (!ibaEndedByName.has(key)) ibaEndedByName.set(key, endTs);
+                  }
+                }
+              }
+              const ibaModuleEnded = (modName: string) => {
+                const e = ibaEndedByName.get(norm(modName));
+                return e !== undefined && e <= Date.now();
+              };
 
               const moduleData = (course.modules || []).map((mod: any) => {
                 const modPrefix = norm(mod.name + ' - ');
@@ -5774,8 +5799,18 @@ function CourseView({ courseId }: { courseId: string }) {
                       return { ...m, assignmentGrades, moduleScore, moduleMax, modulePct, contribution, inWindow };
                     });
 
-                    // Average % across attempted modules (those with at least one graded score)
-                    const attemptedModules = moduleGrades.filter((m: any) => m.assignmentGrades.some((a: any) => a.score !== null));
+                    // Average % across attempted modules. For IBA we count any
+                    // module whose window has fully ended (even if the student
+                    // has no graded submissions — counts as 0%); the current
+                    // in-progress module is excluded. For non-IBA we keep the
+                    // simpler "any score present" rule.
+                    const attemptedModules = moduleGrades.filter((m: any) => {
+                      if (course.code === 'IBA') {
+                        return ibaModuleEnded(m.mod.name) ||
+                          m.assignmentGrades.some((a: any) => a.score !== null);
+                      }
+                      return m.assignmentGrades.some((a: any) => a.score !== null);
+                    });
                     const averagePct = attemptedModules.length > 0
                       ? attemptedModules.reduce((s: number, m: any) => s + m.modulePct, 0) / attemptedModules.length
                       : 0;
