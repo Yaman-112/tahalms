@@ -5399,8 +5399,8 @@ function CourseView({ courseId }: { courseId: string }) {
                 const t = s.trim();
                 return t === 'Final' || t === 'Participation';
               };
-              // Specific assignment titles to always exclude.
-              const excludeTitles = new Set<string>(['Strategic Management - Final']);
+              // Specific assignment titles to always exclude. (Empty for now.)
+              const excludeTitles = new Set<string>();
               // Normalize British/American spelling variants (e.g.
               // "Organizational" vs "Organisational") so the assignment
               // matcher doesn't drop modules whose assignments use the
