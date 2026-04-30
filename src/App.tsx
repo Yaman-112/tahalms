@@ -912,7 +912,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                         <th className="py-4 px-4">Term</th>
                         <th className="py-4 px-4">Teacher</th>
                         <th className="py-4 px-4">Sub-Account</th>
-                        <th className="py-4 px-4">Students</th>
+                        {!(user as any)?.isAuditor && <th className="py-4 px-4">Students</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -941,7 +941,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                             ))}
                           </td>
                           <td className="py-4 px-4"><a href="#" onClick={e => { e.preventDefault(); setAdminActiveSection('Sub-Accounts'); }} className="text-[#008EE2] hover:underline">{course.subAccount}</a></td>
-                          <td className="py-4 px-4 text-gray-600">{course.studentCount}</td>
+                          {!(user as any)?.isAuditor && <td className="py-4 px-4 text-gray-600">{course.studentCount}</td>}
                         </tr>
                       ))}
                     </tbody>
@@ -1892,11 +1892,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
 
                     return (
                       <>
-                        <div className="flex items-center space-x-4 mb-4 text-sm text-gray-500">
-                          <span>{filtered.length} batches</span>
-                          <span>•</span>
-                          <span>{totalStudents} total students enrolled</span>
-                        </div>
+                        {!(user as any)?.isAuditor && (
+                          <div className="flex items-center space-x-4 mb-4 text-sm text-gray-500">
+                            <span>{filtered.length} batches</span>
+                            <span>•</span>
+                            <span>{totalStudents} total students enrolled</span>
+                          </div>
+                        )}
                         <div className="border-t border-gray-200">
                           <table className="w-full text-left text-[16px]">
                             <thead>
@@ -1906,7 +1908,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 <th className="py-3 px-4">Status</th>
                                 <th className="py-3 px-4">Course Name</th>
                                 <th className="py-3 px-4">Instructor</th>
-                                <th className="py-3 px-4 text-center">Students</th>
+                                {!(user as any)?.isAuditor && <th className="py-3 px-4 text-center">Students</th>}
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -1942,11 +1944,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                       <span className="font-medium text-[#2D3B45]">{b.teacher.firstName} {b.teacher.lastName !== b.teacher.firstName ? b.teacher.lastName : ''}</span>
                                     </div>
                                   </td>
-                                  <td className="py-3 px-4 text-center">
-                                    <span className={`px-2.5 py-1 text-[16px] font-bold rounded-full ${b.studentCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
-                                      {b.studentCount}
-                                    </span>
-                                  </td>
+                                  {!(user as any)?.isAuditor && (
+                                    <td className="py-3 px-4 text-center">
+                                      <span className={`px-2.5 py-1 text-[16px] font-bold rounded-full ${b.studentCount > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                                        {b.studentCount}
+                                      </span>
+                                    </td>
+                                  )}
                                 </tr>
                                 );
                               })}
@@ -4872,6 +4876,283 @@ function CourseView({ courseId }: { courseId: string }) {
             </div>
           ) : activeSection === 'Grades' ? (
             (() => {
+              // CSW: static syllabus reference table (display-only).
+              if (course.code === 'CSW') {
+                const CSW_TABLE: { module: string; weight: number; items: { name: string; pts: number }[] }[] = [
+                  { module: 'Essential Skills',                                weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Microsoft Windows',                               weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Inclusive Communication Skills',                  weight: 7.41, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Introduction to Community Service Work',          weight: 5.56, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Employment Achievement Strategies',               weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Basic Business Communications',                   weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Harm Reduction and Crisis Intervention',          weight: 5.56, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Introduction to Sociology',                       weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Mental Health & Addictions',                      weight: 9.26, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Populations at Risk',                             weight: 7.41, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Support Resources & Community Capacity Building', weight: 5.56, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Law for Support Workers',                         weight: 5.56, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Self Care and Team Building',                     weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Basic Counselling Techniques',                    weight: 5.56, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Solution-Focused Intervention Techniques',        weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Family Development, Functions, and Social Issues',weight: 7.41, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Introduction to Psychology',                      weight: 5.56, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                  { module: 'Professional Documentation & Case Management',    weight: 1.85, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
+                  { module: 'Behaviour Modification',                          weight: 7.41, items: [{ name: 'Final', pts: 50 }, { name: 'Participation', pts: 10 }, { name: 'Assignment', pts: 40 }] },
+                ];
+                const totalWeight = CSW_TABLE.reduce((s, m) => s + m.weight, 0);
+                const totalAssessments = CSW_TABLE.reduce((s, m) => s + m.items.length, 0);
+                return (
+                  <div className="max-w-5xl">
+                    <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">Grading Structure</h2>
+                    <p className="text-sm text-gray-500 mb-6">{CSW_TABLE.length} modules · {totalAssessments} assessments · Total weight {totalWeight.toFixed(2)}%. One group per module. Copy the weight from the template's Module % column.</p>
+                    <table className="w-full border-collapse border border-[#E1E1E1] text-[14px] bg-white">
+                      <thead>
+                        <tr className="bg-[#2D3B45] text-white">
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-left">Assignment Group (Module)</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-24">Weight</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-20"># Items</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-left">Assignments Inside (pts)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[#2D3B45]">
+                        {CSW_TABLE.map((row) => (
+                          <tr key={row.module} className="hover:bg-gray-50 align-top">
+                            <td className="border border-[#E1E1E1] px-3 py-2">{row.module}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center font-medium">{row.weight.toFixed(2)}%</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center">{row.items.length}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2">
+                              {row.items.map((it, idx) => (
+                                <span key={idx} className="inline-block mr-2">
+                                  {it.name} ({it.pts} pts){idx < row.items.length - 1 ? ',' : ''}
+                                </span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-[#F5F5F5] font-bold">
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-right">TOTAL</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-center">{totalWeight.toFixed(2)}%</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-center">{totalAssessments}</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <p className="text-[12px] text-gray-500 italic mt-3">Weight: When you create this Assignment Group, set its weight to this number.</p>
+                  </div>
+                );
+              }
+
+              // AC: static syllabus reference table (display-only).
+              if (course.code === 'AC') {
+                const AC_TABLE: { module: string; weight: number; hours: number; items: { name: string; pts: number; pct: number }[] }[] = [
+                  { module: 'Microsoft Windows',                          weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
+                  { module: 'Microsoft Word 2',                           weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
+                  { module: 'Accounting Fundamentals and Book Keeping',   weight: 23.53, hours: 240, items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 30, pct: 30 }, { name: 'Quiz', pts: 10, pct: 10 }] },
+                  { module: 'Computerized Accounting with Quickbooks',    weight: 11.76, hours: 120, items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 30, pct: 30 }, { name: 'Quiz', pts: 10, pct: 10 }] },
+                  { module: 'Computerized Accounting with Sage50/Sage300',weight: 21.57, hours: 220, items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 30, pct: 30 }, { name: 'Quiz', pts: 10, pct: 10 }] },
+                  { module: 'Payroll Fundamentals 1',                     weight: 4.90,  hours: 50,  items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 40, pct: 40 }] },
+                  { module: 'Payroll Fundamental 2',                      weight: 4.90,  hours: 50,  items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 40, pct: 40 }] },
+                  { module: 'Canadian Income Tax',                        weight: 7.84,  hours: 80,  items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 30, pct: 30 }, { name: 'Quiz', pts: 10, pct: 10 }] },
+                  { module: 'Job Search',                                 weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
+                  { module: 'Microsoft Excel 1 and Excel 2',              weight: 5.88,  hours: 60,  items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 40, pct: 40 }] },
+                  { module: 'Microsoft Powerpoint',                       weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
+                  { module: 'Microsoft Outlook',                          weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
+                  { module: 'Office Procedures',                          weight: 9.80,  hours: 100, items: [{ name: 'Final', pts: 50, pct: 50 }, { name: 'Participation', pts: 10, pct: 10 }, { name: 'Assignment', pts: 40, pct: 40 }] },
+                ];
+                const totalWeight = AC_TABLE.reduce((s, m) => s + m.weight, 0);
+                const totalAssessments = AC_TABLE.reduce((s, m) => s + m.items.length, 0);
+                return (
+                  <div className="max-w-5xl">
+                    <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">Grading Structure</h2>
+                    <p className="text-sm text-gray-500 mb-6">{AC_TABLE.length} modules · {totalAssessments} assessments · Total weight {totalWeight.toFixed(2)}%</p>
+                    <table className="w-full border-collapse border border-[#E1E1E1] text-[14px] bg-white">
+                      <thead>
+                        <tr className="bg-[#2D3B45] text-white">
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-left">Assignment Group (Module)</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-24">Weight</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-center w-20"># Items</th>
+                          <th className="border border-[#E1E1E1] px-3 py-2 text-left">Assignments Inside (pts)</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-[#2D3B45]">
+                        {AC_TABLE.map((row) => (
+                          <tr key={row.module} className="hover:bg-gray-50 align-top">
+                            <td className="border border-[#E1E1E1] px-3 py-2">{row.module}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center font-medium">{row.weight.toFixed(2)}%</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2 text-center">{row.items.length}</td>
+                            <td className="border border-[#E1E1E1] px-3 py-2">
+                              {row.items.map((it, idx) => (
+                                <span key={idx} className="inline-block mr-2">
+                                  {it.name} ({it.pts} pts){idx < row.items.length - 1 ? ',' : ''}
+                                </span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-[#F5F5F5] font-bold">
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-right">TOTAL</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-center">{totalWeight.toFixed(2)}%</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2 text-center">{totalAssessments}</td>
+                          <td className="border border-[#E1E1E1] px-3 py-2"></td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    {/* Per-module detail tables */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-12 mb-6">Module Details</h2>
+                    {AC_TABLE.map((row, i) => {
+                      const total = row.items.reduce((s, it) => s + it.pts, 0);
+                      return (
+                        <div key={row.module} className="mb-8 border border-[#E1E1E1] rounded bg-white">
+                          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                            <div className="text-[16px] font-bold text-[#2D3B45]">Module {i + 1}: {row.module}</div>
+                            <div className="text-[12px] text-gray-600 mt-1">
+                              Group Weight: {row.weight.toFixed(2)}%  |  Hours: {row.hours}  |  Points add up to: 100
+                            </div>
+                          </div>
+                          <table className="w-full text-[13px]">
+                            <thead className="bg-gray-50 text-gray-600">
+                              <tr>
+                                <th className="text-left px-4 py-2 font-medium">Assignment Name in Canvas</th>
+                                <th className="text-center px-4 py-2 font-medium w-20">Points</th>
+                                <th className="text-center px-4 py-2 font-medium w-16">Qty</th>
+                                <th className="text-center px-4 py-2 font-medium w-24">Template %</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {row.items.map((it, idx) => (
+                                <tr key={idx}>
+                                  <td className="px-4 py-2 text-[#2D3B45]">{row.module} - {it.name}</td>
+                                  <td className="px-4 py-2 text-center font-medium">{it.pts} pts</td>
+                                  <td className="px-4 py-2 text-center">1</td>
+                                  <td className="px-4 py-2 text-center text-gray-600">{it.pct}%</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-[#F5F5F5] font-bold">
+                                <td className="px-4 py-2">Total</td>
+                                <td className="px-4 py-2 text-center">{total} pts</td>
+                                <td className="px-4 py-2"></td>
+                                <td className="px-4 py-2 text-center">100%</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+
+                    {/* Worked example */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-12 mb-3">Example: How Grading Works</h2>
+                    <div className="border border-[#E1E1E1] rounded bg-white mb-6">
+                      <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                        <div className="text-[15px] font-bold text-[#2D3B45]">Accounting Fundamentals and Book Keeping (23.53% of course)</div>
+                        <div className="text-[12px] text-gray-600 mt-1">This module has 4 items: Final (50) + Participation (10) + Assignment (30) + Quiz (10)</div>
+                      </div>
+                      <table className="w-full text-[13px]">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium">Assessment</th><th className="text-center px-4 py-2 font-medium">Max Pts</th><th className="text-center px-4 py-2 font-medium">Score</th><th className="text-center px-4 py-2 font-medium">%</th><th className="text-left px-4 py-2 font-medium"></th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          <tr><td className="px-4 py-2">Acct Fundamentals - Final</td><td className="text-center px-4 py-2">50</td><td className="text-center px-4 py-2">40 / 50</td><td className="text-center px-4 py-2">80%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Acct Fundamentals - Participation</td><td className="text-center px-4 py-2">10</td><td className="text-center px-4 py-2">9 / 10</td><td className="text-center px-4 py-2">90%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Acct Fundamentals - Assignment</td><td className="text-center px-4 py-2">30</td><td className="text-center px-4 py-2">24 / 30</td><td className="text-center px-4 py-2">80%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Acct Fundamentals - Quiz</td><td className="text-center px-4 py-2">10</td><td className="text-center px-4 py-2">8 / 10</td><td className="text-center px-4 py-2">80%</td><td className="px-4 py-2"></td></tr>
+                          <tr className="bg-[#F5F5F5] font-bold"><td className="px-4 py-2">Module Total</td><td className="text-center px-4 py-2">100</td><td className="text-center px-4 py-2">81 / 100</td><td className="text-center px-4 py-2">81%</td><td className="px-4 py-2 text-gray-600">81% × 23.53% = 19.06%</td></tr>
+                        </tbody>
+                      </table>
+                      <div className="px-4 py-2 text-[12px] text-gray-600 border-t border-gray-100">Teacher enters: 40, 9, 24, 8. The system adds them (81/100), then applies the 23.53% module weight.</div>
+                    </div>
+                    <p className="text-[13px] text-gray-700 mb-8">The student's overall course grade = sum of contributions from all 13 modules.</p>
+
+                    {/* Quick Reference: Module Patterns */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-8 mb-3">Quick Reference: Module Patterns</h2>
+
+                    <div className="mb-6">
+                      <div className="text-[14px] font-bold text-[#2D3B45] mb-2">Pattern 1: Final 90 + Participation 10 (5 modules)</div>
+                      <table className="w-full text-[13px] border border-[#E1E1E1] bg-white">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium">Module</th><th className="text-center px-4 py-2 font-medium w-24">Weight</th><th className="text-left px-4 py-2 font-medium">Items</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {['Microsoft Windows','Microsoft Word 2','Job Search','Microsoft Powerpoint','Microsoft Outlook'].map(m => (
+                            <tr key={m}><td className="px-4 py-2">{m}</td><td className="px-4 py-2 text-center">1.96%</td><td className="px-4 py-2 text-gray-700">Final (90) + Participation (10)</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mb-6">
+                      <div className="text-[14px] font-bold text-[#2D3B45] mb-2">Pattern 2: Final 50 + Participation 10 + Assignment 40 (4 modules)</div>
+                      <table className="w-full text-[13px] border border-[#E1E1E1] bg-white">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium">Module</th><th className="text-center px-4 py-2 font-medium w-24">Weight</th><th className="text-left px-4 py-2 font-medium">Items</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {[
+                            ['Payroll Fundamentals 1','4.90%'],
+                            ['Payroll Fundamental 2','4.90%'],
+                            ['Microsoft Excel 1 and Excel 2','5.88%'],
+                            ['Office Procedures','9.80%'],
+                          ].map(([m,w]) => (
+                            <tr key={m}><td className="px-4 py-2">{m}</td><td className="px-4 py-2 text-center">{w}</td><td className="px-4 py-2 text-gray-700">Final (50) + Participation (10) + Assignment (40)</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    <div className="mb-6">
+                      <div className="text-[14px] font-bold text-[#2D3B45] mb-2">Pattern 3: Final 50 + Participation 10 + Assignment 30 + Quiz 10 (4 modules)</div>
+                      <table className="w-full text-[13px] border border-[#E1E1E1] bg-white">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium">Module</th><th className="text-center px-4 py-2 font-medium w-24">Weight</th><th className="text-left px-4 py-2 font-medium">Items</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {[
+                            ['Accounting Fundamentals and Book Keeping','23.53%'],
+                            ['Computerized Accounting with Quickbooks','11.76%'],
+                            ['Computerized Accounting with Sage50/Sage300','21.57%'],
+                            ['Canadian Income Tax','7.84%'],
+                          ].map(([m,w]) => (
+                            <tr key={m}><td className="px-4 py-2">{m}</td><td className="px-4 py-2 text-center">{w}</td><td className="px-4 py-2 text-gray-700">Final (50) + Particip (10) + Assign (30) + Quiz (10)</td></tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Final verification checklist */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-8 mb-3">Final Verification Checklist</h2>
+                    <p className="text-sm text-gray-500 mb-4">After setup, verify all of the following against the original course template:</p>
+                    <div className="border border-[#E1E1E1] rounded bg-white mb-6">
+                      <table className="w-full text-[13px]">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium w-1/3">Check</th><th className="text-left px-4 py-2 font-medium">How to Verify</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {[
+                            ['Weighted grades enabled', 'Verify in your environment that weighted assignment groups are active'],
+                            ['13 Assignment Groups exist', 'One per module, named exactly as shown'],
+                            ['Weights match template', 'Each group weight = Module % from the template spreadsheet'],
+                            ['Weights add to 100%', 'All module weights combined = 100%'],
+                            ['Points add to 100 per group', "Every module's assignments total exactly 100 pts"],
+                            ['Pattern 1 modules correct', '5 modules with Final (90) + Participation (10)'],
+                            ['Pattern 2 modules correct', '4 modules with Final (50) + Participation (10) + Assignment (40)'],
+                            ['Pattern 3 modules correct', '4 modules with Final (50) + Participation (10) + Assignment (30) + Quiz (10)'],
+                            ['No extra assignments', "No items exist that aren't in the template"],
+                            ['No orphaned assignments', 'Every assignment is inside its correct module group'],
+                            ['Cross-reference with template', 'Open the original template side-by-side and verify every row'],
+                            ['Test with sample grades', 'Enter sample scores and verify the final grade calculation'],
+                          ].map(([check, how], idx) => (
+                            <tr key={idx}>
+                              <td className="px-4 py-2 text-[#2D3B45] font-medium">{check}</td>
+                              <td className="px-4 py-2 text-gray-700">{how}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              }
+
               // PSW: render a fixed reference table (display-only, not linked
               // to assignments / submissions). Used only for the static view
               // of weights and assessment items per the program syllabus.
