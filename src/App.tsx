@@ -5774,19 +5774,31 @@ function CourseView({ courseId }: { courseId: string }) {
                       return { ...m, assignmentGrades, moduleScore, moduleMax, modulePct, contribution, inWindow };
                     });
 
+                    // Average % across attempted modules (those with at least one graded score)
+                    const attemptedModules = moduleGrades.filter((m: any) => m.assignmentGrades.some((a: any) => a.score !== null));
+                    const averagePct = attemptedModules.length > 0
+                      ? attemptedModules.reduce((s: number, m: any) => s + m.modulePct, 0) / attemptedModules.length
+                      : 0;
+
                     return (
                       <>
                         {/* Overall Grade Card */}
                         {hasAnyGrade && (
                           <div className="bg-gradient-to-r from-[#2D3B45] to-[#4A5568] rounded-lg p-6 mb-8 text-white">
-                            <div className="flex items-center justify-between">
+                            <div className="grid grid-cols-3 gap-6 items-center">
                               <div>
-                                <div className="text-[16px] uppercase tracking-wider opacity-70">Overall Course Grade</div>
+                                <div className="text-[14px] uppercase tracking-wider opacity-70">Overall Course Grade</div>
                                 <div className="text-5xl font-bold mt-1">{overallGrade.toFixed(1)}%</div>
+                                <div className="text-[11px] opacity-60 mt-1">Weighted, out of full course</div>
+                              </div>
+                              <div>
+                                <div className="text-[14px] uppercase tracking-wider opacity-70">Average %</div>
+                                <div className="text-5xl font-bold mt-1 text-[#4FC3F7]">{averagePct.toFixed(1)}%</div>
+                                <div className="text-[11px] opacity-60 mt-1">Mean across attempted modules</div>
                               </div>
                               <div className="text-right">
-                                <div className="text-[16px] uppercase tracking-wider opacity-70">Graded Modules</div>
-                                <div className="text-2xl font-bold mt-1">{moduleGrades.filter(m => m.assignmentGrades.some((a: any) => a.score !== null)).length} / {moduleData.length}</div>
+                                <div className="text-[14px] uppercase tracking-wider opacity-70">Graded Modules</div>
+                                <div className="text-2xl font-bold mt-1">{attemptedModules.length} / {moduleData.length}</div>
                               </div>
                             </div>
                           </div>
@@ -5850,6 +5862,11 @@ function CourseView({ courseId }: { courseId: string }) {
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalAssignments} assessments</td>
                               <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}></td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center text-[#4FC3F7]">{hasAnyGrade ? `${overallGrade.toFixed(2)}%` : '—'}</td>
+                            </tr>
+                            <tr className="bg-[#3d4d5a] text-white font-bold text-[16px]">
+                              <td className="border border-[#3d4d5a] px-2 py-3" colSpan={5}>AVERAGE (across attempted modules)</td>
+                              <td className="border border-[#3d4d5a] px-2 py-3 text-center">{attemptedModules.length} / {moduleData.length}</td>
+                              <td className="border border-[#3d4d5a] px-2 py-3 text-center text-[#4FC3F7]">{hasAnyGrade ? `${averagePct.toFixed(2)}%` : '—'}</td>
                             </tr>
                           </tfoot>
                         </table>
