@@ -5399,11 +5399,14 @@ function CourseView({ courseId }: { courseId: string }) {
                 const t = s.trim();
                 return t === 'Final' || t === 'Participation' || t === 'Participation (Assignment)';
               };
+              // Specific assignment titles to always exclude.
+              const excludeTitles = new Set<string>(['Strategic Management - Final']);
               const moduleData = (course.modules || []).map((mod: any) => {
                 let assignments = (course.assignments || []).filter((a: any) =>
                   a.title.startsWith(mod.name + ' - ') || a.title.startsWith(mod.name + ' -')
                 );
                 assignments = assignments.filter((a: any) => {
+                  if (excludeTitles.has(a.title)) return false;
                   const sfx = (a.title.split(' - ').pop() || '');
                   return allowedSuffix(sfx);
                 });
