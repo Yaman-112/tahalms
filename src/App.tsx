@@ -5410,6 +5410,9 @@ function CourseView({ courseId }: { courseId: string }) {
                   const sfx = (a.title.split(' - ').pop() || '');
                   return allowedSuffix(sfx);
                 });
+                // Normalize: any assignment with points = 100 should display
+                // and compute as out of 90 in the gradebook.
+                assignments = assignments.map((a: any) => a.points === 100 ? { ...a, points: 90 } : a);
 
                 const theory = assignments.filter((a: any) =>
                   /Final|Quiz|Midterm|Exam|Test|Theory/i.test(a.title.split(' - ').pop() || '')
