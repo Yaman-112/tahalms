@@ -5401,10 +5401,18 @@ function CourseView({ courseId }: { courseId: string }) {
               };
               // Specific assignment titles to always exclude.
               const excludeTitles = new Set<string>(['Strategic Management - Final']);
+              // Normalize British/American spelling variants (e.g.
+              // "Organizational" vs "Organisational") so the assignment
+              // matcher doesn't drop modules whose assignments use the
+              // opposite spelling.
+              const norm = (s: string) => s.toLowerCase()
+                .replace(/anis(ational|ation|ed|ing|e)/g, 'aniz$1');
               const moduleData = (course.modules || []).map((mod: any) => {
-                let assignments = (course.assignments || []).filter((a: any) =>
-                  a.title.startsWith(mod.name + ' - ') || a.title.startsWith(mod.name + ' -')
-                );
+                const modPrefix = norm(mod.name + ' - ');
+                let assignments = (course.assignments || []).filter((a: any) => {
+                  const t = norm(a.title);
+                  return t.startsWith(modPrefix) || t.startsWith(norm(mod.name + ' -'));
+                });
                 assignments = assignments.filter((a: any) => {
                   if (excludeTitles.has(a.title)) return false;
                   const sfx = (a.title.split(' - ').pop() || '');
