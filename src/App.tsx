@@ -4876,22 +4876,70 @@ function CourseView({ courseId }: { courseId: string }) {
               // to assignments / submissions). Used only for the static view
               // of weights and assessment items per the program syllabus.
               if (course.code === 'PSW') {
-                const PSW_TABLE: { module: string; weight: number; items: { name: string; pts: number }[] }[] = [
-                  { module: 'PSW Foundations',                                              weight: 7.86,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
-                  { module: 'Safety and Mobility',                                          weight: 5.71,  items: [{ name: 'Theory', pts: 60 }, { name: 'Practical', pts: 10 }, { name: 'Assignment', pts: 30 }] },
-                  { module: 'Body Systems',                                                 weight: 5.71,  items: [{ name: 'Theory 1', pts: 50 }, { name: 'Theory 2', pts: 50 }] },
-                  { module: 'Assisting with Personal Hygiene',                              weight: 4.29,  items: [{ name: 'Theory', pts: 60 }, { name: 'Practical', pts: 40 }] },
-                  { module: 'Abuse and Neglect',                                            weight: 2.14,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
-                  { module: 'Household Management, Nutrition and Hydration',                weight: 3.57,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment 1', pts: 20 }, { name: 'Assignment 2', pts: 20 }] },
-                  { module: 'Care Planning / Restorative Care / Documentation / Working in the Community', weight: 4.29, items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment 1', pts: 20 }, { name: 'Assignment 2', pts: 20 }] },
-                  { module: 'Assisting the Family, Growth and Development',                 weight: 3.57,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
-                  { module: 'Assisting the Dying Person',                                   weight: 4.29,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment', pts: 40 }] },
-                  { module: 'Assisting with Medications',                                   weight: 2.86,  items: [{ name: 'Theory', pts: 60 }, { name: 'Practical', pts: 20 }, { name: 'Assignment 1', pts: 10 }, { name: 'Assignment 2', pts: 10 }] },
-                  { module: 'Cognitive / Mental Health Issues and Brain Injuries',          weight: 5.71,  items: [{ name: 'Theory', pts: 60 }, { name: 'Assignment 1', pts: 20 }, { name: 'Assignment 2', pts: 20 }] },
-                  { module: 'Health Conditions',                                            weight: 5.71,  items: [{ name: 'Theory', pts: 80 }, { name: 'Assignment', pts: 20 }] },
-                  { module: 'Gentle Persuasive Approaches in Dementia Care',                weight: 1.43,  items: [{ name: 'Theory', pts: 100 }] },
-                  { module: 'Clinical Placement (Facility)',                                weight: 28.57, items: [{ name: 'Practical', pts: 100 }] },
-                  { module: 'Clinical Placement (Community)',                               weight: 14.29, items: [{ name: 'Practical', pts: 100 }] },
+                const PSW_TABLE: { module: string; weight: number; hours: number; items: { name: string; pts: number; qty: number; note: string }[] }[] = [
+                  { module: 'PSW Foundations', weight: 7.86, hours: 55, items: [
+                    { name: 'PSW Foundations - Theory', pts: 60, qty: 3, note: '60% of module' },
+                    { name: 'PSW Foundations - Assignment', pts: 40, qty: 1, note: '40% of module' },
+                  ]},
+                  { module: 'Safety and Mobility', weight: 5.71, hours: 40, items: [
+                    { name: 'Safety and Mobility - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Safety and Mobility - Practical', pts: 10, qty: 1, note: '10% of module' },
+                    { name: 'Safety and Mobility - Assignment', pts: 30, qty: 1, note: '30% of module' },
+                  ]},
+                  { module: 'Body Systems', weight: 5.71, hours: 40, items: [
+                    { name: 'Body Systems - Theory 1', pts: 50, qty: 1, note: '100% split into 2 = 50 pts each' },
+                    { name: 'Body Systems - Theory 2', pts: 50, qty: 1, note: '100% split into 2 = 50 pts each' },
+                  ]},
+                  { module: 'Assisting with Personal Hygiene', weight: 4.29, hours: 30, items: [
+                    { name: 'Assisting with Personal Hygiene - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Assisting with Personal Hygiene - Practical', pts: 40, qty: 1, note: '40% of module' },
+                  ]},
+                  { module: 'Abuse and Neglect', weight: 2.14, hours: 15, items: [
+                    { name: 'Abuse and Neglect - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Abuse and Neglect - Assignment', pts: 40, qty: 1, note: '40% of module' },
+                  ]},
+                  { module: 'Household Management, Nutrition and Hydration', weight: 3.57, hours: 25, items: [
+                    { name: 'Household Management, Nutrition and Hydration - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Household Management, Nutrition and Hydration - Assignment 1', pts: 20, qty: 1, note: '40% split into 2 = 20 pts each' },
+                    { name: 'Household Management, Nutrition and Hydration - Assignment 2', pts: 20, qty: 1, note: '40% split into 2 = 20 pts each' },
+                  ]},
+                  { module: 'Care Planning/Restorative/Documentation/Working in the Community', weight: 4.29, hours: 30, items: [
+                    { name: 'Care Planning/Restorative/Documentation/Working in the Community - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Care Planning/Restorative/Documentation/Working in the Community - Assignment 1', pts: 20, qty: 1, note: '40% split into 2 = 20 pts each' },
+                    { name: 'Care Planning/Restorative/Documentation/Working in the Community - Assignment 2', pts: 20, qty: 1, note: '40% split into 2 = 20 pts each' },
+                  ]},
+                  { module: 'Assisting the Family, Growth and Development', weight: 3.57, hours: 25, items: [
+                    { name: 'Assisting the Family, Growth and Development - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Assisting the Family, Growth and Development - Assignment', pts: 40, qty: 1, note: '40% of module' },
+                  ]},
+                  { module: 'Assisting the Dying Person', weight: 4.29, hours: 30, items: [
+                    { name: 'Assisting the Dying Person - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Assisting the Dying Person - Assignment', pts: 40, qty: 1, note: '40% of module' },
+                  ]},
+                  { module: 'Assisting with Medications', weight: 2.86, hours: 20, items: [
+                    { name: 'Assisting with Medications - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Assisting with Medications - Practical', pts: 20, qty: 1, note: '20% of module' },
+                    { name: 'Assisting with Medications - Assignment 1', pts: 10, qty: 1, note: '20% split into 2 = 10 pts each' },
+                    { name: 'Assisting with Medications - Assignment 2', pts: 10, qty: 1, note: '20% split into 2 = 10 pts each' },
+                  ]},
+                  { module: 'Cognitive and Mental Health Issues and Brain Injuries', weight: 5.71, hours: 40, items: [
+                    { name: 'Cognitive and Mental Health Issues and Brain Injuries - Theory', pts: 60, qty: 1, note: '60% of module' },
+                    { name: 'Cognitive and Mental Health Issues and Brain Injuries - Assignment 1', pts: 20, qty: 1, note: '40% split into 2 = 20 pts each' },
+                    { name: 'Cognitive and Mental Health Issues and Brain Injuries - Assignment 2', pts: 20, qty: 1, note: '40% split into 2 = 20 pts each' },
+                  ]},
+                  { module: 'Health Conditions', weight: 5.71, hours: 40, items: [
+                    { name: 'Health Conditions - Theory', pts: 80, qty: 1, note: '80% of module' },
+                    { name: 'Health Conditions - Assignment', pts: 20, qty: 1, note: '20% of module' },
+                  ]},
+                  { module: 'Gentle Persuasive Approaches in Dementia Care', weight: 1.43, hours: 10, items: [
+                    { name: 'Gentle Persuasive Approaches in Dementia Care - Theory', pts: 100, qty: 1, note: '100% of module' },
+                  ]},
+                  { module: 'Clinical Placement (Facility)', weight: 28.57, hours: 200, items: [
+                    { name: 'Clinical Placement (Facility) - Practical', pts: 100, qty: 1, note: '100% of module' },
+                  ]},
+                  { module: 'Clinical Placement (Community)', weight: 14.29, hours: 100, items: [
+                    { name: 'Clinical Placement (Community) - Practical', pts: 100, qty: 1, note: '100% of module' },
+                  ]},
                 ];
                 const totalWeight = PSW_TABLE.reduce((s, m) => s + m.weight, 0);
                 const totalAssessments = PSW_TABLE.reduce((s, m) => s + m.items.length, 0);
@@ -4917,11 +4965,16 @@ function CourseView({ courseId }: { courseId: string }) {
                             <td className="border border-[#E1E1E1] px-3 py-2 text-center font-medium">{row.weight.toFixed(2)}%</td>
                             <td className="border border-[#E1E1E1] px-3 py-2 text-center">{row.items.length}</td>
                             <td className="border border-[#E1E1E1] px-3 py-2">
-                              {row.items.map((it, idx) => (
-                                <span key={idx} className="inline-block mr-2">
-                                  {it.name} ({it.pts} pts){idx < row.items.length - 1 ? ',' : ''}
-                                </span>
-                              ))}
+                              {row.items.map((it, idx) => {
+                                // Show just the suffix after " - " for compact display
+                                const idxDash = it.name.indexOf(' - ');
+                                const short = idxDash >= 0 ? it.name.slice(idxDash + 3) : it.name;
+                                return (
+                                  <span key={idx} className="inline-block mr-2">
+                                    {short} ({it.pts} pts){idx < row.items.length - 1 ? ',' : ''}
+                                  </span>
+                                );
+                              })}
                             </td>
                           </tr>
                         ))}
@@ -4934,6 +4987,122 @@ function CourseView({ courseId }: { courseId: string }) {
                         </tr>
                       </tbody>
                     </table>
+
+                    {/* Step 3 — per-module breakdown */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-12 mb-2">Step 3: Create Assignments Inside Each Group</h2>
+                    <p className="text-sm text-gray-500 mb-6">For each module group, create the following assignments with the exact point values shown.</p>
+
+                    {PSW_TABLE.map((row, i) => {
+                      const total = row.items.reduce((s, it) => s + it.pts * it.qty, 0);
+                      return (
+                        <div key={row.module} className="mb-8 border border-[#E1E1E1] rounded bg-white">
+                          <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                            <div className="text-[16px] font-bold text-[#2D3B45]">Module {i + 1}: {row.module}</div>
+                            <div className="text-[12px] text-gray-600 mt-1">
+                              Group Weight: {row.weight.toFixed(2)}%  |  Hours: {row.hours}  |  Points add up to: 100
+                            </div>
+                          </div>
+                          <table className="w-full text-[13px]">
+                            <thead className="bg-gray-50 text-gray-600">
+                              <tr>
+                                <th className="text-left px-4 py-2 font-medium">Assignment Name in Canvas</th>
+                                <th className="text-center px-4 py-2 font-medium w-20">Points</th>
+                                <th className="text-center px-4 py-2 font-medium w-16">Qty</th>
+                                <th className="text-left px-4 py-2 font-medium">Notes</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {row.items.map((it, idx) => (
+                                <tr key={idx}>
+                                  <td className="px-4 py-2 text-[#2D3B45]">{it.name}</td>
+                                  <td className="px-4 py-2 text-center font-medium">{it.pts} pts</td>
+                                  <td className="px-4 py-2 text-center">{it.qty}</td>
+                                  <td className="px-4 py-2 text-gray-600">{it.note}</td>
+                                </tr>
+                              ))}
+                              <tr className="bg-[#F5F5F5] font-bold">
+                                <td className="px-4 py-2">Total</td>
+                                <td className="px-4 py-2 text-center">{total} pts</td>
+                                <td className="px-4 py-2"></td>
+                                <td className="px-4 py-2 text-gray-600">Must equal 100</td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+
+                    {/* Examples */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-12 mb-3">Example: How Grading Works</h2>
+                    <div className="border border-[#E1E1E1] rounded bg-white mb-6">
+                      <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                        <div className="text-[15px] font-bold text-[#2D3B45]">Safety and Mobility (5.71% of course)</div>
+                        <div className="text-[12px] text-gray-600 mt-1">Module has: Theory (60 pts) + Practical (10 pts) + Assignment (30 pts) = 100 pts</div>
+                      </div>
+                      <table className="w-full text-[13px]">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium">Assessment</th><th className="text-center px-4 py-2 font-medium">Max Pts</th><th className="text-center px-4 py-2 font-medium">Score</th><th className="text-center px-4 py-2 font-medium">%</th><th className="text-left px-4 py-2 font-medium"></th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          <tr><td className="px-4 py-2">Safety and Mobility - Theory</td><td className="text-center px-4 py-2">60</td><td className="text-center px-4 py-2">48 / 60</td><td className="text-center px-4 py-2">80%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Safety and Mobility - Practical</td><td className="text-center px-4 py-2">10</td><td className="text-center px-4 py-2">9 / 10</td><td className="text-center px-4 py-2">90%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Safety and Mobility - Assignment</td><td className="text-center px-4 py-2">30</td><td className="text-center px-4 py-2">24 / 30</td><td className="text-center px-4 py-2">80%</td><td className="px-4 py-2"></td></tr>
+                          <tr className="bg-[#F5F5F5] font-bold"><td className="px-4 py-2">Module Total</td><td className="text-center px-4 py-2">100</td><td className="text-center px-4 py-2">81 / 100</td><td className="text-center px-4 py-2">81%</td><td className="px-4 py-2 text-gray-600">81% × 5.71% = 4.62%</td></tr>
+                        </tbody>
+                      </table>
+                      <div className="px-4 py-2 text-[12px] text-gray-600 border-t border-gray-100">Teacher enters: 48, 9, and 24. The system adds them (81/100), then applies the 5.71% module weight.</div>
+                    </div>
+
+                    <div className="border border-[#E1E1E1] rounded bg-white mb-6">
+                      <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1]">
+                        <div className="text-[15px] font-bold text-[#2D3B45]">Qty 2 Example: Household Management (3.57% of course)</div>
+                        <div className="text-[12px] text-gray-600 mt-1">Assignment is 40% with Qty 2, so split into two items at 20 pts each.</div>
+                      </div>
+                      <table className="w-full text-[13px]">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium">Assessment</th><th className="text-center px-4 py-2 font-medium">Max Pts</th><th className="text-center px-4 py-2 font-medium">Score</th><th className="text-center px-4 py-2 font-medium">%</th><th className="text-left px-4 py-2 font-medium"></th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          <tr><td className="px-4 py-2">Household Mgmt - Theory</td><td className="text-center px-4 py-2">60</td><td className="text-center px-4 py-2">51 / 60</td><td className="text-center px-4 py-2">85%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Household Mgmt - Assignment 1</td><td className="text-center px-4 py-2">20</td><td className="text-center px-4 py-2">16 / 20</td><td className="text-center px-4 py-2">80%</td><td className="px-4 py-2"></td></tr>
+                          <tr><td className="px-4 py-2">Household Mgmt - Assignment 2</td><td className="text-center px-4 py-2">20</td><td className="text-center px-4 py-2">18 / 20</td><td className="text-center px-4 py-2">90%</td><td className="px-4 py-2"></td></tr>
+                          <tr className="bg-[#F5F5F5] font-bold"><td className="px-4 py-2">Module Total</td><td className="text-center px-4 py-2">100</td><td className="text-center px-4 py-2">85 / 100</td><td className="text-center px-4 py-2">85%</td><td className="px-4 py-2 text-gray-600">85% × 3.57% = 3.03%</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[13px] text-gray-700 mb-8">The student's overall course grade = sum of contributions from all 15 modules.</p>
+
+                    {/* Final verification checklist */}
+                    <h2 className="text-[24px] font-medium text-[#2D3B45] mt-8 mb-3">Final Verification Checklist</h2>
+                    <p className="text-sm text-gray-500 mb-4">After setup, verify all of the following against the original course template:</p>
+                    <div className="border border-[#E1E1E1] rounded bg-white mb-6">
+                      <table className="w-full text-[13px]">
+                        <thead className="bg-gray-50 text-gray-600">
+                          <tr><th className="text-left px-4 py-2 font-medium w-1/3">Check</th><th className="text-left px-4 py-2 font-medium">How to Verify</th></tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {[
+                            ['Weighted grades enabled', 'Verify in your environment that weighted assignment groups are active'],
+                            ['15 Assignment Groups exist', 'One per module, named exactly as shown'],
+                            ['Weights match template', 'Each group weight = Module % from the template spreadsheet'],
+                            ['Weights add to 100%', 'All module weights combined = 100%'],
+                            ['Points add to 100 per group', "Every module's assignments total exactly 100 pts"],
+                            ['Qty 2 splits correct', 'Body Systems: 50+50, Household Mgmt: 20+20, Care Planning: 20+20, Medications: 10+10, Cognitive: 20+20'],
+                            ['Clinical Placements correct', 'Facility (28.57%) and Community (14.29%) each have Practical at 100 pts'],
+                            ['No extra assignments', "No items exist that aren't in the template"],
+                            ['No orphaned assignments', 'Every assignment is inside its correct module group'],
+                            ['Cross-reference with template', 'Open the original template side-by-side and verify every row'],
+                            ['Test with sample grades', 'Enter sample scores and verify the final grade calculation'],
+                          ].map(([check, how], idx) => (
+                            <tr key={idx}>
+                              <td className="px-4 py-2 text-[#2D3B45] font-medium">{check}</td>
+                              <td className="px-4 py-2 text-gray-700">{how}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[12px] text-gray-500 italic mb-12">Once setup is complete, send screenshots of the Assignment Groups page for final verification. Always keep the original course template as the source of truth.</p>
                   </div>
                 );
               }
