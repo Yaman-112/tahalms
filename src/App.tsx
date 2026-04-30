@@ -5788,6 +5788,12 @@ function CourseView({ courseId }: { courseId: string }) {
                     // Compute overall grade
                     let overallGrade = 0;
                     let hasAnyGrade = false;
+                    // For non-student viewers (admin/auditor/teacher) opening
+                    // the course-level Grades tab without a specific student
+                    // context, suppress all scores. The page would otherwise
+                    // mash up the first GRADED submission per assignment from
+                    // arbitrary students, which is meaningless.
+                    const isStudentViewer = (effectiveRole === 'STUDENT');
                     const moduleGrades = moduleData.map((m: any) => {
                       let moduleScore = 0;
                       let moduleMax = 0;
@@ -5796,8 +5802,10 @@ function CourseView({ courseId }: { courseId: string }) {
                       // —/<max> instead of any imported 0/<max>).
                       const inWindow = ibaModuleCovered(m.mod.name);
                       const assignmentGrades = m.assignments.map((a: any) => {
-                        const sub = a.submissions?.find((s: any) => s.status === 'GRADED');
-                        const score = inWindow ? (sub?.score ?? null) : null;
+                        const sub = isStudentViewer
+                          ? a.submissions?.find((s: any) => s.studentId === user?.id && s.status === 'GRADED')
+                          : null;
+                        const score = isStudentViewer && inWindow ? (sub?.score ?? null) : null;
                         if (score !== null) hasAnyGrade = true;
                         moduleScore += score ?? 0;
                         moduleMax += a.points;
