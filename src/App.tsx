@@ -1738,7 +1738,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                               <div className="w-6 shrink-0">
                                                 {m.state === 'completed' ? <CheckCircle size={14} className="text-green-600" /> : m.state === 'current' ? <Clock size={14} className="text-[#008EE2]" /> : <div className="w-3.5 h-3.5 rounded-full border border-gray-300 ml-px" />}
                                               </div>
-                                              <div className="w-8 shrink-0 text-gray-400 tabular-nums">{m.position}</div>
                                               <div className="flex-1 min-w-0">
                                                 <div className={`${m.state === 'current' ? 'font-semibold text-[#2D3B45]' : 'text-[#2D3B45]'}`}>{m.name}</div>
                                                 {m.window && (
