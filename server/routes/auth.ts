@@ -67,6 +67,7 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         role: exposedRole,
         avatarUrl: user.avatarUrl,
+        ...(user.role === 'AUDITOR' ? { isAuditor: true } : {}),
       },
     });
   } catch (err) {
