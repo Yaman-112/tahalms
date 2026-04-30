@@ -142,6 +142,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
         lastName: true,
         role: true,
         avatarUrl: true,
+        startDate: true,
       },
     });
 

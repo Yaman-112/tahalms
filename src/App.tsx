@@ -5407,6 +5407,97 @@ function CourseView({ courseId }: { courseId: string }) {
               // opposite spelling.
               const norm = (s: string) => s.toLowerCase()
                 .replace(/anis(ational|ation|ed|ing|e)/g, 'aniz$1');
+
+              // IBA per-student schedule window: hide grades on modules the
+              // student hasn't reached yet (per their startDate vs today).
+              const IBA_SCHEDULE: { date: string; track: 'weekday' | 'weekend'; module: string }[] = [
+                { date: '2025-08-04', track: 'weekday', module: 'Macro Economics' },
+                { date: '2025-08-18', track: 'weekday', module: 'Computer Applications in Business' },
+                { date: '2025-09-01', track: 'weekday', module: 'Business Law' },
+                { date: '2025-09-15', track: 'weekday', module: 'Business Ethics' },
+                { date: '2025-09-29', track: 'weekday', module: 'English Fundamentals' },
+                { date: '2025-10-13', track: 'weekday', module: 'Statistics for Business' },
+                { date: '2025-10-27', track: 'weekday', module: 'Fundamentals of Accounting' },
+                { date: '2025-11-10', track: 'weekday', module: 'Strategic Management' },
+                { date: '2025-11-24', track: 'weekday', module: 'International Law' },
+                { date: '2025-11-28', track: 'weekend', module: 'Introduction to HRM' },
+                { date: '2025-12-08', track: 'weekday', module: 'E Commerce & Digital Marketing' },
+                { date: '2025-12-12', track: 'weekend', module: 'Management Fundamentals' },
+                { date: '2025-12-29', track: 'weekday', module: 'Leadership' },
+                { date: '2026-01-02', track: 'weekend', module: 'Sales Management' },
+                { date: '2026-01-12', track: 'weekday', module: 'Intercultural Communication' },
+                { date: '2026-01-16', track: 'weekend', module: 'Project Management' },
+                { date: '2026-01-26', track: 'weekday', module: 'Cross Cultural Management' },
+                { date: '2026-01-30', track: 'weekend', module: 'Fundamentals of Marketing' },
+                { date: '2026-02-09', track: 'weekday', module: 'International Business Strategy' },
+                { date: '2026-02-13', track: 'weekend', module: 'Operations Research' },
+                { date: '2026-02-23', track: 'weekday', module: 'International Banking & Finance' },
+                { date: '2026-02-27', track: 'weekend', module: 'Organizational Behaviour' },
+                { date: '2026-03-09', track: 'weekday', module: 'Entrepreneurship' },
+                { date: '2026-03-13', track: 'weekend', module: 'Strategic Management' },
+                { date: '2026-03-23', track: 'weekday', module: 'Introduction to HRM' },
+                { date: '2026-03-27', track: 'weekend', module: 'Micro Economics' },
+                { date: '2026-04-06', track: 'weekday', module: 'Management Fundamentals' },
+                { date: '2026-04-10', track: 'weekend', module: 'Macro Economics' },
+                { date: '2026-04-20', track: 'weekday', module: 'Sales Management' },
+                { date: '2026-04-24', track: 'weekend', module: 'Statistics for Business' },
+                { date: '2026-05-04', track: 'weekday', module: 'Project Management' },
+                { date: '2026-05-08', track: 'weekend', module: 'Fundamentals of Accounting' },
+                { date: '2026-05-18', track: 'weekday', module: 'Fundamentals of Marketing' },
+                { date: '2026-05-22', track: 'weekend', module: 'Computer Applications in Business' },
+                { date: '2026-06-01', track: 'weekday', module: 'Operations Research' },
+                { date: '2026-06-05', track: 'weekend', module: 'Business Law' },
+                { date: '2026-06-15', track: 'weekday', module: 'Organizational Behaviour' },
+                { date: '2026-06-19', track: 'weekend', module: 'Business Ethics' },
+                { date: '2026-06-29', track: 'weekday', module: 'Micro Economics' },
+                { date: '2026-07-03', track: 'weekend', module: 'English Fundamentals' },
+                { date: '2026-07-13', track: 'weekday', module: 'Macro Economics' },
+                { date: '2026-07-17', track: 'weekend', module: 'International Law' },
+                { date: '2026-07-27', track: 'weekday', module: 'Computer Applications in Business' },
+                { date: '2026-07-31', track: 'weekend', module: 'E Commerce & Digital Marketing' },
+                { date: '2026-08-10', track: 'weekday', module: 'Business Law' },
+                { date: '2026-08-14', track: 'weekend', module: 'Leadership' },
+                { date: '2026-08-24', track: 'weekday', module: 'Business Ethics' },
+                { date: '2026-08-28', track: 'weekend', module: 'Entrepreneurship' },
+                { date: '2026-09-07', track: 'weekday', module: 'English Fundamentals' },
+                { date: '2026-09-11', track: 'weekend', module: 'Intercultural Communication' },
+                { date: '2026-09-21', track: 'weekday', module: 'Statistics for Business' },
+                { date: '2026-09-25', track: 'weekend', module: 'Cross Cultural Management' },
+                { date: '2026-10-05', track: 'weekday', module: 'Fundamentals of Accounting' },
+                { date: '2026-10-09', track: 'weekend', module: 'International Business Strategy' },
+                { date: '2026-10-19', track: 'weekday', module: 'Strategic Management' },
+                { date: '2026-10-23', track: 'weekend', module: 'International Banking & Finance' },
+                { date: '2026-11-02', track: 'weekday', module: 'International Law' },
+                { date: '2026-11-16', track: 'weekday', module: 'E Commerce & Digital Marketing' },
+                { date: '2026-11-30', track: 'weekday', module: 'Leadership' },
+                { date: '2026-12-14', track: 'weekday', module: 'Intercultural Communication' },
+              ];
+              const ibaCoveredModules = (() => {
+                if (course.code !== 'IBA') return null;
+                const startStr = (user as any)?.startDate;
+                if (!startStr) return null; // no startDate -> show everything (legacy admin view)
+                const start = new Date(startStr);
+                const today = new Date();
+                // Default to weekday for non-IBAW batch codes / null
+                const set = new Set<string>();
+                for (const s of IBA_SCHEDULE) {
+                  const d = new Date(s.date + 'T00:00:00Z');
+                  if (d.getTime() < start.getTime()) continue;
+                  if (d.getTime() > today.getTime()) continue;
+                  set.add(s.module);
+                }
+                return set;
+              })();
+              const ibaModuleCovered = (modName: string) => {
+                if (!ibaCoveredModules) return true;
+                // Normalize spelling variant for the lookup
+                const target = norm(modName);
+                for (const m of ibaCoveredModules) {
+                  if (norm(m) === target) return true;
+                }
+                return false;
+              };
+
               const moduleData = (course.modules || []).map((mod: any) => {
                 const modPrefix = norm(mod.name + ' - ');
                 let assignments = (course.assignments || []).filter((a: any) => {
@@ -5507,9 +5598,13 @@ function CourseView({ courseId }: { courseId: string }) {
                     const moduleGrades = moduleData.map((m: any) => {
                       let moduleScore = 0;
                       let moduleMax = 0;
+                      // For IBA: if the student hasn't reached this module yet
+                      // per their schedule window, suppress all scores (display
+                      // —/<max> instead of any imported 0/<max>).
+                      const inWindow = ibaModuleCovered(m.mod.name);
                       const assignmentGrades = m.assignments.map((a: any) => {
                         const sub = a.submissions?.find((s: any) => s.status === 'GRADED');
-                        const score = sub?.score ?? null;
+                        const score = inWindow ? (sub?.score ?? null) : null;
                         if (score !== null) hasAnyGrade = true;
                         moduleScore += score ?? 0;
                         moduleMax += a.points;
@@ -5518,7 +5613,7 @@ function CourseView({ courseId }: { courseId: string }) {
                       const modulePct = moduleMax > 0 ? (moduleScore / moduleMax) * 100 : 0;
                       const contribution = (modulePct / 100) * m.weight;
                       if (assignmentGrades.some((a: any) => a.score !== null)) overallGrade += contribution;
-                      return { ...m, assignmentGrades, moduleScore, moduleMax, modulePct, contribution };
+                      return { ...m, assignmentGrades, moduleScore, moduleMax, modulePct, contribution, inWindow };
                     });
 
                     return (
