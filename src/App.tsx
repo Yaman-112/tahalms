@@ -5630,15 +5630,23 @@ function CourseView({ courseId }: { courseId: string }) {
                 { date: '2026-11-30', track: 'weekday', module: 'Leadership' },
                 { date: '2026-12-14', track: 'weekday', module: 'Intercultural Communication' },
               ];
+              // Track inferred from the student's IBA batchCode (IBAW* = weekend,
+              // anything else including IBAE / IBA / IBACOOP = weekday).
+              const ibaTrack: 'weekday' | 'weekend' = (() => {
+                if (course.code !== 'IBA') return 'weekday';
+                const en = (course.enrollments || []).find((x: any) => x.userId === (user as any)?.id);
+                const bc = (en?.batchCode || '').toUpperCase();
+                return bc.startsWith('IBAW') ? 'weekend' : 'weekday';
+              })();
               const ibaCoveredModules = (() => {
                 if (course.code !== 'IBA') return null;
                 const startStr = (user as any)?.startDate;
                 if (!startStr) return null; // no startDate -> show everything (legacy admin view)
                 const start = new Date(startStr);
                 const today = new Date();
-                // Default to weekday for non-IBAW batch codes / null
                 const set = new Set<string>();
                 for (const s of IBA_SCHEDULE) {
+                  if (s.track !== ibaTrack) continue;
                   const d = new Date(s.date + 'T00:00:00Z');
                   if (d.getTime() < start.getTime()) continue;
                   if (d.getTime() > today.getTime()) continue;
@@ -5655,21 +5663,23 @@ function CourseView({ courseId }: { courseId: string }) {
                 }
                 return false;
               };
-              // True if module's first window has ENDED before today (so it's
-              // overdue, not the current in-progress one). Used to count
-              // "missing" modules as 0% in the average.
+              // True if module's first window (on student's track) has ENDED
+              // before today. Used to count "missing" modules as 0% in the
+              // average; the in-progress current module is excluded.
               const ibaEndedByName = new Map<string, number>();
               if (course.code === 'IBA') {
                 const startStr = (user as any)?.startDate;
                 if (startStr) {
                   const start = new Date(startStr);
                   const today = new Date();
-                  // Build first-occurrence end timestamps per module from schedule
-                  const sorted = [...IBA_SCHEDULE].map(s => ({ ...s, when: new Date(s.date + 'T00:00:00Z') })).sort((a, b) => a.when.getTime() - b.when.getTime());
+                  const sorted = [...IBA_SCHEDULE]
+                    .filter(s => s.track === ibaTrack)
+                    .map(s => ({ ...s, when: new Date(s.date + 'T00:00:00Z') }))
+                    .sort((a, b) => a.when.getTime() - b.when.getTime());
                   for (let i = 0; i < sorted.length; i++) {
                     const s = sorted[i];
                     if (s.when.getTime() < start.getTime() || s.when.getTime() > today.getTime()) continue;
-                    const next = sorted.slice(i + 1).find(x => x.track === s.track);
+                    const next = sorted[i + 1];
                     const endTs = next ? next.when.getTime() : s.when.getTime() + 7 * 86400000;
                     const key = norm(s.module);
                     if (!ibaEndedByName.has(key)) ibaEndedByName.set(key, endTs);
