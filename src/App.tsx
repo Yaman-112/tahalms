@@ -1021,7 +1021,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
     ...(((user as any)?.isAuditor) ? [] : ['Statistics']),
     'Permissions', 'Question Banks',
     ...(((user as any)?.isAuditor) ? [] : ['Analytics Hub']),
-    'Apps', 'Admin Analytics',
+    'Apps',
+    ...(((user as any)?.isAuditor) ? [] : ['Admin Analytics']),
     'Outcomes', 'Rubrics', 'Grading'
   ];
 
