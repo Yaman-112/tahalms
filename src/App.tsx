@@ -2254,7 +2254,22 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
           )}
 
           {adminActiveSection === 'Permissions' && (
-            <AdminPermissionsView />
+            (user as any)?.isAuditor ? (
+              <div className="relative h-full">
+                <div className="pointer-events-none select-none filter blur-md opacity-60">
+                  <AdminPermissionsView />
+                </div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-white border border-[#E1E1E1] rounded-lg shadow-lg px-8 py-6 text-center max-w-md">
+                    <Shield size={36} className="mx-auto mb-3 text-[#008EE2]" />
+                    <h2 className="text-lg font-bold text-[#2D3B45] mb-2">Restricted</h2>
+                    <p className="text-sm text-gray-600">You don't have access to manage permissions. Please contact the IT Team for assistance.</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <AdminPermissionsView />
+            )
           )}
 
           {adminActiveSection === 'Analytics Hub' && (
