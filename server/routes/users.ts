@@ -11,7 +11,7 @@ const router = Router();
 // All user routes require authentication
 router.use(authenticate);
 
-// GET /api/users/share-links?auditorEmail=audit@tahacollege.ca
+// GET /api/users/share-links?auditorEmail=stacy@tahacollege.ca
 // Mints a 2-month student-impersonation JWT for each student in the auditor's
 // scope. Returns ready-to-share URLs of the form `<origin>/?access_token=<jwt>`.
 // Admin-only (auditors are blocked by the global write guard? No — this is GET.
@@ -21,7 +21,7 @@ router.get('/share-links', requireRole('ADMIN'), async (req: AuthRequest, res) =
     if (req.user?.actualRole === 'AUDITOR') {
       return error(res, 'Admin only', 403);
     }
-    const auditorEmail = (req.query.auditorEmail as string) || 'audit@tahacollege.ca';
+    const auditorEmail = (req.query.auditorEmail as string) || 'stacy@tahacollege.ca';
     const auditor = await prisma.user.findUnique({ where: { email: auditorEmail } });
     if (!auditor || (auditor as any).role !== 'AUDITOR') {
       return error(res, 'Auditor user not found', 404);

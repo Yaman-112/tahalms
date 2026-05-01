@@ -1023,7 +1023,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
     ...(((user as any)?.isAuditor) ? [] : ['Analytics Hub']),
     'Apps',
     ...(((user as any)?.isAuditor) ? [] : ['Admin Analytics']),
-    'Outcomes', 'Rubrics', 'Grading'
+    ...(((user as any)?.isAuditor) ? [] : ['Outcomes', 'Rubrics', 'Grading'])
   ];
 
   const filteredCourses = data?.courses.filter(c =>
