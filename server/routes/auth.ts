@@ -69,6 +69,7 @@ router.post('/login', async (req, res) => {
         avatarUrl: user.avatarUrl,
         campusStatus: user.campusStatus,
         startDate: user.startDate,
+        finishDate: user.finishDate,
         ...(user.role === 'AUDITOR' ? { isAuditor: true } : {}),
       },
     });
@@ -146,6 +147,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
         role: true,
         avatarUrl: true,
         startDate: true,
+        finishDate: true,
         campusStatus: true,
       },
     });

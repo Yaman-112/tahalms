@@ -6793,6 +6793,12 @@ interface CalendarApiResponse {
 function CalendarView() {
   const { user } = useAuth();
   const isWithdrawn = /withdraw/i.test((user as any)?.campusStatus || '');
+  // Cut-off for hiding events: actual withdrawal date (finishDate) when present;
+  // otherwise fall back to today (no future schedule for an undated withdrawal).
+  const cutoffMs = isWithdrawn
+    ? ((user as any)?.finishDate ? new Date((user as any).finishDate).setHours(0, 0, 0, 0)
+                                  : new Date().setHours(0, 0, 0, 0))
+    : Number.MAX_SAFE_INTEGER;
   const [currentDate, setCurrentDate] = useState(new Date());
   const [trackFilter, setTrackFilter] = useState<'all' | 'Weekday' | 'Weekend'>('all');
 
@@ -6845,7 +6851,7 @@ function CalendarView() {
       while (cursor <= end) {
         // Withdrawn students: hide each day that lies on or after today
         // (schedule events span multiple days, so we have to gate per day).
-        if (isWithdrawn && cursor.getTime() >= todayMs) {
+        if (isWithdrawn && cursor.getTime() >= cutoffMs) {
           cursor.setDate(cursor.getDate() + 1);
           continue;
         }
@@ -6863,7 +6869,7 @@ function CalendarView() {
     for (const a of data.assignmentEvents) {
       if (!a.startTime) continue;
       const d = new Date(a.startTime);
-      if (isWithdrawn && d.getTime() >= todayMs) continue;
+      if (isWithdrawn && d.getTime() >= cutoffMs) continue;
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!eventsByDate.has(key)) eventsByDate.set(key, []);
       eventsByDate.get(key)!.push({ ...a, type: 'event', isAssignment: true });
@@ -6877,7 +6883,7 @@ function CalendarView() {
   const monthSchedule = (data?.events || [])
     .filter(e => e.type === 'schedule')
     .filter(e => trackFilter === 'all' || e.track === trackFilter)
-    .filter(e => !isWithdrawn || new Date(e.startTime).getTime() < todayMs)
+    .filter(e => !isWithdrawn || new Date(e.startTime).getTime() < cutoffMs)
     .filter(e => {
       const d = new Date(e.startTime);
       return d.getMonth() === month && d.getFullYear() === year;
