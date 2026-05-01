@@ -7203,7 +7203,7 @@ export default function App() {
           <SidebarItem icon={Book} label="Courses"
             active={isCoursesDrawerOpen || activeTab === 'Courses'}
             onClick={() => { setIsCoursesDrawerOpen(!isCoursesDrawerOpen); setIsAccountDrawerOpen(false); }} />
-          {!(user as any)?.isAuditor && (
+          {!(user as any)?.isAuditor && userRole !== 'STUDENT' && (
             <SidebarItem icon={NotebookPen} label="Assignments" active={activeTab === 'Assignments'}
               onClick={() => { setActiveTab('Assignments'); setSelectedCourseId(null); closeDrawers(); }} />
           )}
