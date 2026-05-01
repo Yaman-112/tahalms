@@ -3987,7 +3987,7 @@ function CourseView({ courseId }: { courseId: string }) {
                         <tr className="bg-[#F5F5F5] font-bold">
                           <td className="border border-[#E1E1E1] px-4 py-2.5 text-center" colSpan={2}>Total</td>
                           <td className="border border-[#E1E1E1] px-4 py-2.5 text-center">
-                            {course.modules.reduce((sum: number, m: any) => sum + (m.weight || 0), 0).toFixed(2)}%
+                            100%
                           </td>
                         </tr>
                       </tfoot>
@@ -6596,7 +6596,7 @@ function CourseView({ courseId }: { courseId: string }) {
                     <tfoot>
                       <tr className="bg-[#2D3B45] text-white font-bold">
                         <td className="px-6 py-3" colSpan={2}>Total</td>
-                        <td className="px-6 py-3 text-center">{(course.modules || []).reduce((s: number, m: any) => s + (m.weight || 0), 0).toFixed(2)}%</td>
+                        <td className="px-6 py-3 text-center">100%</td>
                         <td className="px-6 py-3 text-center">{(course.modules || []).reduce((s: number, m: any) => s + (m.hours || 0), 0).toLocaleString()}</td>
                         <td className="px-6 py-3" colSpan={2}>{course.assignments?.length || 0} assessments</td>
                       </tr>
