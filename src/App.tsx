@@ -644,17 +644,10 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           for (const i of inProgIdxs) if (i !== keep) moduleStatuses[i] = 'COMPLETED';
                         }
                       }
-                      // Hide AC filler modules from the timeline visuals;
-                      // for withdrawn students, only show completed bars.
+                      // For withdrawn students, only show completed bars.
                       const isWithdrawn = /withdraw/i.test(profile?.campusStatus || '');
                       const paired = orderedModules.map((m: any, i: number) => ({ m, status: moduleStatuses[i] }));
-                      let filtered = paired;
-                      if (e.course?.code === 'AC') {
-                        filtered = filtered.filter((p: any) => !AC_FILLER_MODULES.has(p.m.name));
-                      }
-                      if (isWithdrawn) {
-                        filtered = filtered.filter((p: any) => p.status === 'COMPLETED');
-                      }
+                      const filtered = isWithdrawn ? paired.filter((p: any) => p.status === 'COMPLETED') : paired;
                       const renderModules = filtered.map((p: any) => p.m);
                       const renderStatuses = filtered.map((p: any) => p.status);
                       return (
@@ -1811,11 +1804,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                       {totalMods > 0 && (() => {
                                         // For withdrawn students show only completed modules; otherwise
                                         // include the current module and the next-up upcoming.
-                                        // Hide AC filler modules from the visible list.
                                         const isWithdrawn = /withdraw/i.test(userProfile?.campusStatus || '');
-                                        const visibleEnriched = e.course?.code === 'AC'
-                                          ? enriched.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
-                                          : enriched;
+                                        const visibleEnriched = enriched;
                                         const completed = visibleEnriched.filter((m: any) => m.state === 'completed');
                                         const current = isWithdrawn ? [] : visibleEnriched.filter((m: any) => m.state === 'current');
                                         const nowMs = now.getTime();
