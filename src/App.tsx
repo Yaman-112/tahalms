@@ -1690,12 +1690,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     }
                                   }
                                   const modWindow = (m: any) => {
-                                    // IBA: use rotation-derived windows.
-                                    if (e.course?.code === 'IBA') {
-                                      const w = ibaModWindowByName.get(norm(m.name));
-                                      return w || null;
-                                    }
-                                    // Prefer synced studentProgress dates when available (rotation-correct).
+                                    // Always prefer student_progress.started_at/completed_at when present:
+                                    // it reflects the student's actual cohort cycle (which may differ
+                                    // from the canonical IBA_SCHED projection — e.g. earlier intakes).
                                     if (hasSyncedProgress) {
                                       const p = spByModuleId.get(m.id);
                                       if (p?.startedAt) {
@@ -1703,8 +1700,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         const end = p.completedAt ? new Date(p.completedAt) : new Date(start.getTime() + 14 * 86400000);
                                         return { start, end };
                                       }
-                                      return null;
                                     }
+                                    // Fallback for IBA: rotation-derived windows for modules without progress rows.
+                                    if (e.course?.code === 'IBA') {
+                                      const w = ibaModWindowByName.get(norm(m.name));
+                                      return w || null;
+                                    }
+                                    if (hasSyncedProgress) return null;
                                     if (!m.startDate) return null;
                                     const start = new Date(m.startDate);
                                     const nextMs = sortedStarts.find((t: number) => t > start.getTime());
