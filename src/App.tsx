@@ -6778,6 +6778,8 @@ interface CalendarApiResponse {
 }
 
 function CalendarView() {
+  const { user } = useAuth();
+  const isWithdrawn = /withdraw/i.test((user as any)?.campusStatus || '');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [trackFilter, setTrackFilter] = useState<'all' | 'Weekday' | 'Weekend'>('all');
 
@@ -6814,6 +6816,7 @@ function CalendarView() {
 
   // Group events by date key
   const eventsByDate = new Map<string, (CalendarEventData & { isAssignment?: boolean })[]>();
+  const todayMs = new Date().setHours(0, 0, 0, 0);
 
   if (data) {
     // Schedule & regular events
@@ -6824,6 +6827,8 @@ function CalendarView() {
 
       // Apply track filter
       if (evt.type === 'schedule' && trackFilter !== 'all' && evt.track !== trackFilter) continue;
+      // Withdrawn students: hide future schedule/class events
+      if (isWithdrawn && start.getTime() >= todayMs) continue;
 
       const cursor = new Date(start);
       while (cursor <= end) {
@@ -6841,6 +6846,7 @@ function CalendarView() {
     for (const a of data.assignmentEvents) {
       if (!a.startTime) continue;
       const d = new Date(a.startTime);
+      if (isWithdrawn && d.getTime() >= todayMs) continue;
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       if (!eventsByDate.has(key)) eventsByDate.set(key, []);
       eventsByDate.get(key)!.push({ ...a, type: 'event', isAssignment: true });
@@ -6854,6 +6860,7 @@ function CalendarView() {
   const monthSchedule = (data?.events || [])
     .filter(e => e.type === 'schedule')
     .filter(e => trackFilter === 'all' || e.track === trackFilter)
+    .filter(e => !isWithdrawn || new Date(e.startTime).getTime() < todayMs)
     .filter(e => {
       const d = new Date(e.startTime);
       return d.getMonth() === month && d.getFullYear() === year;
