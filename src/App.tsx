@@ -590,20 +590,23 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       // in the rotation) go to the end so the timeline reads
                       // completed → current → upcoming left-to-right.
                       const orderedModules = [...modules].sort((a: any, b: any) => {
-                        // For IBA, sort by the rotation-window start
+                        // Prefer per-student studentProgress.startedAt — for IBA students
+                        // whose actual cohort cycle differs from the canonical IBA_SCHED
+                        // projection, this places their real completion dates correctly.
+                        if (hasSyncedProgress) {
+                          const aSP = startedByModuleId.get(a.id);
+                          const bSP = startedByModuleId.get(b.id);
+                          if (aSP && bSP) return new Date(aSP).getTime() - new Date(bSP).getTime();
+                          if (aSP && !bSP) return -1;
+                          if (!aSP && bSP) return 1;
+                          // Both missing — fall through to schedule projection or position
+                        }
                         if (ibaIsCourse && ibaWindowByName) {
                           const at = ibaWindowByName.get(norm(a.name))?.start ?? Number.MAX_SAFE_INTEGER;
                           const bt = ibaWindowByName.get(norm(b.name))?.start ?? Number.MAX_SAFE_INTEGER;
                           return at - bt;
                         }
-                        const aSP = hasSyncedProgress ? startedByModuleId.get(a.id) : null;
-                        const bSP = hasSyncedProgress ? startedByModuleId.get(b.id) : null;
-                        if (hasSyncedProgress) {
-                          if (aSP && !bSP) return -1;
-                          if (!aSP && bSP) return 1;
-                          if (!aSP && !bSP) return (a.position ?? 0) - (b.position ?? 0);
-                          return new Date(aSP!).getTime() - new Date(bSP!).getTime();
-                        }
+                        if (hasSyncedProgress) return (a.position ?? 0) - (b.position ?? 0);
                         const at = a.startDate ? new Date(a.startDate).getTime() : Number.MAX_SAFE_INTEGER;
                         const bt = b.startDate ? new Date(b.startDate).getTime() : Number.MAX_SAFE_INTEGER;
                         return at - bt;
