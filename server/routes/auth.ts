@@ -67,6 +67,8 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         role: exposedRole,
         avatarUrl: user.avatarUrl,
+        campusStatus: user.campusStatus,
+        startDate: user.startDate,
         ...(user.role === 'AUDITOR' ? { isAuditor: true } : {}),
       },
     });
@@ -144,6 +146,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
         role: true,
         avatarUrl: true,
         startDate: true,
+        campusStatus: true,
       },
     });
 
