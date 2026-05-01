@@ -1613,7 +1613,15 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                 <div className="text-center text-gray-500 text-[13px] py-8">No enrollments for this student.</div>
                               ) : (
                                 (userProfile.enrollments ?? []).map((e: any) => {
-                                  const modules = (e.course?.modules ?? []);
+                                  const AC_FILLER_MODULES = new Set([
+                                    'Microsoft Windows', 'Microsoft Word 2',
+                                    'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
+                                    'Microsoft Powerpoint',
+                                  ]);
+                                  const allModules = (e.course?.modules ?? []);
+                                  const modules = e.course?.code === 'AC'
+                                    ? allModules.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
+                                    : allModules;
                                   const now = new Date();
                                   const sp: any[] = e.studentProgress || [];
                                   const hasSyncedProgress = sp.length > 0;
