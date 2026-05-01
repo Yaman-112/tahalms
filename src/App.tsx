@@ -5878,6 +5878,100 @@ function CourseView({ courseId }: { courseId: string }) {
                 return false;
               };
 
+              // CSW schedule (single module per week, cyclical M1-M19).
+              const CSW_SCHEDULE: { date: string; module: string }[] = [
+                { date: '2025-08-04', module: 'Basic Counselling Techniques' },
+                { date: '2025-08-11', module: 'Basic Counselling Techniques' },
+                { date: '2025-08-18', module: 'Basic Counselling Techniques' },
+                { date: '2025-08-25', module: 'Solution-Focused Intervention Techniques' },
+                { date: '2025-09-01', module: 'Solution-Focused Intervention Techniques' },
+                { date: '2025-09-08', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2025-09-15', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2025-09-22', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2025-09-29', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2025-10-06', module: 'Introduction to Psychology' },
+                { date: '2025-10-13', module: 'Introduction to Psychology' },
+                { date: '2025-10-20', module: 'Introduction to Psychology' },
+                { date: '2025-10-27', module: 'Professional Documentation & Case Management' },
+                { date: '2025-11-03', module: 'Behaviour Modification' },
+                { date: '2025-11-10', module: 'Behaviour Modification' },
+                { date: '2025-11-17', module: 'Behaviour Modification' },
+                { date: '2025-11-24', module: 'Behaviour Modification' },
+                { date: '2025-12-01', module: 'Support Resources & Community Capacity Building' },
+                { date: '2025-12-08', module: 'Support Resources & Community Capacity Building' },
+                { date: '2025-12-15', module: 'Support Resources & Community Capacity Building' },
+                // 2025-12-22, 2025-12-29 WINTER BREAK
+                { date: '2026-01-05', module: 'Essential Skills' },
+                { date: '2026-01-12', module: 'Essential Skills' },
+                { date: '2026-01-19', module: 'Microsoft Windows' },
+                { date: '2026-01-26', module: 'Microsoft Windows' },
+                { date: '2026-02-02', module: 'Inclusive Communication Skills' },
+                { date: '2026-02-09', module: 'Inclusive Communication Skills' },
+                { date: '2026-02-16', module: 'Inclusive Communication Skills' },
+                { date: '2026-02-23', module: 'Inclusive Communication Skills' },
+                { date: '2026-03-02', module: 'Introduction to Community Service Work' },
+                { date: '2026-03-09', module: 'Introduction to Community Service Work' },
+                { date: '2026-03-16', module: 'Introduction to Community Service Work' },
+                { date: '2026-03-23', module: 'Employment Achievement Strategies' },
+                { date: '2026-03-30', module: 'Employment Achievement Strategies' },
+                { date: '2026-04-06', module: 'Basic Business Communications' },
+                { date: '2026-04-13', module: 'Basic Business Communications' },
+                { date: '2026-04-20', module: 'Harm Reduction and Crisis Intervention' },
+                { date: '2026-04-27', module: 'Harm Reduction and Crisis Intervention' },
+                { date: '2026-05-04', module: 'Harm Reduction and Crisis Intervention' },
+                { date: '2026-05-11', module: 'Introduction to Sociology' },
+                { date: '2026-05-18', module: 'Introduction to Sociology' },
+                { date: '2026-05-25', module: 'Mental Health & Addictions' },
+                { date: '2026-06-01', module: 'Mental Health & Addictions' },
+                { date: '2026-06-08', module: 'Mental Health & Addictions' },
+                { date: '2026-06-15', module: 'Mental Health & Addictions' },
+                { date: '2026-06-22', module: 'Mental Health & Addictions' },
+                { date: '2026-06-29', module: 'Populations at Risk' },
+                { date: '2026-07-06', module: 'Populations at Risk' },
+                { date: '2026-07-13', module: 'Populations at Risk' },
+                { date: '2026-07-20', module: 'Populations at Risk' },
+                { date: '2026-07-27', module: 'Law for Support Workers' },
+                { date: '2026-08-03', module: 'Law for Support Workers' },
+                { date: '2026-08-10', module: 'Law for Support Workers' },
+                { date: '2026-08-17', module: 'Self Care and Team Building' },
+                { date: '2026-08-24', module: 'Self Care and Team Building' },
+                { date: '2026-08-31', module: 'Basic Counselling Techniques' },
+                { date: '2026-09-07', module: 'Basic Counselling Techniques' },
+                { date: '2026-09-14', module: 'Basic Counselling Techniques' },
+                { date: '2026-09-21', module: 'Solution-Focused Intervention Techniques' },
+                { date: '2026-09-28', module: 'Solution-Focused Intervention Techniques' },
+                { date: '2026-10-05', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2026-10-12', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2026-10-19', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2026-10-26', module: 'Family Development, Functions, and Social Issues' },
+                { date: '2026-11-02', module: 'Introduction to Psychology' },
+                { date: '2026-11-09', module: 'Introduction to Psychology' },
+                { date: '2026-11-16', module: 'Introduction to Psychology' },
+              ];
+              const cswCoveredModules = (() => {
+                if (course.code !== 'CSW') return null;
+                const startStr = (user as any)?.startDate;
+                if (!startStr) return null;
+                const start = new Date(startStr);
+                const today = new Date();
+                const set = new Set<string>();
+                for (const row of CSW_SCHEDULE) {
+                  const d = new Date(row.date + 'T00:00:00Z');
+                  if (d.getTime() < start.getTime()) continue;
+                  if (d.getTime() > today.getTime()) continue;
+                  set.add(row.module);
+                }
+                return set;
+              })();
+              const cswModuleCovered = (modName: string) => {
+                if (!cswCoveredModules) return true;
+                const target = norm(modName);
+                for (const m of cswCoveredModules) {
+                  if (norm(m) === target) return true;
+                }
+                return false;
+              };
+
               const moduleData = (course.modules || []).map((mod: any) => {
                 const modPrefix = norm(mod.name + ' - ');
                 let assignments = (course.assignments || []).filter((a: any) => {
@@ -5984,15 +6078,18 @@ function CourseView({ courseId }: { courseId: string }) {
                     const moduleGrades = moduleData.map((m: any) => {
                       let moduleScore = 0;
                       let moduleMax = 0;
-                      // For AC, suppress scores for modules the student hasn't
-                      // reached yet per their schedule. IBA shows everything
-                      // recorded (its window check is informational only).
-                      const inWindow = course.code === 'AC' ? acModuleCovered(m.mod.name) : ibaModuleCovered(m.mod.name);
+                      // For AC and CSW, suppress scores for modules the student
+                      // hasn't reached yet per their schedule. IBA shows
+                      // everything recorded (its window check is informational).
+                      const inWindow = course.code === 'AC' ? acModuleCovered(m.mod.name)
+                        : course.code === 'CSW' ? cswModuleCovered(m.mod.name)
+                        : ibaModuleCovered(m.mod.name);
                       const assignmentGrades = m.assignments.map((a: any) => {
                         const sub = isStudentViewer
                           ? a.submissions?.find((s: any) => s.studentId === user?.id && s.status === 'GRADED')
                           : null;
-                        const score = isStudentViewer && (course.code !== 'AC' || inWindow) ? (sub?.score ?? null) : null;
+                        const gated = (course.code === 'AC' || course.code === 'CSW') && !inWindow;
+                        const score = isStudentViewer && !gated ? (sub?.score ?? null) : null;
                         if (score !== null) hasAnyGrade = true;
                         moduleScore += score ?? 0;
                         moduleMax += a.points;
