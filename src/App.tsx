@@ -5115,7 +5115,9 @@ function CourseView({ courseId }: { courseId: string }) {
           ) : activeSection === 'Grades' ? (
             (() => {
               // CSW: static syllabus reference table (display-only).
-              if (course.code === 'CSW') {
+              // CSW: static syllabus reference only for non-student viewers.
+              // Students get the dynamic Module Grades view (same as IBA/AC).
+              if (course.code === 'CSW' && effectiveRole !== 'STUDENT') {
                 const CSW_TABLE: { module: string; weight: number; items: { name: string; pts: number }[] }[] = [
                   { module: 'Essential Skills',                                weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
                   { module: 'Microsoft Windows',                               weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
@@ -5635,6 +5637,9 @@ function CourseView({ courseId }: { courseId: string }) {
                 const t = s.trim();
                 if (course.code === 'AC') {
                   return t === 'Final' || t === 'Participation' || t === 'Assignment' || t === 'Quiz';
+                }
+                if (course.code === 'CSW') {
+                  return t === 'Final' || t === 'Participation' || t === 'Assignment';
                 }
                 return t === 'Final' || t === 'Participation';
               };
