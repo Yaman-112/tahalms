@@ -551,7 +551,6 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         <div>
                           <h3 className="font-bold text-[#2D3B45]">{e.course.name}</h3>
                           <div className="flex items-center space-x-3 text-[16px] text-gray-500 mt-1">
-                            {e.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white text-[16px] font-bold rounded">{e.batchCode}</span>}
                             {e.campus && <span>{e.campus}</span>}
                             {e.classTime && <span>{e.classTime}</span>}
                             {e.teacher && <span>Teacher: <span className="font-medium text-[#2D3B45]">{`${e.teacher.firstName ?? ''} ${e.teacher.lastName ?? ''}`.trim() || e.teacher.email}</span></span>}
@@ -1774,7 +1773,6 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                           <div>
                                             <h3 className="font-bold text-[14px] text-[#2D3B45]">{e.course?.name} <span className="text-gray-400 font-normal">({e.course?.code})</span></h3>
                                             <div className="text-[12px] text-gray-500 mt-0.5">
-                                              {e.batchCode && <span className="px-2 py-0.5 bg-[#2D3B45] text-white rounded mr-2">{e.batchCode}</span>}
                                               {e.startDate && <span>Started {new Date(e.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
                                             </div>
                                           </div>
