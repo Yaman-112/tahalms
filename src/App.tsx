@@ -559,16 +559,18 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         </div>
                       </div>
                       <div className="text-right flex items-center space-x-6">
-                        <div>
-                          <div className="text-2xl font-bold text-[#008EE2]">{Math.round(progress)}%</div>
-                          <div className="text-[14px] text-gray-400">progress</div>
-                        </div>
+                        {!/withdraw/i.test(profile?.campusStatus || '') && (
+                          <div>
+                            <div className="text-2xl font-bold text-[#008EE2]">{Math.round(progress)}%</div>
+                            <div className="text-[14px] text-gray-400">progress</div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     {/* Progress bar */}
                     <div className="px-4 pb-2">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className={`w-full bg-gray-200 rounded-full h-2 ${/withdraw/i.test(profile?.campusStatus || '') ? 'blur-sm opacity-60' : ''}`}>
                         <div className="bg-[#008EE2] h-2 rounded-full transition-all" style={{ width: `${Math.min(progress, 100)}%` }} />
                       </div>
                       <div className="flex items-center justify-between mt-1 text-[16px] text-gray-400">
