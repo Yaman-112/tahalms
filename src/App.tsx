@@ -422,9 +422,9 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                   'Microsoft Powerpoint',
                 ]);
                 const allModules = e.course?.modules || [];
-                const modules = e.course?.code === 'AC'
-                  ? allModules.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
-                  : allModules;
+                // Use the FULL module count for the progress denominator (e.g. AC = 13).
+                // Fillers are still hidden from the timeline render below.
+                const modules = allModules;
                 const totalMods = modules.length;
                 const now = new Date();
 
@@ -644,10 +644,17 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           for (const i of inProgIdxs) if (i !== keep) moduleStatuses[i] = 'COMPLETED';
                         }
                       }
-                      // For withdrawn students, only show completed-module bars on the timeline.
+                      // Hide AC filler modules from the timeline visuals;
+                      // for withdrawn students, only show completed bars.
                       const isWithdrawn = /withdraw/i.test(profile?.campusStatus || '');
                       const paired = orderedModules.map((m: any, i: number) => ({ m, status: moduleStatuses[i] }));
-                      const filtered = isWithdrawn ? paired.filter((p: any) => p.status === 'COMPLETED') : paired;
+                      let filtered = paired;
+                      if (e.course?.code === 'AC') {
+                        filtered = filtered.filter((p: any) => !AC_FILLER_MODULES.has(p.m.name));
+                      }
+                      if (isWithdrawn) {
+                        filtered = filtered.filter((p: any) => p.status === 'COMPLETED');
+                      }
                       const renderModules = filtered.map((p: any) => p.m);
                       const renderStatuses = filtered.map((p: any) => p.status);
                       return (
@@ -1634,10 +1641,9 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
                                     'Microsoft Powerpoint',
                                   ]);
-                                  const allModules = (e.course?.modules ?? []);
-                                  const modules = e.course?.code === 'AC'
-                                    ? allModules.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
-                                    : allModules;
+                                  // Full module list drives the progress denominator (AC = 13).
+                                  // Fillers are filtered out of the rendered list further below.
+                                  const modules = (e.course?.modules ?? []);
                                   const now = new Date();
                                   const sp: any[] = e.studentProgress || [];
                                   const hasSyncedProgress = sp.length > 0;
@@ -1805,11 +1811,15 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                       {totalMods > 0 && (() => {
                                         // For withdrawn students show only completed modules; otherwise
                                         // include the current module and the next-up upcoming.
+                                        // Hide AC filler modules from the visible list.
                                         const isWithdrawn = /withdraw/i.test(userProfile?.campusStatus || '');
-                                        const completed = enriched.filter((m: any) => m.state === 'completed');
-                                        const current = isWithdrawn ? [] : enriched.filter((m: any) => m.state === 'current');
+                                        const visibleEnriched = e.course?.code === 'AC'
+                                          ? enriched.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
+                                          : enriched;
+                                        const completed = visibleEnriched.filter((m: any) => m.state === 'completed');
+                                        const current = isWithdrawn ? [] : visibleEnriched.filter((m: any) => m.state === 'current');
                                         const nowMs = now.getTime();
-                                        const upcomingFuture = isWithdrawn ? [] : enriched
+                                        const upcomingFuture = isWithdrawn ? [] : visibleEnriched
                                           .filter((m: any) => m.state === 'upcoming' && m.window?.start && m.window.start.getTime() >= nowMs)
                                           .sort((a: any, b: any) => a.window.start.getTime() - b.window.start.getTime());
                                         const upcomingOne = upcomingFuture.slice(0, 1);
