@@ -6121,9 +6121,13 @@ function CourseView({ courseId }: { courseId: string }) {
 
                     // A module counts as attempted if the student has any
                     // submission against it (GRADED or MISSING). Modules with
-                    // no submission at all are excluded from the average.
+                    // no submission at all, and the currently in-progress
+                    // module, are excluded from the average.
+                    const myEnrollment = (course.enrollments || []).find((x: any) => x.userId === (user as any)?.id);
+                    const inProgressModuleId = myEnrollment?.currentModuleId || null;
                     const attemptedModules = moduleGrades.filter((m: any) => {
                       if (isStudentViewer) {
+                        if (m.mod.id === inProgressModuleId) return false;
                         return m.assignments.some((a: any) => (a.submissions?.length || 0) > 0);
                       }
                       if (course.code === 'IBA') {
