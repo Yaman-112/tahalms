@@ -6012,16 +6012,14 @@ function CourseView({ courseId }: { courseId: string }) {
               };
 
               // Filler MS modules taught alongside AC program modules — they
-              // shouldn't count toward progress, grades, or the average.
+              // appear in the Module Grades syllabus table but are excluded
+              // from the average %.
               const AC_FILLER_MODULES = new Set([
                 'Microsoft Windows', 'Microsoft Word 2',
                 'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
                 'Microsoft Powerpoint',
               ]);
-              const courseModules = course.code === 'AC'
-                ? (course.modules || []).filter((m: any) => !AC_FILLER_MODULES.has(m.name))
-                : (course.modules || []);
-              const moduleData = courseModules.map((mod: any) => {
+              const moduleData = (course.modules || []).map((mod: any) => {
                 const modPrefix = norm(mod.name + ' - ');
                 let assignments = (course.assignments || []).filter((a: any) => {
                   const t = norm(a.title);
@@ -6157,6 +6155,7 @@ function CourseView({ courseId }: { courseId: string }) {
                     const myEnrollment = (course.enrollments || []).find((x: any) => x.userId === (user as any)?.id);
                     const inProgressModuleId = myEnrollment?.currentModuleId || null;
                     const attemptedModules = moduleGrades.filter((m: any) => {
+                      if (course.code === 'AC' && AC_FILLER_MODULES.has(m.mod.name)) return false;
                       if (isStudentViewer) {
                         if (m.mod.id === inProgressModuleId) return false;
                         return m.assignments.some((a: any) => (a.submissions?.length || 0) > 0);
