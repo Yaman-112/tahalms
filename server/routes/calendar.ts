@@ -38,14 +38,32 @@ router.get('/', async (req: AuthRequest, res) => {
       },
     });
 
+    // Determine the student's track from their enrollment batch_code so we
+    // only show schedule events for their cohort (Weekday vs Weekend).
+    let studentTrack: 'Weekday' | 'Weekend' | null = null;
+    if (role === 'STUDENT' || actualRole === 'AUDITOR') {
+      const targetUserId = userId; // for auditor we filter by their scoped students separately; for share-link impersonation userId is the student
+      const enr = await prisma.enrollment.findFirst({
+        where: { userId: targetUserId },
+        select: { batchCode: true },
+      });
+      const bc = (enr?.batchCode || '').toUpperCase();
+      if (bc.includes('W')) studentTrack = 'Weekend';
+      else studentTrack = 'Weekday';
+    }
+
     // Tag schedule vs regular events
-    const events = rawEvents.map(e => ({
+    let events = rawEvents.map(e => ({
       ...e,
       type: e.description?.startsWith('IBA Schedule:') ? 'schedule' as const : 'event' as const,
       track: e.description?.startsWith('IBA Schedule:')
         ? e.description.replace('IBA Schedule: ', '')
         : undefined,
     }));
+    // Drop other-track schedule events for students
+    if (studentTrack) {
+      events = events.filter(e => e.type !== 'schedule' || !e.track || e.track === studentTrack);
+    }
 
     // Also get assignments with due dates as calendar events
     let assignmentWhere: any = { dueDate: { not: null } };
