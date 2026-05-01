@@ -5180,8 +5180,10 @@ function CourseView({ courseId }: { courseId: string }) {
                 );
               }
 
-              // AC: static syllabus reference table (display-only).
-              if (course.code === 'AC') {
+              // AC: static syllabus reference table (display-only) for non-student
+              // viewers. Students fall through to the dynamic Module Grades view
+              // (same as IBA) so they see their actual per-assignment scores.
+              if (course.code === 'AC' && effectiveRole !== 'STUDENT') {
                 const AC_TABLE: { module: string; weight: number; hours: number; items: { name: string; pts: number; pct: number }[] }[] = [
                   { module: 'Microsoft Windows',                          weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
                   { module: 'Microsoft Word 2',                           weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
