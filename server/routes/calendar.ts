@@ -52,17 +52,24 @@ router.get('/', async (req: AuthRequest, res) => {
       else studentTrack = 'Weekday';
     }
 
-    // Tag schedule vs regular events
-    let events = rawEvents.map(e => ({
-      ...e,
-      type: e.description?.startsWith('IBA Schedule:') ? 'schedule' as const : 'event' as const,
-      track: e.description?.startsWith('IBA Schedule:')
-        ? e.description.replace('IBA Schedule: ', '')
-        : undefined,
-    }));
+    // Tag schedule vs regular events. Tracks are derived from the start
+    // day-of-week: weekday-cohort sessions start UTC-Sunday (Mon local),
+    // weekend-cohort sessions start UTC-Thursday (Fri local).
+    let events = rawEvents.map(e => {
+      const isSchedule = / Schedule: /.test(e.description || '');
+      const dow = new Date(e.startTime).getUTCDay();
+      const inferredTrack = isSchedule
+        ? (dow === 4 ? 'Weekend' : 'Weekday')
+        : undefined;
+      return {
+        ...e,
+        type: isSchedule ? 'schedule' as const : 'event' as const,
+        track: inferredTrack,
+      };
+    });
     // Drop other-track schedule events for students
     if (studentTrack) {
-      events = events.filter(e => e.type !== 'schedule' || !e.track || e.track === studentTrack);
+      events = events.filter(e => e.type !== 'schedule' || e.track === studentTrack);
     }
 
     // Also get assignments with due dates as calendar events
