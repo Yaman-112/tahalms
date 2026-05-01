@@ -641,12 +641,17 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           for (const i of inProgIdxs) if (i !== keep) moduleStatuses[i] = 'COMPLETED';
                         }
                       }
-                      const renderModules = orderedModules;
+                      // For withdrawn students, only show completed-module bars on the timeline.
+                      const isWithdrawn = /withdraw/i.test(profile?.campusStatus || '');
+                      const paired = orderedModules.map((m: any, i: number) => ({ m, status: moduleStatuses[i] }));
+                      const filtered = isWithdrawn ? paired.filter((p: any) => p.status === 'COMPLETED') : paired;
+                      const renderModules = filtered.map((p: any) => p.m);
+                      const renderStatuses = filtered.map((p: any) => p.status);
                       return (
                       <div className="px-4 pb-4">
                         <div className="flex items-center space-x-1 mt-2">
                           {renderModules.map((mod: any, idx: number) => {
-                            const status = moduleStatuses[idx];
+                            const status = renderStatuses[idx];
                             const isCurrentMod = currentModule?.id === mod.id;
 
                             // For IBA students, prefer the rotation-derived window
