@@ -3898,9 +3898,11 @@ function CourseView({ courseId }: { courseId: string }) {
 
   if (loading || !course) return <LoadingSpinner />;
 
+  const isAuditor = user?.role === 'AUDITOR' || (user as any)?.isAuditor;
   const studentNavItems = [
     { label: 'Home' }, { label: 'Assignments' }, { label: 'Grades' },
-    { label: 'Pages' }, { label: 'Files' }, { label: 'Syllabus' },
+    { label: 'Pages' }, { label: 'Files' },
+    ...(isAuditor ? [] : [{ label: 'Syllabus' }]),
     { label: 'Quizzes' }
   ];
 
