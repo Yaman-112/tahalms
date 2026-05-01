@@ -1560,12 +1560,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                       <option value="all">All ({rows.length})</option>
                                       {courseCodes.map(c => <option key={c} value={c}>{c} ({rows.filter((r: any) => r.course === c).length})</option>)}
                                     </select>
-                                    <div className="ml-auto text-gray-600">
-                                      <span className="mr-4">Graded: <strong>{graded}</strong></span>
-                                      {totalPoints > 0 && (
-                                        <span>Total: <strong>{totalScore}</strong>/{totalPoints} ({Math.round((totalScore / totalPoints) * 100)}%)</span>
-                                      )}
-                                    </div>
+                                    <div className="ml-auto text-gray-600" />
                                   </div>
                                   <div className="overflow-auto flex-1">
                                     {filtered.length === 0 ? (
