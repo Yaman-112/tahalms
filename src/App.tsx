@@ -3031,7 +3031,15 @@ function CourseStudentDetailView({ studentId, courseId, onBack }: { studentId: s
 
   if (profileLoading || !profile) return <LoadingSpinner />;
   const enrollment = (profile.enrollments || []).find((e: any) => e.course?.id === courseId);
-  const modules = enrollment?.course?.modules ?? [];
+  const AC_FILLER_MODULES = new Set([
+    'Microsoft Windows', 'Microsoft Word 2',
+    'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
+    'Microsoft Powerpoint',
+  ]);
+  const allModules = enrollment?.course?.modules ?? [];
+  const modules = enrollment?.course?.code === 'AC'
+    ? allModules.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
+    : allModules;
   const sp = enrollment?.studentProgress ?? [];
   const completed = sp.filter((p: any) => p.status === 'COMPLETED').length;
   const inProg = sp.find((p: any) => p.status === 'IN_PROGRESS');
@@ -5972,7 +5980,17 @@ function CourseView({ courseId }: { courseId: string }) {
                 return false;
               };
 
-              const moduleData = (course.modules || []).map((mod: any) => {
+              // Filler MS modules taught alongside AC program modules — they
+              // shouldn't count toward progress, grades, or the average.
+              const AC_FILLER_MODULES = new Set([
+                'Microsoft Windows', 'Microsoft Word 2',
+                'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
+                'Microsoft Powerpoint',
+              ]);
+              const courseModules = course.code === 'AC'
+                ? (course.modules || []).filter((m: any) => !AC_FILLER_MODULES.has(m.name))
+                : (course.modules || []);
+              const moduleData = courseModules.map((mod: any) => {
                 const modPrefix = norm(mod.name + ' - ');
                 let assignments = (course.assignments || []).filter((a: any) => {
                   const t = norm(a.title);
