@@ -570,7 +570,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       </div>
                       <div className="flex items-center justify-between mt-1 text-[16px] text-gray-400">
                         <span>{completedCount} of {totalMods} modules completed</span>
-                        {currentModule && <span>Current: <span className="font-medium text-[#2D3B45]">{currentModule.name}</span></span>}
+                        {currentModule && !/withdraw/i.test(profile?.campusStatus || '') && <span>Current: <span className="font-medium text-[#2D3B45]">{currentModule.name}</span></span>}
                       </div>
                     </div>
 
@@ -1779,15 +1779,13 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         ) : null}
                                       </div>
                                       {totalMods > 0 && (() => {
-                                        // Show: all completed + current + the next-up upcoming.
-                                        // "Next-up" = the upcoming module whose window starts soonest
-                                        // AFTER today (skips past-projection rotation entries that are
-                                        // technically state='upcoming' but their projected window is
-                                        // already in the past for this student's cohort).
+                                        // For withdrawn students show only completed modules; otherwise
+                                        // include the current module and the next-up upcoming.
+                                        const isWithdrawn = /withdraw/i.test(userProfile?.campusStatus || '');
                                         const completed = enriched.filter((m: any) => m.state === 'completed');
-                                        const current = enriched.filter((m: any) => m.state === 'current');
+                                        const current = isWithdrawn ? [] : enriched.filter((m: any) => m.state === 'current');
                                         const nowMs = now.getTime();
-                                        const upcomingFuture = enriched
+                                        const upcomingFuture = isWithdrawn ? [] : enriched
                                           .filter((m: any) => m.state === 'upcoming' && m.window?.start && m.window.start.getTime() >= nowMs)
                                           .sort((a: any, b: any) => a.window.start.getTime() - b.window.start.getTime());
                                         const upcomingOne = upcomingFuture.slice(0, 1);
