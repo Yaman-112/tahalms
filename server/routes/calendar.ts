@@ -9,13 +9,20 @@ router.use(authenticate);
 // GET /api/calendar — get events for current user
 router.get('/', async (req: AuthRequest, res) => {
   try {
-    const { role, userId } = req.user!;
+    const { role, userId, actualRole, scope } = req.user! as any;
     const start = req.query.start as string | undefined;
     const end = req.query.end as string | undefined;
 
     let where: any = {};
 
-    if (role !== 'ADMIN') {
+    if (actualRole === 'AUDITOR') {
+      // Restrict auditor's calendar to courses where any of their scoped
+      // students is enrolled (so it shows only IBA / AC / CSW / etc. that
+      // their cohort actually attends).
+      where.course = {
+        enrollments: { some: { user: { vNumber: { in: (scope as string[]) || [] } } } },
+      };
+    } else if (role !== 'ADMIN') {
       where.course = { enrollments: { some: { userId } } };
     }
 
@@ -42,7 +49,11 @@ router.get('/', async (req: AuthRequest, res) => {
 
     // Also get assignments with due dates as calendar events
     let assignmentWhere: any = { dueDate: { not: null } };
-    if (role !== 'ADMIN') {
+    if (actualRole === 'AUDITOR') {
+      assignmentWhere.course = {
+        enrollments: { some: { user: { vNumber: { in: (scope as string[]) || [] } } } },
+      };
+    } else if (role !== 'ADMIN') {
       assignmentWhere.course = { enrollments: { some: { userId } } };
     }
     if (start) assignmentWhere.dueDate = { ...(assignmentWhere.dueDate || {}), gte: new Date(start) };
