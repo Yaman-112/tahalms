@@ -690,7 +690,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     <div className="px-4 py-3 bg-gray-50 border-t border-[#E1E1E1] grid grid-cols-2 md:grid-cols-4 gap-2 text-[16px] text-gray-500">
                       {e.startDate && <span>Start: <span className="font-medium text-gray-700">{new Date(e.startDate).toLocaleDateString()}</span></span>}
                       {e.endDate && <span>End: <span className="font-medium text-gray-700">{new Date(e.endDate).toLocaleDateString()}</span></span>}
-                      {e.totalFees && <span>Fees: <span className="font-medium text-gray-700">${e.totalFees.toLocaleString()}</span></span>}
+                      <span>Tuition Fees: <span className="font-medium text-gray-700">$12,500</span></span>
                       {e.lastStatus && <span>Status: <span className={`font-medium ${e.lastStatus.includes('Start') || e.lastStatus.includes('Active') ? 'text-green-600' : 'text-gray-700'}`}>{e.lastStatus}</span></span>}
                     </div>
                   </div>
