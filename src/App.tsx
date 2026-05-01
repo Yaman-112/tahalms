@@ -1787,11 +1787,18 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         ) : null}
                                       </div>
                                       {totalMods > 0 && (() => {
-                                        // Show: all completed + current + just the first upcoming
-                                        // (hides the long tail of rotational repeats / future cycles).
+                                        // Show: all completed + current + the next-up upcoming.
+                                        // "Next-up" = the upcoming module whose window starts soonest
+                                        // AFTER today (skips past-projection rotation entries that are
+                                        // technically state='upcoming' but their projected window is
+                                        // already in the past for this student's cohort).
                                         const completed = enriched.filter((m: any) => m.state === 'completed');
                                         const current = enriched.filter((m: any) => m.state === 'current');
-                                        const upcomingOne = enriched.filter((m: any) => m.state === 'upcoming').slice(0, 1);
+                                        const nowMs = now.getTime();
+                                        const upcomingFuture = enriched
+                                          .filter((m: any) => m.state === 'upcoming' && m.window?.start && m.window.start.getTime() >= nowMs)
+                                          .sort((a: any, b: any) => a.window.start.getTime() - b.window.start.getTime());
+                                        const upcomingOne = upcomingFuture.slice(0, 1);
                                         const visible = [...completed, ...current, ...upcomingOne];
                                         if (visible.length === 0) return (
                                           <div className="px-4 py-3 text-[12px] text-gray-500 italic">No modules to show.</div>
