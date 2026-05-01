@@ -4948,13 +4948,15 @@ function CourseView({ courseId }: { courseId: string }) {
                                     <th className="py-3 px-4">Status</th>
                                     <th className="py-3 px-4">Submitted</th>
                                     <th className="py-3 px-4">Score</th>
+                                    <th className="py-3 px-4 w-[260px]">Grade</th>
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[#E1E1E1]">
                                   {assignmentDetail.submissions.map((sub: any) => {
+                                    const editing = gradingSubmissionId === sub.id;
                                     return (
                                     <React.Fragment key={sub.id}>
-                                      <tr className="hover:bg-gray-50">
+                                      <tr className="hover:bg-gray-50 align-top">
                                         <td className="py-3 px-4">
                                           <div className="flex items-center space-x-2">
                                             <div className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-[16px] font-medium text-gray-600 bg-gray-50">
@@ -4975,6 +4977,47 @@ function CourseView({ courseId }: { courseId: string }) {
                                         </td>
                                         <td className="py-3 px-4 font-bold">
                                           {sub.score !== null ? `${sub.score} / ${assignmentDetail.points}` : '-'}
+                                        </td>
+                                        <td className="py-3 px-4">
+                                          {editing ? (
+                                            <div className="space-y-1">
+                                              <div className="flex items-center space-x-1">
+                                                <input
+                                                  type="number" min={0} max={assignmentDetail.points || 100}
+                                                  value={gradeScore}
+                                                  onChange={e => setGradeScore(parseFloat(e.target.value) || 0)}
+                                                  placeholder={`/${assignmentDetail.points}`}
+                                                  className="w-20 border border-gray-300 rounded px-2 py-1 text-[14px]" autoFocus
+                                                />
+                                                <span className="text-gray-400 text-[14px]">/{assignmentDetail.points}</span>
+                                              </div>
+                                              <textarea
+                                                value={gradeFeedback}
+                                                onChange={e => setGradeFeedback(e.target.value)}
+                                                placeholder="Feedback (optional)"
+                                                rows={2}
+                                                className="w-full border border-gray-300 rounded px-2 py-1 text-[12px]"
+                                              />
+                                              <div className="flex items-center space-x-2">
+                                                <button disabled={savingGrade} onClick={handleSaveGrade}
+                                                  className="px-3 py-1 bg-[#008EE2] text-white text-[12px] rounded font-medium disabled:opacity-50">
+                                                  {savingGrade ? 'Saving…' : 'Save'}
+                                                </button>
+                                                <button onClick={() => { setGradingSubmissionId(null); setGradeScore(0); setGradeFeedback(''); }}
+                                                  className="px-3 py-1 text-gray-500 text-[12px]">Cancel</button>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <button
+                                              onClick={() => {
+                                                setGradingSubmissionId(sub.id);
+                                                setGradeScore(typeof sub.score === 'number' ? sub.score : 0);
+                                                setGradeFeedback(sub.feedback || '');
+                                              }}
+                                              className="text-[#008EE2] text-[14px] font-medium hover:underline">
+                                              {sub.status === 'GRADED' ? 'Edit grade' : 'Grade'}
+                                            </button>
+                                          )}
                                         </td>
                                       </tr>
                                     </React.Fragment>
