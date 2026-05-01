@@ -507,15 +507,17 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
 
                 let completedCount: number;
                 let currentModule: any;
-                if (ibaOverride) {
-                  // For IBA, derive from rotation schedule + per-student startDate
-                  completedCount = ibaOverride.completed;
-                  currentModule = ibaOverride.current;
-                } else if (hasSyncedProgress) {
+                if (hasSyncedProgress) {
+                  // Prefer authoritative student_progress + enrollment.currentModuleId
+                  // (matches the auditor/admin profile view; respects withdrawals).
                   completedCount = sp.filter((p: any) => p.status === 'COMPLETED').length;
                   currentModule = e.currentModuleId
                     ? modules.find((m: any) => m.id === e.currentModuleId)
                     : modules.find((m: any) => statusByModuleId.get(m.id) === 'IN_PROGRESS');
+                } else if (ibaOverride) {
+                  // Fallback for IBA students with no synced progress yet
+                  completedCount = ibaOverride.completed;
+                  currentModule = ibaOverride.current;
                 } else {
                   const completedModules = modules.filter((m: any) => {
                     if (!m.startDate) return false;
