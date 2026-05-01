@@ -5628,13 +5628,14 @@ function CourseView({ courseId }: { courseId: string }) {
                 );
               }
 
-              // Compute bifurcation data for each module
-              // Restrict per-module assessments to only the canonical two
-              // ("- Final", "- Participation") for every course that uses
-              // the dynamic gradebook. Hides Mid Term Exam, Exam 1,
-              // Participation (Assignment), Class Home Work, etc.
+              // Restrict per-module assessments to the canonical components
+              // for each course's syllabus. IBA uses Final + Participation;
+              // AC uses Final + Participation + Assignment + Quiz.
               const allowedSuffix = (s: string) => {
                 const t = s.trim();
+                if (course.code === 'AC') {
+                  return t === 'Final' || t === 'Participation' || t === 'Assignment' || t === 'Quiz';
+                }
                 return t === 'Final' || t === 'Participation';
               };
               // Specific assignment titles to always exclude. (Empty for now.)
