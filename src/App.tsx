@@ -4986,11 +4986,30 @@ function CourseView({ courseId }: { courseId: string }) {
                   ) : <div className="text-center text-gray-400 py-12">Assignment not found.</div>}
                 </div>
 
-              ) : (
-                /* Assignment List */
+              ) : (() => {
+                /* Assignment List — for student/auditor views, restrict to canonical
+                 * "<Module name> - <Final|Participation|Assignment|Quiz>" assignments
+                 * to match the Module Grades table and hide imported orphan/test rows. */
+                const allowedSuffixes = course.code === 'AC'
+                  ? new Set(['Final', 'Participation', 'Assignment', 'Quiz'])
+                  : course.code === 'CSW'
+                  ? new Set(['Final', 'Participation', 'Assignment'])
+                  : course.code === 'IBA'
+                  ? new Set(['Final', 'Participation'])
+                  : null;
+                const isPrivilegedViewer = effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN';
+                const visibleAssignments = (allowedSuffixes && !isPrivilegedViewer)
+                  ? (course.assignments || []).filter((a: any) => {
+                      const moduleName = course.modules?.find((m: any) => a.title.startsWith(m.name + ' - '))?.name;
+                      if (!moduleName) return false;
+                      const suffix = a.title.slice((moduleName + ' - ').length).trim();
+                      return allowedSuffixes.has(suffix);
+                    })
+                  : (course.assignments || []);
+                return (
                 <div className="border border-[#E1E1E1] rounded-sm overflow-hidden">
                   <div className="bg-[#F5F5F5] px-4 py-3 border-b border-[#E1E1E1] flex items-center justify-between">
-                    <span className="font-bold text-[16px]">Assignments ({course.assignments?.length || 0})</span>
+                    <span className="font-bold text-[16px]">Assignments ({visibleAssignments.length})</span>
                     {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
                       <div className="flex items-center space-x-2">
                         <button onClick={() => openBankFlow()}
@@ -5005,9 +5024,9 @@ function CourseView({ courseId }: { courseId: string }) {
                     )}
                   </div>
                   <div className="bg-white divide-y divide-[#E1E1E1]">
-                    {!course.assignments?.length ? (
+                    {!visibleAssignments.length ? (
                       <div className="p-8 text-center text-gray-400 text-sm">No assignments yet.</div>
-                    ) : course.assignments.map((a: any) => {
+                    ) : visibleAssignments.map((a: any) => {
                       const mySub = a.submissions?.find((s: any) => s.status === 'GRADED' && s.score !== null && s.score !== undefined)
                         || a.submissions?.find((s: any) => s.status === 'GRADED')
                         || a.submissions?.[0];
@@ -5050,7 +5069,8 @@ function CourseView({ courseId }: { courseId: string }) {
                     })}
                   </div>
                 </div>
-              )}
+                );
+              })()}
             </div>
           ) : activeSection === 'Question Banks' ? (
             <div className="max-w-5xl">
