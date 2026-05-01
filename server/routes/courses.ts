@@ -85,7 +85,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
           orderBy: { dueDate: 'asc' },
           include: {
             submissions: req.user!.role === 'STUDENT'
-              ? { where: { studentId: req.user!.userId }, select: { id: true, score: true, status: true, feedback: true } }
+              ? { where: { studentId: req.user!.userId }, select: { id: true, studentId: true, score: true, status: true, feedback: true } }
               : { select: { id: true, studentId: true, score: true, status: true } },
           },
         },
