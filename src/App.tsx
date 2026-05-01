@@ -6071,7 +6071,7 @@ function CourseView({ courseId }: { courseId: string }) {
                   {/* Course Header */}
                   <h1 className="text-[28px] font-medium text-[#2D3B45] mb-1">{course.name}</h1>
                   <p className="text-[16px] text-gray-500 mb-6">
-                    Total Hours: {totalHours} | {moduleData.length} Modules | {totalAssignments} Assessments | Weight: {(course.code === 'IBA' ? 100 : totalWeight).toFixed(2)}%
+                    Total Hours: {totalHours} | {moduleData.length} Modules | {totalAssignments} Assessments | Weight: {((course.code === 'IBA' || course.code === 'AC' || course.code === 'CSW') ? 100 : totalWeight).toFixed(2)}%
                   </p>
 
                   {/* Course Summary Cards */}
@@ -6252,7 +6252,7 @@ function CourseView({ courseId }: { courseId: string }) {
                           <tfoot>
                             <tr className="bg-[#2D3B45] text-white font-bold text-[16px]">
                               <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}>TOTAL</td>
-                              <td className="border border-[#3d4d5a] px-2 py-3 text-center">{(course.code === 'IBA' ? 100 : totalWeight).toFixed(2)}%</td>
+                              <td className="border border-[#3d4d5a] px-2 py-3 text-center">{((course.code === 'IBA' || course.code === 'AC' || course.code === 'CSW') ? 100 : totalWeight).toFixed(2)}%</td>
                               <td className="border border-[#3d4d5a] px-2 py-3 text-center">{totalAssignments} assessments</td>
                               {isStudentViewer && <>
                                 <td className="border border-[#3d4d5a] px-2 py-3" colSpan={2}></td>
