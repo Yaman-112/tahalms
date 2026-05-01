@@ -5772,6 +5772,107 @@ function CourseView({ courseId }: { courseId: string }) {
                 return e !== undefined && e <= Date.now();
               };
 
+              // AC weekday schedule. Each row lists the program module taught
+              // that week (and an optional filler MS module). A student covers
+              // a module once its scheduled date is between their startDate
+              // and today.
+              const AC_SCHEDULE: { date: string; modules: string[] }[] = [
+                { date: '2025-08-04', modules: ['Microsoft Word 2', 'Payroll Fundamentals 1'] },
+                { date: '2025-08-11', modules: ['Payroll Fundamentals 1'] },
+                { date: '2025-08-18', modules: ['Microsoft Excel 1 and Excel 2', 'Payroll Fundamental 2'] },
+                { date: '2025-08-25', modules: ['Payroll Fundamental 2'] },
+                { date: '2025-09-01', modules: ['Microsoft Outlook', 'Payroll Fundamental 2'] },
+                { date: '2025-09-08', modules: ['Microsoft Powerpoint', 'Office Procedures'] },
+                { date: '2025-09-15', modules: ['Microsoft Windows', 'Office Procedures'] },
+                { date: '2025-09-22', modules: ['Microsoft Word 2', 'Office Procedures'] },
+                { date: '2025-09-29', modules: ['Office Procedures'] },
+                { date: '2025-10-06', modules: ['Microsoft Excel 1 and Excel 2', 'Office Procedures'] },
+                { date: '2025-10-13', modules: ['Job Search'] },
+                { date: '2025-10-20', modules: ['Microsoft Outlook', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-10-27', modules: ['Microsoft Powerpoint', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-11-03', modules: ['Microsoft Windows', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-11-10', modules: ['Microsoft Word 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-11-17', modules: ['Microsoft Excel 1 and Excel 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-11-24', modules: ['Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-12-01', modules: ['Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-12-08', modules: ['Microsoft Outlook', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2025-12-15', modules: ['Microsoft Powerpoint', 'Computerized Accounting with Sage50/Sage300'] },
+                // 2025-12-22 WINTER BREAK
+                { date: '2025-12-29', modules: ['Microsoft Windows', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-01-05', modules: ['Microsoft Word 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-01-12', modules: ['Microsoft Excel 1 and Excel 2', 'Canadian Income Tax'] },
+                { date: '2026-01-19', modules: ['Canadian Income Tax'] },
+                { date: '2026-01-26', modules: ['Canadian Income Tax'] },
+                { date: '2026-02-02', modules: ['Microsoft Outlook', 'Canadian Income Tax'] },
+                { date: '2026-02-09', modules: ['Microsoft Powerpoint', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-02-16', modules: ['Microsoft Windows', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-02-23', modules: ['Microsoft Word 2', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-03-02', modules: ['Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-03-09', modules: ['Microsoft Excel 1 and Excel 2', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-03-16', modules: ['Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-03-23', modules: ['Microsoft Outlook', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-03-30', modules: ['Microsoft Powerpoint', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-04-06', modules: ['Microsoft Windows', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-04-13', modules: ['Microsoft Word 2', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-04-20', modules: ['Microsoft Excel 1 and Excel 2', 'Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-04-27', modules: ['Accounting Fundamentals and Book Keeping'] },
+                { date: '2026-05-04', modules: ['Computerized Accounting with Quickbooks'] },
+                { date: '2026-05-11', modules: ['Microsoft Outlook', 'Computerized Accounting with Quickbooks'] },
+                { date: '2026-05-18', modules: ['Microsoft Powerpoint', 'Computerized Accounting with Quickbooks'] },
+                { date: '2026-05-25', modules: ['Microsoft Windows', 'Computerized Accounting with Quickbooks'] },
+                { date: '2026-06-01', modules: ['Microsoft Word 2', 'Computerized Accounting with Quickbooks'] },
+                { date: '2026-06-08', modules: ['Microsoft Excel 1 and Excel 2', 'Computerized Accounting with Quickbooks'] },
+                { date: '2026-06-15', modules: ['Payroll Fundamentals 1'] },
+                { date: '2026-06-22', modules: ['Payroll Fundamentals 1'] },
+                { date: '2026-06-29', modules: ['Microsoft Outlook', 'Payroll Fundamental 2'] },
+                { date: '2026-07-06', modules: ['Microsoft Powerpoint', 'Payroll Fundamental 2'] },
+                { date: '2026-07-13', modules: ['Microsoft Windows', 'Payroll Fundamental 2'] },
+                { date: '2026-07-20', modules: ['Microsoft Word 2', 'Office Procedures'] },
+                { date: '2026-07-27', modules: ['Microsoft Excel 1 and Excel 2', 'Office Procedures'] },
+                { date: '2026-08-03', modules: ['Office Procedures'] },
+                { date: '2026-08-10', modules: ['Office Procedures'] },
+                { date: '2026-08-17', modules: ['Microsoft Outlook', 'Office Procedures'] },
+                { date: '2026-08-24', modules: ['Microsoft Powerpoint', 'Job Search'] },
+                { date: '2026-08-31', modules: ['Microsoft Windows', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-09-07', modules: ['Microsoft Word 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-09-14', modules: ['Microsoft Excel 1 and Excel 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-09-21', modules: ['Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-09-28', modules: ['Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-10-05', modules: ['Microsoft Outlook', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-10-12', modules: ['Microsoft Powerpoint', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-10-19', modules: ['Microsoft Windows', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-10-26', modules: ['Microsoft Word 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-11-02', modules: ['Microsoft Excel 1 and Excel 2', 'Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-11-09', modules: ['Computerized Accounting with Sage50/Sage300'] },
+                { date: '2026-11-16', modules: ['Canadian Income Tax'] },
+                { date: '2026-11-23', modules: ['Microsoft Outlook', 'Canadian Income Tax'] },
+                { date: '2026-11-30', modules: ['Microsoft Powerpoint', 'Canadian Income Tax'] },
+                { date: '2026-12-07', modules: ['Microsoft Windows', 'Canadian Income Tax'] },
+              ];
+              const acCoveredModules = (() => {
+                if (course.code !== 'AC') return null;
+                const startStr = (user as any)?.startDate;
+                if (!startStr) return null;
+                const start = new Date(startStr);
+                const today = new Date();
+                const set = new Set<string>();
+                for (const row of AC_SCHEDULE) {
+                  const d = new Date(row.date + 'T00:00:00Z');
+                  if (d.getTime() < start.getTime()) continue;
+                  if (d.getTime() > today.getTime()) continue;
+                  for (const m of row.modules) set.add(m);
+                }
+                return set;
+              })();
+              const acModuleCovered = (modName: string) => {
+                if (!acCoveredModules) return true;
+                const target = norm(modName);
+                for (const m of acCoveredModules) {
+                  if (norm(m) === target) return true;
+                }
+                return false;
+              };
+
               const moduleData = (course.modules || []).map((mod: any) => {
                 const modPrefix = norm(mod.name + ' - ');
                 let assignments = (course.assignments || []).filter((a: any) => {
@@ -5878,15 +5979,15 @@ function CourseView({ courseId }: { courseId: string }) {
                     const moduleGrades = moduleData.map((m: any) => {
                       let moduleScore = 0;
                       let moduleMax = 0;
-                      // Show whatever grades are recorded — modules without
-                      // submissions naturally render as —/<max>. The schedule
-                      // window is only used to mark in/out-of-window status.
-                      const inWindow = ibaModuleCovered(m.mod.name);
+                      // For AC, suppress scores for modules the student hasn't
+                      // reached yet per their schedule. IBA shows everything
+                      // recorded (its window check is informational only).
+                      const inWindow = course.code === 'AC' ? acModuleCovered(m.mod.name) : ibaModuleCovered(m.mod.name);
                       const assignmentGrades = m.assignments.map((a: any) => {
                         const sub = isStudentViewer
                           ? a.submissions?.find((s: any) => s.studentId === user?.id && s.status === 'GRADED')
                           : null;
-                        const score = isStudentViewer ? (sub?.score ?? null) : null;
+                        const score = isStudentViewer && (course.code !== 'AC' || inWindow) ? (sub?.score ?? null) : null;
                         if (score !== null) hasAnyGrade = true;
                         moduleScore += score ?? 0;
                         moduleMax += a.points;
