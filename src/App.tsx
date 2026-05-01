@@ -416,7 +416,15 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
           ) : (
             <div className="space-y-6 mb-8">
               {enrollments.map((e: any) => {
-                const modules = e.course?.modules || [];
+                const AC_FILLER_MODULES = new Set([
+                  'Microsoft Windows', 'Microsoft Word 2',
+                  'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
+                  'Microsoft Powerpoint',
+                ]);
+                const allModules = e.course?.modules || [];
+                const modules = e.course?.code === 'AC'
+                  ? allModules.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
+                  : allModules;
                 const totalMods = modules.length;
                 const now = new Date();
 
