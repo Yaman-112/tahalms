@@ -1787,7 +1787,12 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                         ) : null}
                                       </div>
                                       {totalMods > 0 && (() => {
-                                        const visible = enriched.filter((m: any) => m.state !== 'before_enrollment' && m.state !== 'unknown');
+                                        // Show: all completed + current + just the first upcoming
+                                        // (hides the long tail of rotational repeats / future cycles).
+                                        const completed = enriched.filter((m: any) => m.state === 'completed');
+                                        const current = enriched.filter((m: any) => m.state === 'current');
+                                        const upcomingOne = enriched.filter((m: any) => m.state === 'upcoming').slice(0, 1);
+                                        const visible = [...completed, ...current, ...upcomingOne];
                                         if (visible.length === 0) return (
                                           <div className="px-4 py-3 text-[12px] text-gray-500 italic">No modules to show.</div>
                                         );
