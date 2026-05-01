@@ -5895,12 +5895,13 @@ function CourseView({ courseId }: { courseId: string }) {
                       return { ...m, assignmentGrades, moduleScore, moduleMax, modulePct, contribution, inWindow };
                     });
 
-                    // Average % across attempted modules. For IBA we count any
-                    // module whose window has fully ended (even if the student
-                    // has no graded submissions — counts as 0%); the current
-                    // in-progress module is excluded. For non-IBA we keep the
-                    // simpler "any score present" rule.
+                    // A module counts as attempted if the student has any
+                    // submission against it (GRADED or MISSING). Modules with
+                    // no submission at all are excluded from the average.
                     const attemptedModules = moduleGrades.filter((m: any) => {
+                      if (isStudentViewer) {
+                        return m.assignments.some((a: any) => (a.submissions?.length || 0) > 0);
+                      }
                       if (course.code === 'IBA') {
                         return ibaModuleEnded(m.mod.name) ||
                           m.assignmentGrades.some((a: any) => a.score !== null);
