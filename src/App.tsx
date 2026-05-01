@@ -421,10 +421,20 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                   'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
                   'Microsoft Powerpoint',
                 ]);
+                const SAGE_COMBINED = 'Computerized Accounting with Sage50/Sage300';
                 const allModules = e.course?.modules || [];
-                // Use the FULL module count for the progress denominator (e.g. AC = 13).
-                // Fillers are still hidden from the timeline render below.
-                const modules = allModules;
+                // For AC: hide fillers and split the combined Sage module into
+                // Sage 50 + Sage 300 (per the program schedule). Each split
+                // entry references the original module via _origId.
+                const expandAC = (mods: any[]) => mods.flatMap((m: any) => {
+                  if (AC_FILLER_MODULES.has(m.name)) return [];
+                  if (m.name === SAGE_COMBINED) return [
+                    { ...m, id: m.id + '__s50', name: 'Computerized Accounting with Sage 50', _origId: m.id, position: m.position + 0.1 },
+                    { ...m, id: m.id + '__s300', name: 'Computerized Accounting with Sage 300', _origId: m.id, position: m.position + 0.2 },
+                  ];
+                  return [m];
+                });
+                const modules = e.course?.code === 'AC' ? expandAC(allModules) : allModules;
                 const totalMods = modules.length;
                 const now = new Date();
 
@@ -512,16 +522,20 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                 const hasSyncedProgress = sp.length > 0;
                 const statusByModuleId = new Map<string, string>(sp.map((p: any) => [p.moduleId, p.status]));
                 const startedByModuleId = new Map<string, string | null>(sp.map((p: any) => [p.moduleId, p.startedAt]));
+                // Resolve a (possibly virtual-split) module's underlying id for sp lookups.
+                const realId = (m: any) => m._origId || m.id;
 
                 let completedCount: number;
                 let currentModule: any;
                 if (hasSyncedProgress) {
                   // Prefer authoritative student_progress + enrollment.currentModuleId
                   // (matches the auditor/admin profile view; respects withdrawals).
-                  completedCount = sp.filter((p: any) => p.status === 'COMPLETED').length;
+                  // Counted against the visible/expanded module list so AC's
+                  // virtual Sage 50 + Sage 300 split each contributes 1.
+                  completedCount = modules.filter((m: any) => statusByModuleId.get(realId(m)) === 'COMPLETED').length;
                   currentModule = e.currentModuleId
-                    ? modules.find((m: any) => m.id === e.currentModuleId)
-                    : modules.find((m: any) => statusByModuleId.get(m.id) === 'IN_PROGRESS');
+                    ? modules.find((m: any) => realId(m) === e.currentModuleId)
+                    : modules.find((m: any) => statusByModuleId.get(realId(m)) === 'IN_PROGRESS');
                 } else if (ibaOverride) {
                   // Fallback for IBA students with no synced progress yet
                   completedCount = ibaOverride.completed;
@@ -594,8 +608,8 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         // whose actual cohort cycle differs from the canonical IBA_SCHED
                         // projection, this places their real completion dates correctly.
                         if (hasSyncedProgress) {
-                          const aSP = startedByModuleId.get(a.id);
-                          const bSP = startedByModuleId.get(b.id);
+                          const aSP = startedByModuleId.get(realId(a));
+                          const bSP = startedByModuleId.get(realId(b));
                           if (aSP && bSP) return new Date(aSP).getTime() - new Date(bSP).getTime();
                           if (aSP && !bSP) return -1;
                           if (!aSP && bSP) return 1;
@@ -620,7 +634,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                           if (now.getTime() >= w.start) return 'IN_PROGRESS';
                           return 'NOT_STARTED';
                         }
-                        if (hasSyncedProgress) return statusByModuleId.get(mod.id) || 'NOT_STARTED';
+                        if (hasSyncedProgress) return statusByModuleId.get(realId(mod)) || 'NOT_STARTED';
                         if (!mod.startDate) return 'NOT_STARTED';
                         const mStart = new Date(mod.startDate);
                         const nextMod = orderedModules[idx + 1];
@@ -664,7 +678,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                             const tipDate = ibaW
                               ? new Date(ibaW.start).toISOString()
                               : (hasSyncedProgress
-                                ? (startedByModuleId.get(mod.id) || null)
+                                ? (startedByModuleId.get(realId(mod)) || null)
                                 : (mod.startDate || null));
                             return (
                               <div key={mod.id} className="group relative flex-1" title={`${mod.name} — ${status}${tipDate ? ' (' + (status === 'COMPLETED' ? 'taught' : status === 'IN_PROGRESS' ? 'started' : 'starts') + ' ' + new Date(tipDate).toLocaleDateString() + ')' : ''}`}>
@@ -1634,9 +1648,19 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
                                     'Microsoft Powerpoint',
                                   ]);
-                                  // Full module list drives the progress denominator (AC = 13).
-                                  // Fillers are filtered out of the rendered list further below.
-                                  const modules = (e.course?.modules ?? []);
+                                  const SAGE_COMBINED = 'Computerized Accounting with Sage50/Sage300';
+                                  const allModules = (e.course?.modules ?? []);
+                                  // For AC: hide fillers + split Sage 50/300 into 2 visual entries.
+                                  const expandAC = (mods: any[]) => mods.flatMap((m: any) => {
+                                    if (AC_FILLER_MODULES.has(m.name)) return [];
+                                    if (m.name === SAGE_COMBINED) return [
+                                      { ...m, id: m.id + '__s50', name: 'Computerized Accounting with Sage 50', _origId: m.id, position: m.position + 0.1 },
+                                      { ...m, id: m.id + '__s300', name: 'Computerized Accounting with Sage 300', _origId: m.id, position: m.position + 0.2 },
+                                    ];
+                                    return [m];
+                                  });
+                                  const modules = e.course?.code === 'AC' ? expandAC(allModules) : allModules;
+                                  const realId = (m: any) => m._origId || m.id;
                                   const now = new Date();
                                   const sp: any[] = e.studentProgress || [];
                                   const hasSyncedProgress = sp.length > 0;
@@ -1709,7 +1733,7 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     // it reflects the student's actual cohort cycle (which may differ
                                     // from the canonical IBA_SCHED projection — e.g. earlier intakes).
                                     if (hasSyncedProgress) {
-                                      const p = spByModuleId.get(m.id);
+                                      const p = spByModuleId.get(realId(m));
                                       if (p?.startedAt) {
                                         const start = new Date(p.startedAt);
                                         const end = p.completedAt ? new Date(p.completedAt) : new Date(start.getTime() + 14 * 86400000);
@@ -1733,8 +1757,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     const w = modWindow(m);
                                     let state: 'completed' | 'current' | 'upcoming' | 'before_enrollment' | 'unknown' = 'unknown';
                                     if (hasSyncedProgress) {
-                                      const p = spByModuleId.get(m.id);
-                                      const isCurrent = e.currentModuleId === m.id || p?.status === 'IN_PROGRESS';
+                                      const p = spByModuleId.get(realId(m));
+                                      const isCurrent = e.currentModuleId === realId(m) || p?.status === 'IN_PROGRESS';
                                       if (isCurrent) state = 'current';
                                       else if (p?.status === 'COMPLETED') state = 'completed';
                                       else state = 'upcoming';
@@ -3059,10 +3083,18 @@ function CourseStudentDetailView({ studentId, courseId, onBack }: { studentId: s
     'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
     'Microsoft Powerpoint',
   ]);
+  const SAGE_COMBINED = 'Computerized Accounting with Sage50/Sage300';
   const allModules = enrollment?.course?.modules ?? [];
-  const modules = enrollment?.course?.code === 'AC'
-    ? allModules.filter((m: any) => !AC_FILLER_MODULES.has(m.name))
-    : allModules;
+  const expandAC = (mods: any[]) => mods.flatMap((m: any) => {
+    if (AC_FILLER_MODULES.has(m.name)) return [];
+    if (m.name === SAGE_COMBINED) return [
+      { ...m, id: m.id + '__s50', name: 'Computerized Accounting with Sage 50', _origId: m.id, position: m.position + 0.1 },
+      { ...m, id: m.id + '__s300', name: 'Computerized Accounting with Sage 300', _origId: m.id, position: m.position + 0.2 },
+    ];
+    return [m];
+  });
+  const modules = enrollment?.course?.code === 'AC' ? expandAC(allModules) : allModules;
+  const realId = (m: any) => m._origId || m.id;
   const sp = enrollment?.studentProgress ?? [];
   const completed = sp.filter((p: any) => p.status === 'COMPLETED').length;
   const inProg = sp.find((p: any) => p.status === 'IN_PROGRESS');
@@ -3135,7 +3167,7 @@ function CourseStudentDetailView({ studentId, courseId, onBack }: { studentId: s
             <tbody className="divide-y divide-[#E1E1E1]">
               {[...modules]
                 .map((m: any) => {
-                  const p = sp.find((x: any) => x.moduleId === m.id);
+                  const p = sp.find((x: any) => x.moduleId === realId(m));
                   return { ...m, _started: p?.startedAt || null, _completed: p?.completedAt || null, _status: p?.status || 'NOT_STARTED' };
                 })
                 .sort((a: any, b: any) => {
