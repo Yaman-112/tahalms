@@ -6840,11 +6840,15 @@ function CalendarView() {
 
       // Apply track filter
       if (evt.type === 'schedule' && trackFilter !== 'all' && evt.track !== trackFilter) continue;
-      // Withdrawn students: hide future schedule/class events
-      if (isWithdrawn && start.getTime() >= todayMs) continue;
 
       const cursor = new Date(start);
       while (cursor <= end) {
+        // Withdrawn students: hide each day that lies on or after today
+        // (schedule events span multiple days, so we have to gate per day).
+        if (isWithdrawn && cursor.getTime() >= todayMs) {
+          cursor.setDate(cursor.getDate() + 1);
+          continue;
+        }
         const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
         if (!eventsByDate.has(key)) eventsByDate.set(key, []);
         // Only add once per event per day (use start date for single-day display)
