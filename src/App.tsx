@@ -5875,15 +5875,15 @@ function CourseView({ courseId }: { courseId: string }) {
                     const moduleGrades = moduleData.map((m: any) => {
                       let moduleScore = 0;
                       let moduleMax = 0;
-                      // For IBA: if the student hasn't reached this module yet
-                      // per their schedule window, suppress all scores (display
-                      // —/<max> instead of any imported 0/<max>).
+                      // Show whatever grades are recorded — modules without
+                      // submissions naturally render as —/<max>. The schedule
+                      // window is only used to mark in/out-of-window status.
                       const inWindow = ibaModuleCovered(m.mod.name);
                       const assignmentGrades = m.assignments.map((a: any) => {
                         const sub = isStudentViewer
                           ? a.submissions?.find((s: any) => s.studentId === user?.id && s.status === 'GRADED')
                           : null;
-                        const score = isStudentViewer && inWindow ? (sub?.score ?? null) : null;
+                        const score = isStudentViewer ? (sub?.score ?? null) : null;
                         if (score !== null) hasAnyGrade = true;
                         moduleScore += score ?? 0;
                         moduleMax += a.points;
