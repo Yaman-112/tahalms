@@ -560,7 +560,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                       <div className="text-right flex items-center space-x-6">
                         {!/withdraw/i.test(profile?.campusStatus || '') && (
                           <div>
-                            <div className="text-2xl font-bold text-[#008EE2]">{Math.round(progress)}%</div>
+                            <div className="text-2xl font-bold text-[#008EE2]">{progress.toFixed(2)}%</div>
                             <div className="text-[14px] text-gray-400">progress</div>
                           </div>
                         )}
@@ -5098,7 +5098,7 @@ function CourseView({ courseId }: { courseId: string }) {
                           {showGrade ? (
                             <div className="mr-3 text-right">
                               <div className={`text-[18px] font-bold ${pctColor}`}>{mySub.score}/{a.points}</div>
-                              <div className="text-[12px] text-gray-500">{pct.toFixed(0)}%</div>
+                              <div className="text-[12px] text-gray-500">{pct.toFixed(2)}%</div>
                             </div>
                           ) : effectiveRole === 'STUDENT' && mySub?.status === 'MISSING' ? (
                             <div className="mr-3 text-right">
@@ -6220,12 +6220,12 @@ function CourseView({ courseId }: { courseId: string }) {
                             <div className="grid grid-cols-3 gap-6 items-center">
                               <div>
                                 <div className="text-[14px] uppercase tracking-wider opacity-70">Overall Course Grade</div>
-                                <div className="text-5xl font-bold mt-1">{overallGrade.toFixed(1)}%</div>
+                                <div className="text-5xl font-bold mt-1">{overallGrade.toFixed(2)}%</div>
                                 <div className="text-[11px] opacity-60 mt-1">Weighted, out of full course</div>
                               </div>
                               <div>
                                 <div className="text-[14px] uppercase tracking-wider opacity-70">Average %</div>
-                                <div className="text-5xl font-bold mt-1 text-[#4FC3F7]">{averagePct.toFixed(1)}%</div>
+                                <div className="text-5xl font-bold mt-1 text-[#4FC3F7]">{averagePct.toFixed(2)}%</div>
                                 <div className="text-[11px] opacity-60 mt-1">Mean across attempted modules</div>
                               </div>
                               <div className="text-right">
@@ -6280,7 +6280,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                     </td>
                                     <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold">
                                       {hasGrades ? (
-                                        <span className={`${m.modulePct >= 70 ? 'text-green-600' : m.modulePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{m.modulePct.toFixed(0)}%</span>
+                                        <span className={`${m.modulePct >= 70 ? 'text-green-600' : m.modulePct >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{m.modulePct.toFixed(2)}%</span>
                                       ) : '—'}
                                     </td>
                                     <td className="border border-[#E1E1E1] px-2 py-2.5 text-center font-bold text-[#008744]">
@@ -6434,7 +6434,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                 <td className="border border-[#3d4d5a] px-4 py-2.5" colSpan={2}>Module Total</td>
                                 <td className="border border-[#3d4d5a] px-4 py-2.5 text-center">{example.totalPts}</td>
                                 <td className="border border-[#3d4d5a] px-4 py-2.5 text-center">{totalScore} / {example.totalPts}</td>
-                                <td className="border border-[#3d4d5a] px-4 py-2.5 text-center">{modulePct.toFixed(0)}%</td>
+                                <td className="border border-[#3d4d5a] px-4 py-2.5 text-center">{modulePct.toFixed(2)}%</td>
                               </tr>
                             </tfoot>
                           </table>
@@ -6456,7 +6456,7 @@ function CourseView({ courseId }: { courseId: string }) {
                                 <div className="font-bold text-[24px] text-[#008744]">{contribution.toFixed(2)}%</div>
                               </div>
                             </div>
-                            <div className="text-center text-[16px] text-gray-400 mt-2">{modulePct.toFixed(0)}% × {example.weight}% = {contribution.toFixed(2)}%</div>
+                            <div className="text-center text-[16px] text-gray-400 mt-2">{modulePct.toFixed(2)}% × {example.weight}% = {contribution.toFixed(2)}%</div>
                           </div>
 
                           <p className="text-[16px] text-gray-500">
