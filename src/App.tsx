@@ -416,25 +416,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
           ) : (
             <div className="space-y-6 mb-8">
               {enrollments.map((e: any) => {
-                const AC_FILLER_MODULES = new Set([
-                  'Microsoft Windows', 'Microsoft Word 2',
-                  'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
-                  'Microsoft Powerpoint',
-                ]);
-                const SAGE_COMBINED = 'Computerized Accounting with Sage50/Sage300';
-                const allModules = e.course?.modules || [];
-                // For AC: hide fillers and split the combined Sage module into
-                // Sage 50 + Sage 300 (per the program schedule). Each split
-                // entry references the original module via _origId.
-                const expandAC = (mods: any[]) => mods.flatMap((m: any) => {
-                  if (AC_FILLER_MODULES.has(m.name)) return [];
-                  if (m.name === SAGE_COMBINED) return [
-                    { ...m, id: m.id + '__s50', name: 'Computerized Accounting with Sage 50', _origId: m.id, position: m.position + 0.1 },
-                    { ...m, id: m.id + '__s300', name: 'Computerized Accounting with Sage 300', _origId: m.id, position: m.position + 0.2 },
-                  ];
-                  return [m];
-                });
-                const modules = e.course?.code === 'AC' ? expandAC(allModules) : allModules;
+                const modules = e.course?.modules || [];
                 const totalMods = modules.length;
                 const now = new Date();
 
@@ -522,8 +504,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                 const hasSyncedProgress = sp.length > 0;
                 const statusByModuleId = new Map<string, string>(sp.map((p: any) => [p.moduleId, p.status]));
                 const startedByModuleId = new Map<string, string | null>(sp.map((p: any) => [p.moduleId, p.startedAt]));
-                // Resolve a (possibly virtual-split) module's underlying id for sp lookups.
-                const realId = (m: any) => m._origId || m.id;
+                const realId = (m: any) => m.id;
 
                 let completedCount: number;
                 let currentModule: any;
@@ -1648,19 +1629,8 @@ function AdminCoursesView({ onCourseSelect }: { onCourseSelect: (id: string) => 
                                     'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
                                     'Microsoft Powerpoint',
                                   ]);
-                                  const SAGE_COMBINED = 'Computerized Accounting with Sage50/Sage300';
-                                  const allModules = (e.course?.modules ?? []);
-                                  // For AC: hide fillers + split Sage 50/300 into 2 visual entries.
-                                  const expandAC = (mods: any[]) => mods.flatMap((m: any) => {
-                                    if (AC_FILLER_MODULES.has(m.name)) return [];
-                                    if (m.name === SAGE_COMBINED) return [
-                                      { ...m, id: m.id + '__s50', name: 'Computerized Accounting with Sage 50', _origId: m.id, position: m.position + 0.1 },
-                                      { ...m, id: m.id + '__s300', name: 'Computerized Accounting with Sage 300', _origId: m.id, position: m.position + 0.2 },
-                                    ];
-                                    return [m];
-                                  });
-                                  const modules = e.course?.code === 'AC' ? expandAC(allModules) : allModules;
-                                  const realId = (m: any) => m._origId || m.id;
+                                  const modules = (e.course?.modules ?? []);
+                                  const realId = (m: any) => m.id;
                                   const now = new Date();
                                   const sp: any[] = e.studentProgress || [];
                                   const hasSyncedProgress = sp.length > 0;
@@ -3078,23 +3048,8 @@ function CourseStudentDetailView({ studentId, courseId, onBack }: { studentId: s
 
   if (profileLoading || !profile) return <LoadingSpinner />;
   const enrollment = (profile.enrollments || []).find((e: any) => e.course?.id === courseId);
-  const AC_FILLER_MODULES = new Set([
-    'Microsoft Windows', 'Microsoft Word 2',
-    'Microsoft Excel 1 and Excel 2', 'Microsoft Outlook',
-    'Microsoft Powerpoint',
-  ]);
-  const SAGE_COMBINED = 'Computerized Accounting with Sage50/Sage300';
-  const allModules = enrollment?.course?.modules ?? [];
-  const expandAC = (mods: any[]) => mods.flatMap((m: any) => {
-    if (AC_FILLER_MODULES.has(m.name)) return [];
-    if (m.name === SAGE_COMBINED) return [
-      { ...m, id: m.id + '__s50', name: 'Computerized Accounting with Sage 50', _origId: m.id, position: m.position + 0.1 },
-      { ...m, id: m.id + '__s300', name: 'Computerized Accounting with Sage 300', _origId: m.id, position: m.position + 0.2 },
-    ];
-    return [m];
-  });
-  const modules = enrollment?.course?.code === 'AC' ? expandAC(allModules) : allModules;
-  const realId = (m: any) => m._origId || m.id;
+  const modules = enrollment?.course?.modules ?? [];
+  const realId = (m: any) => m.id;
   const sp = enrollment?.studentProgress ?? [];
   const completed = sp.filter((p: any) => p.status === 'COMPLETED').length;
   const inProg = sp.find((p: any) => p.status === 'IN_PROGRESS');
