@@ -3912,7 +3912,7 @@ function CourseView({ courseId }: { courseId: string }) {
     { label: 'Home' }, { label: 'Announcements' }, { label: 'Assignments' },
     { label: 'Question Banks' },
     { label: 'Grades' }, { label: 'People' }, { label: 'Pages' },
-    { label: 'Files' }, { label: 'Syllabus' }, { label: 'Rubrics' },
+    { label: 'Files' }, { label: 'Rubrics' },
     { label: 'Quizzes' }, { label: 'Settings' }
   ];
 
@@ -5160,7 +5160,7 @@ function CourseView({ courseId }: { courseId: string }) {
               // CSW: static syllabus reference table (display-only).
               // CSW: static syllabus reference only for non-student viewers.
               // Students get the dynamic Module Grades view (same as IBA/AC).
-              if (course.code === 'CSW' && effectiveRole !== 'STUDENT') {
+              if (course.code === 'CSW' && effectiveRole === 'ADMIN') {
                 const CSW_TABLE: { module: string; weight: number; items: { name: string; pts: number }[] }[] = [
                   { module: 'Essential Skills',                                weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
                   { module: 'Microsoft Windows',                               weight: 3.70, items: [{ name: 'Final', pts: 90 }, { name: 'Participation', pts: 10 }] },
@@ -5228,7 +5228,7 @@ function CourseView({ courseId }: { courseId: string }) {
               // AC: static syllabus reference table (display-only) for non-student
               // viewers. Students fall through to the dynamic Module Grades view
               // (same as IBA) so they see their actual per-assignment scores.
-              if (course.code === 'AC' && effectiveRole !== 'STUDENT') {
+              if (course.code === 'AC' && effectiveRole === 'ADMIN') {
                 const AC_TABLE: { module: string; weight: number; hours: number; items: { name: string; pts: number; pct: number }[] }[] = [
                   { module: 'Microsoft Windows',                          weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
                   { module: 'Microsoft Word 2',                           weight: 1.96,  hours: 20,  items: [{ name: 'Final', pts: 90, pct: 90 }, { name: 'Participation', pts: 10, pct: 10 }] },
@@ -5441,7 +5441,7 @@ function CourseView({ courseId }: { courseId: string }) {
               // PSW: render a fixed reference table (display-only, not linked
               // to assignments / submissions). Used only for the static view
               // of weights and assessment items per the program syllabus.
-              if (course.code === 'PSW') {
+              if (course.code === 'PSW' && effectiveRole === 'ADMIN') {
                 const PSW_TABLE: { module: string; weight: number; hours: number; items: { name: string; pts: number; qty: number; note: string }[] }[] = [
                   { module: 'PSW Foundations', weight: 7.86, hours: 55, items: [
                     { name: 'PSW Foundations - Theory', pts: 60, qty: 3, note: '60% of module' },
