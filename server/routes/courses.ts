@@ -77,17 +77,42 @@ router.get('/', async (req: AuthRequest, res) => {
 // GET /api/courses/:id — get single course with details
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
+    // For TEACHER: pre-resolve batch codes they teach in this course so
+    // submissions can be scoped to their own students only.
+    let teacherBatchCodes: string[] | null = null;
+    if (req.user!.role === 'TEACHER') {
+      const myBatches = await prisma.batch.findMany({
+        where: { teacherId: req.user!.userId, courseId: req.params.id },
+        select: { batchCode: true },
+      });
+      teacherBatchCodes = myBatches.map(b => b.batchCode);
+    }
+
+    const studentSubmissionFilter = req.user!.role === 'STUDENT'
+      ? { where: { studentId: req.user!.userId }, select: { id: true, studentId: true, score: true, status: true, feedback: true } }
+      : req.user!.role === 'TEACHER'
+      ? {
+          where: {
+            student: {
+              enrollments: {
+                some: {
+                  courseId: req.params.id,
+                  batchCode: { in: teacherBatchCodes || [] },
+                },
+              },
+            },
+          },
+          select: { id: true, studentId: true, score: true, status: true },
+        }
+      : { select: { id: true, studentId: true, score: true, status: true } };
+
     const course = await prisma.course.findUnique({
       where: { id: req.params.id },
       include: {
         modules: { orderBy: { position: 'asc' } },
         assignments: {
           orderBy: { dueDate: 'asc' },
-          include: {
-            submissions: req.user!.role === 'STUDENT'
-              ? { where: { studentId: req.user!.userId }, select: { id: true, studentId: true, score: true, status: true, feedback: true } }
-              : { select: { id: true, studentId: true, score: true, status: true } },
-          },
+          include: { submissions: studentSubmissionFilter as any },
         },
         enrollments: {
           include: {
