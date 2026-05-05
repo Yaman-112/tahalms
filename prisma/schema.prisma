@@ -235,6 +235,7 @@ model Module {
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   files  CourseFile[]
+  assignments Assignment[]
 
   @@map("modules")
 }
@@ -286,6 +287,7 @@ enum QuestionType {
 model Assignment {
   id             String           @id @default(cuid())
   courseId        String           @map("course_id")
+  moduleId       String?          @map("module_id")
   title          String
   description    String?
   type           AssignmentType   @default(ASSIGNMENT)
@@ -306,10 +308,12 @@ model Assignment {
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
   course      Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module      Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   submissions Submission[]
   questions   Question[]
   targets     AssignmentTarget[]
 
+  @@index([moduleId])
   @@map("assignments")
 }
 

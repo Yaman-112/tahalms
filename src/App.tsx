@@ -3466,6 +3466,7 @@ function CourseView({ courseId }: { courseId: string }) {
   const [newAssignFormats, setNewAssignFormats] = useState('.pdf,.doc,.docx');
   const [newAssignPublished, setNewAssignPublished] = useState(true);
   const [newAssignFile, setNewAssignFile] = useState<File | null>(null);
+  const [newAssignModuleId, setNewAssignModuleId] = useState<string>('');
   const [creating, setCreating] = useState(false);
 
   // Create-from-bank flow state
@@ -3570,6 +3571,7 @@ function CourseView({ courseId }: { courseId: string }) {
       // Existing FILE-based creation
       const formData = new FormData();
       formData.append('courseId', courseId);
+      if (newAssignModuleId) formData.append('moduleId', newAssignModuleId);
       formData.append('title', newAssignTitle);
       formData.append('description', newAssignDesc);
       formData.append('instructions', newAssignInstructions);
@@ -3590,6 +3592,7 @@ function CourseView({ courseId }: { courseId: string }) {
       // Quiz-based creation: create assignment, then POST questions
       const formData = new FormData();
       formData.append('courseId', courseId);
+      if (newAssignModuleId) formData.append('moduleId', newAssignModuleId);
       formData.append('title', newAssignTitle);
       formData.append('description', newAssignDesc);
       formData.append('instructions', newAssignInstructions);
@@ -3642,22 +3645,38 @@ function CourseView({ courseId }: { courseId: string }) {
     setNewAssignPublished(true); setNewAssignFile(null);
     setNewAssignFormat('FILE'); setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
     setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
+    setNewAssignModuleId('');
     setBuilderQuestions([]);
   };
 
   const loadTargetData = async () => {
     if (courseBatches.length > 0 || courseStudents.length > 0) return; // cached
+
+    // Teachers can only target their own batches; admins see all.
+    let allowedBatchCodes: Set<string> | null = null;
+    if (user?.role === 'TEACHER') {
+      const batchesRes = await api<any>(`/batches?courseId=${courseId}`);
+      if (batchesRes.success) {
+        const myBatches = (batchesRes.data || []).filter((b: any) => b.teacherId === user?.id);
+        allowedBatchCodes = new Set(myBatches.map((b: any) => b.batchCode));
+      } else {
+        allowedBatchCodes = new Set();
+      }
+    }
+
     const enrollsRes = await api<any>(`/enrollments?courseId=${courseId}&limit=5000`);
     if (enrollsRes.success) {
       const enrolls = enrollsRes.data?.enrollments || [];
       const batchSet = new Map<string, { batchCode: string; count: number }>();
       const studentMap = new Map<string, any>();
       for (const e of enrolls) {
-        if (e.batchCode) {
+        if (e.batchCode && (!allowedBatchCodes || allowedBatchCodes.has(e.batchCode))) {
           const cur = batchSet.get(e.batchCode);
           if (cur) cur.count++; else batchSet.set(e.batchCode, { batchCode: e.batchCode, count: 1 });
         }
-        if (e.user) studentMap.set(e.user.id, e.user);
+        if (e.user && (!allowedBatchCodes || (e.batchCode && allowedBatchCodes.has(e.batchCode)))) {
+          studentMap.set(e.user.id, e.user);
+        }
       }
       setCourseBatches([...batchSet.values()].sort((a, b) => a.batchCode.localeCompare(b.batchCode)));
       setCourseStudents([...studentMap.values()].sort((a, b) => `${a.firstName} ${a.lastName}`.localeCompare(`${b.firstName} ${b.lastName}`)));
@@ -4185,6 +4204,17 @@ function CourseView({ courseId }: { courseId: string }) {
                           </button>
                         ))}
                       </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Module</label>
+                      <select value={newAssignModuleId} onChange={e => setNewAssignModuleId(e.target.value)}
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2] bg-white">
+                        <option value="">— No module —</option>
+                        {(course.modules || []).map((m: any) => (
+                          <option key={m.id} value={m.id}>{m.name}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>

@@ -302,7 +302,7 @@ router.get('/:id/attachment', async (req: AuthRequest, res) => {
 // POST /api/assignments — create with optional file (teacher/admin)
 router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (req: AuthRequest, res) => {
   try {
-    const { courseId, title, description, type, points, dueDate, instructions, allowedFormats, maxFileSize } = req.body;
+    const { courseId, moduleId, title, description, type, points, dueDate, instructions, allowedFormats, maxFileSize } = req.body;
 
     if (!courseId || !title) {
       return error(res, 'courseId and title are required');
@@ -319,6 +319,7 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (
     const assignment = await prisma.assignment.create({
       data: {
         courseId,
+        moduleId: moduleId || null,
         title,
         description: description || null,
         type: type?.toUpperCase() === 'QUIZ' ? 'QUIZ' : 'ASSIGNMENT',
@@ -340,8 +341,22 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (
       if (Array.isArray(v)) return v.filter(Boolean);
       try { const p = JSON.parse(v); return Array.isArray(p) ? p.filter(Boolean) : []; } catch { return []; }
     };
-    const targetBatches = parseList(req.body.targetBatches);
+    let targetBatches = parseList(req.body.targetBatches);
     const targetStudents = parseList(req.body.targetStudents);
+
+    if (req.user!.role === 'TEACHER' && targetBatches.length > 0) {
+      const owned = await prisma.batch.findMany({
+        where: { courseId, teacherId: req.user!.userId, batchCode: { in: targetBatches } },
+        select: { batchCode: true },
+      });
+      const ownedSet = new Set(owned.map(b => b.batchCode));
+      const rejected = targetBatches.filter(b => !ownedSet.has(b));
+      if (rejected.length > 0) {
+        return error(res, `Not allowed to target batches: ${rejected.join(', ')}`, 403);
+      }
+      targetBatches = [...ownedSet];
+    }
+
     if (targetBatches.length > 0 || targetStudents.length > 0) {
       await prisma.assignmentTarget.createMany({
         data: [
@@ -460,7 +475,7 @@ router.get('/:id/questions', requireRole('ADMIN', 'TEACHER'), async (req: AuthRe
 router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
   try {
     const {
-      sourceAssignmentId, questionIds, courseId, title, description, type, format,
+      sourceAssignmentId, questionIds, courseId, moduleId, title, description, type, format,
       points, dueDate, instructions, timeLimit, shuffleQuestions, showResults,
       negativeMarking, targetBatches, targetStudents,
     } = req.body;
@@ -490,6 +505,7 @@ router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthReque
     const newAssignment = await prisma.assignment.create({
       data: {
         courseId,
+        moduleId: moduleId || null,
         title,
         description: description || null,
         type: type?.toUpperCase() === 'QUIZ' ? 'QUIZ' : 'ASSIGNMENT',
