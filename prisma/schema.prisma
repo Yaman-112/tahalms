@@ -236,8 +236,23 @@ model Module {
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   files  CourseFile[]
   assignments Assignment[]
+  budgets ModuleAssessmentBudget[]
 
   @@map("modules")
+}
+
+model ModuleAssessmentBudget {
+  id         String         @id @default(cuid())
+  moduleId   String         @map("module_id")
+  kind       AssessmentKind
+  maxPoints  Float          @map("max_points")
+  createdAt  DateTime       @default(now()) @map("created_at")
+  updatedAt  DateTime       @updatedAt @map("updated_at")
+
+  module Module @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, kind])
+  @@map("module_assessment_budgets")
 }
 
 // ─── COURSE FILES (shared across all batches of a course) ─
@@ -279,6 +294,13 @@ enum AssignmentFormat {
   MIXED      // Both MCQ and theory
 }
 
+enum AssessmentKind {
+  FINAL
+  PARTICIPATION
+  ASSIGNMENT
+  QUIZ
+}
+
 enum QuestionType {
   MCQ
   THEORY
@@ -288,6 +310,7 @@ model Assignment {
   id             String           @id @default(cuid())
   courseId        String           @map("course_id")
   moduleId       String?          @map("module_id")
+  assessmentKind AssessmentKind?  @map("assessment_kind")
   title          String
   description    String?
   type           AssignmentType   @default(ASSIGNMENT)

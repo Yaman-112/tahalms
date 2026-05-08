@@ -302,10 +302,40 @@ router.get('/:id/attachment', async (req: AuthRequest, res) => {
 // POST /api/assignments — create with optional file (teacher/admin)
 router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (req: AuthRequest, res) => {
   try {
-    const { courseId, moduleId, title, description, type, points, dueDate, instructions, allowedFormats, maxFileSize } = req.body;
+    const { courseId, moduleId, assessmentKind, title, description, type, points, dueDate, instructions, allowedFormats, maxFileSize } = req.body;
 
     if (!courseId || !title) {
       return error(res, 'courseId and title are required');
+    }
+
+    // Per-module / per-kind point cap enforcement.
+    // If the module has any budget rows, the caller MUST specify a moduleId AND
+    // an assessmentKind, and the requested points must fit in the remaining budget.
+    const kindUpper = (assessmentKind || '').toString().toUpperCase();
+    const validKind = ['FINAL', 'PARTICIPATION', 'ASSIGNMENT', 'QUIZ'].includes(kindUpper) ? kindUpper : null;
+    const ptsNum = parseFloat(points) || 0;
+    if (moduleId) {
+      const budgetCount = await prisma.moduleAssessmentBudget.count({ where: { moduleId } });
+      if (budgetCount > 0) {
+        if (!validKind) {
+          return error(res, 'assessmentKind is required for this module (FINAL, PARTICIPATION, ASSIGNMENT, or QUIZ)');
+        }
+        const budget = await prisma.moduleAssessmentBudget.findUnique({
+          where: { moduleId_kind: { moduleId, kind: validKind as any } },
+        });
+        if (!budget) {
+          return error(res, `Module does not allow assessment kind "${validKind}"`);
+        }
+        const used = await prisma.assignment.aggregate({
+          where: { moduleId, assessmentKind: validKind as any },
+          _sum: { points: true },
+        });
+        const usedPts = used._sum.points || 0;
+        const remaining = budget.maxPoints - usedPts;
+        if (ptsNum > remaining + 0.001) {
+          return error(res, `Points (${ptsNum}) exceed remaining budget for ${validKind} (${remaining} of ${budget.maxPoints} left)`);
+        }
+      }
     }
 
     // Save file to assignments subdirectory
@@ -320,6 +350,7 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (
       data: {
         courseId,
         moduleId: moduleId || null,
+        assessmentKind: validKind as any,
         title,
         description: description || null,
         type: type?.toUpperCase() === 'QUIZ' ? 'QUIZ' : 'ASSIGNMENT',
@@ -475,7 +506,7 @@ router.get('/:id/questions', requireRole('ADMIN', 'TEACHER'), async (req: AuthRe
 router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
   try {
     const {
-      sourceAssignmentId, questionIds, courseId, moduleId, title, description, type, format,
+      sourceAssignmentId, questionIds, courseId, moduleId, assessmentKind, title, description, type, format,
       points, dueDate, instructions, timeLimit, shuffleQuestions, showResults,
       negativeMarking, targetBatches, targetStudents,
     } = req.body;
@@ -502,10 +533,34 @@ router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthReque
       ? points
       : chosen.reduce((s, q) => s + (q.points || 0), 0);
 
+    // Per-module / per-kind point cap enforcement (same as POST /).
+    const kindUpper = (assessmentKind || '').toString().toUpperCase();
+    const validKind = ['FINAL', 'PARTICIPATION', 'ASSIGNMENT', 'QUIZ'].includes(kindUpper) ? kindUpper : null;
+    if (moduleId) {
+      const budgetCount = await prisma.moduleAssessmentBudget.count({ where: { moduleId } });
+      if (budgetCount > 0) {
+        if (!validKind) return error(res, 'assessmentKind is required for this module');
+        const budget = await prisma.moduleAssessmentBudget.findUnique({
+          where: { moduleId_kind: { moduleId, kind: validKind as any } },
+        });
+        if (!budget) return error(res, `Module does not allow assessment kind "${validKind}"`);
+        const used = await prisma.assignment.aggregate({
+          where: { moduleId, assessmentKind: validKind as any },
+          _sum: { points: true },
+        });
+        const usedPts = used._sum.points || 0;
+        const remaining = budget.maxPoints - usedPts;
+        if (totalPoints > remaining + 0.001) {
+          return error(res, `Points (${totalPoints}) exceed remaining budget for ${validKind} (${remaining} of ${budget.maxPoints} left)`);
+        }
+      }
+    }
+
     const newAssignment = await prisma.assignment.create({
       data: {
         courseId,
         moduleId: moduleId || null,
+        assessmentKind: validKind as any,
         title,
         description: description || null,
         type: type?.toUpperCase() === 'QUIZ' ? 'QUIZ' : 'ASSIGNMENT',

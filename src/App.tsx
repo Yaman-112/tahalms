@@ -3467,6 +3467,9 @@ function CourseView({ courseId }: { courseId: string }) {
   const [newAssignPublished, setNewAssignPublished] = useState(true);
   const [newAssignFile, setNewAssignFile] = useState<File | null>(null);
   const [newAssignModuleId, setNewAssignModuleId] = useState<string>('');
+  const [newAssignKind, setNewAssignKind] = useState<'' | 'FINAL' | 'PARTICIPATION' | 'ASSIGNMENT' | 'QUIZ'>('');
+  const [moduleBudgets, setModuleBudgets] = useState<Array<{ kind: string; maxPoints: number; used: number; remaining: number }>>([]);
+  const [moduleHasBudgets, setModuleHasBudgets] = useState<boolean>(false);
   const [creating, setCreating] = useState(false);
 
   // Create-from-bank flow state
@@ -3572,6 +3575,7 @@ function CourseView({ courseId }: { courseId: string }) {
       const formData = new FormData();
       formData.append('courseId', courseId);
       if (newAssignModuleId) formData.append('moduleId', newAssignModuleId);
+      if (newAssignKind) formData.append('assessmentKind', newAssignKind);
       formData.append('title', newAssignTitle);
       formData.append('description', newAssignDesc);
       formData.append('instructions', newAssignInstructions);
@@ -3593,6 +3597,7 @@ function CourseView({ courseId }: { courseId: string }) {
       const formData = new FormData();
       formData.append('courseId', courseId);
       if (newAssignModuleId) formData.append('moduleId', newAssignModuleId);
+      if (newAssignKind) formData.append('assessmentKind', newAssignKind);
       formData.append('title', newAssignTitle);
       formData.append('description', newAssignDesc);
       formData.append('instructions', newAssignInstructions);
@@ -3646,8 +3651,43 @@ function CourseView({ courseId }: { courseId: string }) {
     setNewAssignFormat('FILE'); setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
     setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
     setNewAssignModuleId('');
+    setNewAssignKind('');
+    setModuleBudgets([]);
+    setModuleHasBudgets(false);
     setBuilderQuestions([]);
   };
+
+  // Load per-module budgets whenever the selected module changes.
+  useEffect(() => {
+    if (!newAssignModuleId) {
+      setModuleBudgets([]); setModuleHasBudgets(false); setNewAssignKind('');
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const res = await api<any>(`/modules/${newAssignModuleId}/budgets`);
+      if (cancelled) return;
+      if (res.success && res.data?.hasBudgets) {
+        setModuleBudgets(res.data.budgets || []);
+        setModuleHasBudgets(true);
+      } else {
+        setModuleBudgets([]); setModuleHasBudgets(false); setNewAssignKind('');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [newAssignModuleId]);
+
+  // Clamp points whenever the selected kind or its remaining budget changes.
+  const remainingForKind = (() => {
+    if (!newAssignKind) return null;
+    const b = moduleBudgets.find(x => x.kind === newAssignKind);
+    return b ? b.remaining : null;
+  })();
+  useEffect(() => {
+    if (remainingForKind != null && newAssignPoints > remainingForKind) {
+      setNewAssignPoints(remainingForKind);
+    }
+  }, [remainingForKind]);
 
   const loadTargetData = async () => {
     if (courseBatches.length > 0 || courseStudents.length > 0) return; // cached
@@ -4206,16 +4246,38 @@ function CourseView({ courseId }: { courseId: string }) {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-bold text-[#2D3B45] mb-1">Module</label>
-                      <select value={newAssignModuleId} onChange={e => setNewAssignModuleId(e.target.value)}
-                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2] bg-white">
-                        <option value="">— No module —</option>
-                        {(course.modules || []).map((m: any) => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </select>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Module {moduleHasBudgets && <span className="text-red-500">*</span>}</label>
+                        <select value={newAssignModuleId} onChange={e => setNewAssignModuleId(e.target.value)}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2] bg-white">
+                          <option value="">— No module —</option>
+                          {(course.modules || []).map((m: any) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Assessment Kind {moduleHasBudgets && <span className="text-red-500">*</span>}</label>
+                        <select value={newAssignKind} onChange={e => setNewAssignKind(e.target.value as any)}
+                          disabled={!moduleHasBudgets}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2] bg-white disabled:bg-gray-100">
+                          <option value="">{moduleHasBudgets ? '— Select kind —' : 'Pick a module with budgets first'}</option>
+                          {moduleBudgets.map(b => (
+                            <option key={b.kind} value={b.kind} disabled={b.remaining <= 0}>
+                              {b.kind} ({b.remaining} of {b.maxPoints} remaining)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
+
+                    {moduleHasBudgets && newAssignKind && remainingForKind != null && (
+                      <div className={`text-sm rounded px-3 py-2 ${remainingForKind <= 0 ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#2D3B45]'}`}>
+                        <span className="font-bold">{newAssignKind}</span> budget for this module: <span className="font-bold">{remainingForKind}</span> of <span className="font-bold">{moduleBudgets.find(b => b.kind === newAssignKind)?.maxPoints}</span> points remaining.
+                        {remainingForKind <= 0 && ' — all points already allocated.'}
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-bold text-[#2D3B45] mb-1">Title *</label>
@@ -4237,8 +4299,19 @@ function CourseView({ courseId }: { courseId: string }) {
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Points *</label>
-                        <input type="number" value={newAssignPoints} onChange={e => setNewAssignPoints(Number(e.target.value))}
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">
+                          Points *
+                          {remainingForKind != null && (
+                            <span className="ml-2 text-xs font-normal text-gray-500">(max {remainingForKind})</span>
+                          )}
+                        </label>
+                        <input type="number" value={newAssignPoints}
+                          onChange={e => {
+                            const v = Number(e.target.value);
+                            const capped = remainingForKind != null ? Math.min(v, remainingForKind) : v;
+                            setNewAssignPoints(capped);
+                          }}
+                          max={remainingForKind != null ? remainingForKind : undefined}
                           className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" min={0} />
                       </div>
                       <div>
@@ -4499,7 +4572,8 @@ function CourseView({ courseId }: { courseId: string }) {
                     <div className="flex items-center space-x-3 pt-4 border-t border-[#E1E1E1]">
                       <button onClick={handleCreateAssignment} disabled={!newAssignTitle || creating || (newAssignFormat !== 'FILE' && builderQuestions.length === 0) ||
                         (bankTargetMode === 'BATCH' && bankTargetBatches.size === 0) ||
-                        (bankTargetMode === 'STUDENT' && bankTargetStudents.size === 0)}
+                        (bankTargetMode === 'STUDENT' && bankTargetStudents.size === 0) ||
+                        (moduleHasBudgets && (!newAssignModuleId || !newAssignKind || newAssignPoints <= 0 || (remainingForKind != null && newAssignPoints > remainingForKind)))}
                         className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
                         {creating ? 'Creating...' : 'Create Assignment'}
                       </button>

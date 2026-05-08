@@ -19,6 +19,7 @@ import dashboardRoutes from './routes/dashboard';
 import questionRoutes from './routes/questions';
 import fileRoutes from './routes/files';
 import analyticsRoutes from './routes/analytics';
+import moduleRoutes from './routes/modules';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -67,6 +68,7 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/modules', moduleRoutes);
 app.use('/api', fileRoutes);
 
 // Magic share-link landing page. Drops the JWT into localStorage and
