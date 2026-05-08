@@ -4,7 +4,7 @@
  * TAHA Canvas LMS v2.0
  */
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   LayoutDashboard, Book, Calendar, Inbox, Clock, HelpCircle,
   ChevronLeft, Plus, NotebookPen, MoreVertical, ChevronRight,
