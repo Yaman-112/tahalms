@@ -3213,6 +3213,7 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
   // For teachers, filter to batches they actually teach.
   const { data: dashData } = useApi<any>(userRole === 'TEACHER' ? '/dashboard' : null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
   if (loading) return <LoadingSpinner />;
   if (selectedStudentId) {
     return <CourseStudentDetailView studentId={selectedStudentId} courseId={courseId} onBack={() => setSelectedStudentId(null)} />;
@@ -3223,9 +3224,22 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
       ? dashData.batches.filter((b: any) => b.course?.id === courseId).map((b: any) => b.batchCode)
       : []
   );
-  const visible = userRole === 'TEACHER'
+  const scoped = userRole === 'TEACHER'
     ? allEnrollments.filter((e: any) => e.batchCode && teacherBatchCodes.has(e.batchCode))
     : allEnrollments;
+
+  const q = search.trim().toLowerCase();
+  const visible = q
+    ? scoped.filter((e: any) => {
+        const u = e.user || {};
+        return (
+          `${u.firstName ?? ''} ${u.lastName ?? ''}`.toLowerCase().includes(q) ||
+          (u.email || '').toLowerCase().includes(q) ||
+          (u.vNumber || '').toLowerCase().includes(q) ||
+          (e.batchCode || '').toLowerCase().includes(q)
+        );
+      })
+    : scoped;
 
   // Group by batchCode
   const byBatch = new Map<string, any[]>();
@@ -3240,10 +3254,25 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-[#2D3B45]">People</h2>
-        <span className="text-[14px] text-gray-500">{visible.length} student{visible.length === 1 ? '' : 's'} across {batchKeys.length} batch{batchKeys.length === 1 ? '' : 'es'}</span>
+        <span className="text-[14px] text-gray-500">
+          {q
+            ? <>Showing {visible.length} of {scoped.length} student{scoped.length === 1 ? '' : 's'}</>
+            : <>{visible.length} student{visible.length === 1 ? '' : 's'} across {batchKeys.length} batch{batchKeys.length === 1 ? '' : 'es'}</>}
+        </span>
+      </div>
+      <div className="relative">
+        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, email, student ID, or batch…"
+          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+        {q && (
+          <button onClick={() => setSearch('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+            Clear
+          </button>
+        )}
       </div>
       {visible.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">No enrolled students.</div>
+        <div className="text-center py-12 text-gray-400">{q ? 'No matches.' : 'No enrolled students.'}</div>
       ) : (
         batchKeys.map(bc => {
           const rows = byBatch.get(bc)!;
