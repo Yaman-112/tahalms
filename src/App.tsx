@@ -306,7 +306,7 @@ function CourseFileCard({ course, expanded, onToggle }: { course: { id: string; 
   );
 }
 
-function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string) => void }) {
+function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string, assignmentId?: string) => void }) {
   const { user } = useAuth();
   const { data, loading } = useApi<any>('/dashboard');
 
@@ -368,7 +368,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     <ul className="divide-y divide-gray-100">
                       {due.map((a: any) => (
                         <li key={a.id}
-                          onClick={() => a.course?.id && onCourseSelect(a.course.id)}
+                          onClick={() => a.course?.id && onCourseSelect(a.course.id, a.id)}
                           className="py-2 flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded">
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-[#2D3B45] truncate">{a.title}</div>
@@ -390,7 +390,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     <ul className="divide-y divide-gray-100">
                       {upcoming.map((a: any) => (
                         <li key={a.id}
-                          onClick={() => a.course?.id && onCourseSelect(a.course.id)}
+                          onClick={() => a.course?.id && onCourseSelect(a.course.id, a.id)}
                           className="py-2 flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded">
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-[#2D3B45] truncate">{a.title}</div>
@@ -3446,10 +3446,10 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
   );
 }
 
-function CourseView({ courseId }: { courseId: string }) {
+function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deepLinkAssignmentId?: string | null }) {
   const { user } = useAuth();
   const { data: course, loading, refetch: refetchCourse } = useApi<any>(`/courses/${courseId}`);
-  const [activeSection, setActiveSection] = useState('Home');
+  const [activeSection, setActiveSection] = useState(deepLinkAssignmentId ? 'Assignments' : 'Home');
 
   // Assignment module state
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
@@ -3823,6 +3823,16 @@ function CourseView({ courseId }: { courseId: string }) {
       });
     }
   }, [activeSection, courseId]);
+
+  // Open the deep-linked assignment detail when CourseView mounts with a target id.
+  React.useEffect(() => {
+    if (deepLinkAssignmentId) {
+      setActiveSection('Assignments');
+      loadAssignmentDetail(deepLinkAssignmentId);
+    }
+    // We intentionally only react to deepLinkAssignmentId changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deepLinkAssignmentId]);
 
   const openBankPreview = async (bankId: string) => {
     setPreviewBankId(bankId);
@@ -7448,6 +7458,7 @@ export default function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [activeTab, setActiveTab] = useState('Dashboard');
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [deepLinkAssignmentId, setDeepLinkAssignmentId] = useState<string | null>(null);
   const [isAccountDrawerOpen, setIsAccountDrawerOpen] = useState(false);
   const [isCoursesDrawerOpen, setIsCoursesDrawerOpen] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
@@ -7632,9 +7643,9 @@ export default function App() {
             onSelectCourse={(courseId: string) => { setSelectedCourseId(courseId); setActiveTab('Courses'); }}
           />
         ) : selectedCourseId ? (
-          <CourseView courseId={selectedCourseId} />
+          <CourseView courseId={selectedCourseId} deepLinkAssignmentId={deepLinkAssignmentId} />
         ) : activeTab === 'Dashboard' ? (
-          <StudentDashboardView onCourseSelect={id => setSelectedCourseId(id)} />
+          <StudentDashboardView onCourseSelect={(id, assignmentId) => { setSelectedCourseId(id); setDeepLinkAssignmentId(assignmentId || null); }} />
         ) : activeTab === 'Settings' ? (
           <div className="flex-1 flex flex-col overflow-hidden bg-white">
             <header className="h-16 border-b border-[#E1E1E1] flex items-center px-8 bg-white shrink-0">
