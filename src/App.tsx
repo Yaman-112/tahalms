@@ -367,7 +367,9 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     <div className="text-[13px] font-bold text-red-600 mb-2 uppercase tracking-wide">Overdue ({due.length})</div>
                     <ul className="divide-y divide-gray-100">
                       {due.map((a: any) => (
-                        <li key={a.id} className="py-2 flex items-center justify-between text-sm">
+                        <li key={a.id}
+                          onClick={() => a.course?.id && onCourseSelect(a.course.id)}
+                          className="py-2 flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded">
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-[#2D3B45] truncate">{a.title}</div>
                             <div className="text-xs text-gray-500">
@@ -376,6 +378,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                               {a.points != null && <span className="ml-2 text-gray-400">· {a.points} pts</span>}
                             </div>
                           </div>
+                          <ChevronRight size={16} className="text-gray-400 ml-2 shrink-0" />
                         </li>
                       ))}
                     </ul>
@@ -386,7 +389,9 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                     <div className="text-[13px] font-bold text-[#008EE2] mb-2 uppercase tracking-wide">Coming Up ({upcoming.length})</div>
                     <ul className="divide-y divide-gray-100">
                       {upcoming.map((a: any) => (
-                        <li key={a.id} className="py-2 flex items-center justify-between text-sm">
+                        <li key={a.id}
+                          onClick={() => a.course?.id && onCourseSelect(a.course.id)}
+                          className="py-2 flex items-center justify-between text-sm cursor-pointer hover:bg-gray-50 -mx-2 px-2 rounded">
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-[#2D3B45] truncate">{a.title}</div>
                             <div className="text-xs text-gray-500">
@@ -395,6 +400,7 @@ function StudentDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                               {a.points != null && <span className="ml-2 text-gray-400">· {a.points} pts</span>}
                             </div>
                           </div>
+                          <ChevronRight size={16} className="text-gray-400 ml-2 shrink-0" />
                         </li>
                       ))}
                     </ul>
