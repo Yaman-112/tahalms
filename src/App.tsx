@@ -3583,7 +3583,7 @@ function CourseView({ courseId }: { courseId: string }) {
       formData.append('instructions', newAssignInstructions);
       formData.append('points', String(newAssignPoints));
       formData.append('format', 'FILE');
-      if (newAssignDueDate) formData.append('dueDate', newAssignDueDate);
+      if (newAssignDueDate) formData.append('dueDate', new Date(newAssignDueDate).toISOString());
       formData.append('allowedFormats', newAssignFormats);
       formData.append('published', String(newAssignPublished));
       if (newAssignFile) formData.append('file', newAssignFile);
@@ -3605,7 +3605,7 @@ function CourseView({ courseId }: { courseId: string }) {
       formData.append('instructions', newAssignInstructions);
       formData.append('points', String(newAssignPoints));
       formData.append('format', newAssignFormat);
-      if (newAssignDueDate) formData.append('dueDate', newAssignDueDate);
+      if (newAssignDueDate) formData.append('dueDate', new Date(newAssignDueDate).toISOString());
       formData.append('published', String(newAssignPublished));
       if (newAssignTimeLimit > 0) formData.append('timeLimit', String(newAssignTimeLimit));
       formData.append('negativeMarking', String(newAssignNegativeMarking));
@@ -3849,7 +3849,7 @@ function CourseView({ courseId }: { courseId: string }) {
       type: 'QUIZ',
       format: 'MCQ',
       points: newAssignPoints,
-      dueDate: newAssignDueDate || undefined,
+      dueDate: newAssignDueDate ? new Date(newAssignDueDate).toISOString() : undefined,
       timeLimit: newAssignTimeLimit > 0 ? newAssignTimeLimit : undefined,
       shuffleQuestions: newAssignShuffleQuestions,
       showResults: newAssignShowResults,
