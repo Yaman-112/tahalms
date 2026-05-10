@@ -5318,50 +5318,81 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                       </div>
                     )}
                   </div>
-                  <div className="bg-white divide-y divide-[#E1E1E1]">
+                  <div className="bg-white">
                     {!visibleAssignments.length ? (
                       <div className="p-8 text-center text-gray-400 text-sm">No assignments yet.</div>
-                    ) : visibleAssignments.map((a: any) => {
-                      const mySub = a.submissions?.find((s: any) => s.status === 'GRADED' && s.score !== null && s.score !== undefined)
-                        || a.submissions?.find((s: any) => s.status === 'GRADED')
-                        || a.submissions?.[0];
-                      const showGrade = (effectiveRole === 'STUDENT') && mySub && mySub.score !== null && mySub.score !== undefined;
-                      const pct = showGrade && a.points > 0 ? (mySub.score / a.points) * 100 : 0;
-                      const pctColor = pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-[#008EE2]' : pct >= 50 ? 'text-amber-600' : 'text-red-600';
-                      return (
-                        <div key={a.id} className="px-4 py-4 flex items-center hover:bg-gray-50 group cursor-pointer"
-                          onClick={() => loadAssignmentDetail(a.id)}>
-                          <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <h4 className="font-bold text-[16px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
-                              {a.format && a.format !== 'FILE' && (
-                                <span className={`px-1.5 py-0.5 text-[16px] font-bold rounded ${
-                                  a.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
-                                  a.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
-                                  'bg-amber-100 text-amber-700'
-                                }`}>{a.format}</span>
-                              )}
+                    ) : (() => {
+                      // Group by moduleId; preserve module order from course.modules,
+                      // then a trailing "Other" group for assignments with no module.
+                      const orderedModules: any[] = (course.modules || []);
+                      const byModule = new Map<string | null, any[]>();
+                      for (const a of visibleAssignments) {
+                        const k = a.moduleId || null;
+                        if (!byModule.has(k)) byModule.set(k, []);
+                        byModule.get(k)!.push(a);
+                      }
+                      const groups: { name: string; rows: any[] }[] = [];
+                      for (const m of orderedModules) {
+                        const rows = byModule.get(m.id);
+                        if (rows && rows.length) groups.push({ name: m.name, rows });
+                      }
+                      const orphaned = byModule.get(null);
+                      if (orphaned && orphaned.length) groups.push({ name: 'Other (no module)', rows: orphaned });
+
+                      const renderRow = (a: any) => {
+                        const mySub = a.submissions?.find((s: any) => s.status === 'GRADED' && s.score !== null && s.score !== undefined)
+                          || a.submissions?.find((s: any) => s.status === 'GRADED')
+                          || a.submissions?.[0];
+                        const showGrade = (effectiveRole === 'STUDENT') && mySub && mySub.score !== null && mySub.score !== undefined;
+                        const pct = showGrade && a.points > 0 ? (mySub.score / a.points) * 100 : 0;
+                        const pctColor = pct >= 80 ? 'text-green-600' : pct >= 60 ? 'text-[#008EE2]' : pct >= 50 ? 'text-amber-600' : 'text-red-600';
+                        return (
+                          <div key={a.id} className="px-4 py-4 flex items-center hover:bg-gray-50 group cursor-pointer"
+                            onClick={() => loadAssignmentDetail(a.id)}>
+                            <div className="mr-4 text-gray-400 group-hover:text-[#008EE2]"><FileText size={20} /></div>
+                            <div className="flex-1">
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-bold text-[16px] text-[#2D3B45] group-hover:underline">{a.title}</h4>
+                                {a.format && a.format !== 'FILE' && (
+                                  <span className={`px-1.5 py-0.5 text-[16px] font-bold rounded ${
+                                    a.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' :
+                                    a.format === 'THEORY' ? 'bg-purple-100 text-purple-700' :
+                                    'bg-amber-100 text-amber-700'
+                                  }`}>{a.format}</span>
+                                )}
+                              </div>
+                              <p className="text-[16px] text-gray-500 mt-0.5">
+                                {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
+                                {a.timeLimit ? ` • ${a.timeLimit} min` : ''}
+                              </p>
                             </div>
-                            <p className="text-[16px] text-gray-500 mt-0.5">
-                              {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
-                              {a.timeLimit ? ` • ${a.timeLimit} min` : ''}
-                            </p>
+                            {showGrade ? (
+                              <div className="mr-3 text-right">
+                                <div className={`text-[18px] font-bold ${pctColor}`}>{mySub.score}/{a.points}</div>
+                                <div className="text-[12px] text-gray-500">{pct.toFixed(2)}%</div>
+                              </div>
+                            ) : effectiveRole === 'STUDENT' && mySub?.status === 'MISSING' ? (
+                              <div className="mr-3 text-right">
+                                <div className="text-[13px] text-gray-400 italic">Missing</div>
+                              </div>
+                            ) : null}
+                            <ChevronRight size={18} className="text-gray-300 group-hover:text-[#008EE2]" />
                           </div>
-                          {showGrade ? (
-                            <div className="mr-3 text-right">
-                              <div className={`text-[18px] font-bold ${pctColor}`}>{mySub.score}/{a.points}</div>
-                              <div className="text-[12px] text-gray-500">{pct.toFixed(2)}%</div>
-                            </div>
-                          ) : effectiveRole === 'STUDENT' && mySub?.status === 'MISSING' ? (
-                            <div className="mr-3 text-right">
-                              <div className="text-[13px] text-gray-400 italic">Missing</div>
-                            </div>
-                          ) : null}
-                          <ChevronRight size={18} className="text-gray-300 group-hover:text-[#008EE2]" />
+                        );
+                      };
+
+                      return groups.map(g => (
+                        <div key={g.name} className="border-b border-[#E1E1E1] last:border-b-0">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-[#E1E1E1] flex items-center justify-between">
+                            <span className="font-bold text-[14px] text-[#2D3B45] uppercase tracking-wide">{g.name}</span>
+                            <span className="text-[12px] text-gray-500">{g.rows.length} assignment{g.rows.length === 1 ? '' : 's'}</span>
+                          </div>
+                          <div className="divide-y divide-[#E1E1E1]">
+                            {g.rows.map(renderRow)}
+                          </div>
                         </div>
-                      );
-                    })}
+                      ));
+                    })()}
                   </div>
                 </div>
                 );
