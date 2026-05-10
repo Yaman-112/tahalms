@@ -3482,6 +3482,7 @@ function CourseView({ courseId }: { courseId: string }) {
   const [bankTargetMode, setBankTargetMode] = useState<'COURSE' | 'BATCH' | 'STUDENT'>('COURSE');
   const [bankTargetBatches, setBankTargetBatches] = useState<Set<string>>(new Set());
   const [bankTargetStudents, setBankTargetStudents] = useState<Set<string>>(new Set());
+  const [studentSearch, setStudentSearch] = useState('');
   const [courseBatches, setCourseBatches] = useState<any[]>([]);
   const [courseStudents, setCourseStudents] = useState<any[]>([]);
   const [bankSaving, setBankSaving] = useState(false);
@@ -3729,7 +3730,7 @@ function CourseView({ courseId }: { courseId: string }) {
     setActiveSection('Assignments');
     setShowBankFlow(true);
     setBankSourceId(''); setBankQuestions([]); setBankSelectedQuestionIds(new Set());
-    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set());
+    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set()); setStudentSearch('');
     setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
     setNewAssignPoints(100); setNewAssignDueDate('');
     setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
@@ -4255,24 +4256,44 @@ function CourseView({ courseId }: { courseId: string }) {
                           </div>
                         )}
 
-                        {bankTargetMode === 'STUDENT' && (
-                          <div className="mt-3 border border-gray-200 rounded max-h-64 overflow-y-auto">
-                            {courseStudents.length === 0 ? (
-                              <div className="px-3 py-2 text-sm text-gray-500">No students enrolled.</div>
-                            ) : courseStudents.map((s: any) => (
-                              <label key={s.id} className="flex items-center px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer">
-                                <input type="checkbox" className="mr-2"
-                                  checked={bankTargetStudents.has(s.id)}
-                                  onChange={e => {
-                                    const next = new Set(bankTargetStudents);
-                                    if (e.target.checked) next.add(s.id); else next.delete(s.id);
-                                    setBankTargetStudents(next);
-                                  }} />
-                                {s.firstName} {s.lastName} <span className="text-gray-400 ml-2">{s.email}</span>
-                              </label>
-                            ))}
-                          </div>
-                        )}
+                        {bankTargetMode === 'STUDENT' && (() => {
+                          const q = studentSearch.trim().toLowerCase();
+                          const filtered = q
+                            ? courseStudents.filter((s: any) =>
+                                `${s.firstName} ${s.lastName}`.toLowerCase().includes(q) ||
+                                (s.email || '').toLowerCase().includes(q) ||
+                                (s.vNumber || '').toLowerCase().includes(q))
+                            : courseStudents;
+                          return (
+                            <div className="mt-3">
+                              <input type="text" value={studentSearch} onChange={e => setStudentSearch(e.target.value)}
+                                placeholder="Search by name, email, or vNumber…"
+                                className="w-full mb-2 border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+                              <div className="text-xs text-gray-500 mb-1">
+                                Showing {filtered.length} of {courseStudents.length} · {bankTargetStudents.size} selected
+                              </div>
+                              <div className="border border-gray-200 rounded max-h-64 overflow-y-auto">
+                                {courseStudents.length === 0 ? (
+                                  <div className="px-3 py-2 text-sm text-gray-500">No students enrolled.</div>
+                                ) : filtered.length === 0 ? (
+                                  <div className="px-3 py-2 text-sm text-gray-500">No matches.</div>
+                                ) : filtered.map((s: any) => (
+                                  <label key={s.id} className="flex items-center px-3 py-1.5 hover:bg-gray-50 text-sm cursor-pointer">
+                                    <input type="checkbox" className="mr-2"
+                                      checked={bankTargetStudents.has(s.id)}
+                                      onChange={e => {
+                                        const next = new Set(bankTargetStudents);
+                                        if (e.target.checked) next.add(s.id); else next.delete(s.id);
+                                        setBankTargetStudents(next);
+                                      }} />
+                                    {s.firstName} {s.lastName} <span className="text-gray-400 ml-2">{s.email}</span>
+                                    {s.vNumber && <span className="text-gray-400 ml-2">· {s.vNumber}</span>}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
 
