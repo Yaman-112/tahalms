@@ -27,6 +27,14 @@ router.get('/', async (req: AuthRequest, res) => {
 async function getStudentDashboard(req: AuthRequest, res: any) {
   const userId = req.user!.userId;
 
+  // Resolve the student's (courseId, batchCode) so we can scope targeted
+  // assignments to ones they're actually allowed to see.
+  const myEnrollments = await prisma.enrollment.findMany({
+    where: { userId, role: 'STUDENT' },
+    select: { courseId: true, batchCode: true },
+  });
+  const myBatchCodes = Array.from(new Set(myEnrollments.map(e => e.batchCode).filter((b): b is string => !!b)));
+
   const [profile, enrollments, todoItems, recentGrades, upcomingAssignments] = await Promise.all([
     // Student profile
     prisma.user.findUnique({
@@ -88,6 +96,15 @@ async function getStudentDashboard(req: AuthRequest, res: any) {
           gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // last 30 days for overdue
           lte: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // next 14 days upcoming
         },
+        // Honor AssignmentTarget visibility: untargeted (course-wide) OR
+        // targeted to one of the student's batches OR to the student.
+        OR: [
+          { targets: { none: {} } },
+          { targets: { some: { kind: 'STUDENT', targetId: userId } } },
+          ...(myBatchCodes.length > 0
+            ? [{ targets: { some: { kind: 'BATCH' as const, targetId: { in: myBatchCodes } } } }]
+            : []),
+        ],
         // Hide assignments the student has already completed
         NOT: {
           submissions: { some: { studentId: userId, status: { in: ['SUBMITTED', 'GRADED'] } } },
