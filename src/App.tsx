@@ -3470,6 +3470,7 @@ function CourseView({ courseId }: { courseId: string }) {
   const [newAssignKind, setNewAssignKind] = useState<'' | 'FINAL' | 'PARTICIPATION' | 'ASSIGNMENT' | 'QUIZ'>('');
   const [moduleBudgets, setModuleBudgets] = useState<Array<{ kind: string; maxPoints: number; used: number; remaining: number }>>([]);
   const [moduleHasBudgets, setModuleHasBudgets] = useState<boolean>(false);
+  const [currentProgramModule, setCurrentProgramModule] = useState<{ id: string; name: string; weekStart: string } | null>(null);
   const [creating, setCreating] = useState(false);
 
   // Create-from-bank flow state
@@ -3654,6 +3655,7 @@ function CourseView({ courseId }: { courseId: string }) {
     setNewAssignKind('');
     setModuleBudgets([]);
     setModuleHasBudgets(false);
+    setCurrentProgramModule(null);
     setBuilderQuestions([]);
   };
 
@@ -3732,9 +3734,18 @@ function CourseView({ courseId }: { courseId: string }) {
     setNewAssignPoints(100); setNewAssignDueDate('');
     setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
     setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
+    setNewAssignModuleId(''); setNewAssignKind(''); setModuleBudgets([]); setModuleHasBudgets(false);
+    setCurrentProgramModule(null);
     const banksRes = await api<any>(`/assignments/banks?courseId=${courseId}`);
     if (banksRes.success) setBankList(banksRes.data || []);
     await loadTargetData();
+    // Resolve current program module per the course schedule and pre-select it.
+    const sched = await api<any>(`/modules/current-program?courseId=${courseId}`);
+    if (sched.success && sched.data?.module) {
+      const m = sched.data.module;
+      setCurrentProgramModule({ id: m.id, name: m.name, weekStart: sched.data.weekStart });
+      setNewAssignModuleId(m.id);
+    }
     if (preselectSourceId) await onPickBankSource(preselectSourceId);
   };
 
@@ -3742,6 +3753,14 @@ function CourseView({ courseId }: { courseId: string }) {
     setShowCreateAssignment(true);
     setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set());
     await loadTargetData();
+    // Resolve the program-schedule current module and auto-select it.
+    setCurrentProgramModule(null);
+    const res = await api<any>(`/modules/current-program?courseId=${courseId}`);
+    if (res.success && res.data?.module) {
+      const m = res.data.module;
+      setCurrentProgramModule({ id: m.id, name: m.name, weekStart: res.data.weekStart });
+      setNewAssignModuleId(m.id);
+    }
   };
 
   const [previewBankId, setPreviewBankId] = useState<string | null>(null);
@@ -3836,6 +3855,8 @@ function CourseView({ courseId }: { courseId: string }) {
       negativeMarking: newAssignNegativeMarking,
       targetBatches: bankTargetMode === 'BATCH' ? [...bankTargetBatches] : [],
       targetStudents: bankTargetMode === 'STUDENT' ? [...bankTargetStudents] : [],
+      moduleId: newAssignModuleId || undefined,
+      assessmentKind: newAssignKind || undefined,
     };
     const res = await api<any>('/assignments/from-bank', {
       method: 'POST',
@@ -4059,8 +4080,48 @@ function CourseView({ courseId }: { courseId: string }) {
                     <ChevronLeft size={16} className="mr-1" /> Back to Assignments
                   </button>
                   <h2 className="text-[28px] font-medium text-[#2D3B45] mb-6">Create Assignment from Question Bank</h2>
+                  {currentProgramModule && (
+                    <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-[#2D3B45]">
+                      <span className="font-bold">Current module (per program schedule):</span>{' '}
+                      <span className="font-bold text-[#008EE2]">{currentProgramModule.name}</span>
+                      <span className="ml-2 text-xs text-gray-600">— week of {new Date(currentProgramModule.weekStart + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                  )}
 
                   <div className="border border-[#E1E1E1] rounded-sm bg-white p-6 space-y-6">
+                    {/* Module + Assessment Kind (drives budget enforcement) */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Module {moduleHasBudgets && <span className="text-red-500">*</span>}</label>
+                        <select value={newAssignModuleId} onChange={e => setNewAssignModuleId(e.target.value)}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2] bg-white">
+                          <option value="">— No module —</option>
+                          {(course.modules || []).map((m: any) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-[#2D3B45] mb-1">Assessment Kind {moduleHasBudgets && <span className="text-red-500">*</span>}</label>
+                        <select value={newAssignKind} onChange={e => setNewAssignKind(e.target.value as any)}
+                          disabled={!moduleHasBudgets}
+                          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2] bg-white disabled:bg-gray-100">
+                          <option value="">{moduleHasBudgets ? '— Select kind —' : 'Pick a module with budgets first'}</option>
+                          {moduleBudgets.map(b => (
+                            <option key={b.kind} value={b.kind} disabled={b.remaining <= 0}>
+                              {b.kind} ({b.remaining} of {b.maxPoints} remaining)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {moduleHasBudgets && newAssignKind && remainingForKind != null && (
+                      <div className={`text-sm rounded px-3 py-2 ${remainingForKind <= 0 ? 'bg-red-50 text-red-700' : 'bg-blue-50 text-[#2D3B45]'}`}>
+                        <span className="font-bold">{newAssignKind}</span> budget for this module: <span className="font-bold">{remainingForKind}</span> of <span className="font-bold">{moduleBudgets.find(b => b.kind === newAssignKind)?.maxPoints}</span> points remaining.
+                        {remainingForKind <= 0 && ' — all points already allocated.'}
+                      </div>
+                    )}
+
                     {/* Step 1: Pick Source Bank */}
                     <div>
                       <label className="block text-sm font-bold text-[#2D3B45] mb-2">1. Pick Source (a module's question pool)</label>
@@ -4117,8 +4178,17 @@ function CourseView({ courseId }: { courseId: string }) {
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-[#2D3B45] mb-1">Total Points</label>
-                          <input type="number" value={newAssignPoints} onChange={e => setNewAssignPoints(Number(e.target.value))}
+                          <label className="block text-sm font-bold text-[#2D3B45] mb-1">
+                            Total Points
+                            {remainingForKind != null && <span className="ml-2 text-xs font-normal text-gray-500">(max {remainingForKind})</span>}
+                          </label>
+                          <input type="number" value={newAssignPoints}
+                            onChange={e => {
+                              const v = Number(e.target.value);
+                              const capped = remainingForKind != null ? Math.min(v, remainingForKind) : v;
+                              setNewAssignPoints(capped);
+                            }}
+                            max={remainingForKind != null ? remainingForKind : undefined}
                             className="w-full border border-gray-300 rounded px-3 py-2 text-sm" min={0} />
                         </div>
                         <div>
@@ -4212,7 +4282,8 @@ function CourseView({ courseId }: { courseId: string }) {
                       <button onClick={submitBankAssignment}
                         disabled={!bankSourceId || bankSelectedQuestionIds.size === 0 || !newAssignTitle || bankSaving ||
                           (bankTargetMode === 'BATCH' && bankTargetBatches.size === 0) ||
-                          (bankTargetMode === 'STUDENT' && bankTargetStudents.size === 0)}
+                          (bankTargetMode === 'STUDENT' && bankTargetStudents.size === 0) ||
+                          (moduleHasBudgets && (!newAssignModuleId || !newAssignKind || newAssignPoints <= 0 || (remainingForKind != null && newAssignPoints > remainingForKind)))}
                         className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
                         {bankSaving ? 'Creating…' : 'Create Assignment'}
                       </button>
@@ -4225,6 +4296,13 @@ function CourseView({ courseId }: { courseId: string }) {
                     <ChevronLeft size={16} className="mr-1" /> Back to Assignments
                   </button>
                   <h2 className="text-[28px] font-medium text-[#2D3B45] mb-6">New Assignment</h2>
+                  {currentProgramModule && (
+                    <div className="mb-4 rounded border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-[#2D3B45]">
+                      <span className="font-bold">Current module (per program schedule):</span>{' '}
+                      <span className="font-bold text-[#008EE2]">{currentProgramModule.name}</span>
+                      <span className="ml-2 text-xs text-gray-600">— week of {new Date(currentProgramModule.weekStart + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                    </div>
+                  )}
                   <div className="border border-[#E1E1E1] rounded-sm bg-white p-6 space-y-5">
                     {/* Format Selector */}
                     <div>
@@ -5162,10 +5240,12 @@ function CourseView({ courseId }: { courseId: string }) {
                           className="flex items-center space-x-1 bg-purple-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                           <Plus size={16} /> <span>From Question Bank</span>
                         </button>
-                        <button onClick={openCreateAssignment}
-                          className="flex items-center space-x-1 bg-[#008EE2] text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
-                          <Plus size={16} /> <span>New Assignment</span>
-                        </button>
+                        {course.code !== 'AC' && (
+                          <button onClick={openCreateAssignment}
+                            className="flex items-center space-x-1 bg-[#008EE2] text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
+                            <Plus size={16} /> <span>New Assignment</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

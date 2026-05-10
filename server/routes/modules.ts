@@ -2,9 +2,48 @@ import { Router } from 'express';
 import prisma from '../db';
 import { authenticate, requireRole, AuthRequest } from '../middleware/auth';
 import { success, error } from '../utils/response';
+import { getProgramSchedule, getScheduleEntryFor } from '../data/program-schedules';
 
 const router = Router();
 router.use(authenticate);
+
+// GET /api/modules/current-program?courseId=... — returns the program module
+// (per the static program schedule) the cohort is studying this week. Filler
+// modules are excluded by construction. Returns { module, weekStart } or
+// { module: null } when the course has no schedule or it's a break week.
+router.get('/current-program', async (req: AuthRequest, res) => {
+  try {
+    const courseId = String(req.query.courseId || '');
+    if (!courseId) return error(res, 'courseId is required');
+
+    const course = await prisma.course.findUnique({ where: { id: courseId } });
+    if (!course) return error(res, 'Course not found', 404);
+
+    const sched = getProgramSchedule(course.code);
+    if (!sched) return success(res, { module: null, reason: 'no-schedule' });
+
+    const entry = getScheduleEntryFor(sched.schedule, new Date());
+    if (!entry || !entry.programModule) {
+      return success(res, { module: null, weekStart: entry?.weekStart || null, reason: entry ? 'break' : 'before-schedule' });
+    }
+
+    const dbName = sched.nameMap[entry.programModule] || entry.programModule;
+    const mod = await prisma.module.findFirst({
+      where: { courseId, name: dbName },
+      select: { id: true, name: true, position: true },
+    });
+    if (!mod) return success(res, { module: null, weekStart: entry.weekStart, scheduleName: entry.programModule, reason: 'module-missing' });
+
+    return success(res, {
+      module: mod,
+      weekStart: entry.weekStart,
+      scheduleName: entry.programModule,
+    });
+  } catch (err) {
+    console.error('current-program error:', err);
+    return error(res, 'Failed to resolve current program module', 500);
+  }
+});
 
 // GET /api/modules/:id/budgets — list all kind/maxPoints rows for a module
 // plus how many points are already used and how many remain.
