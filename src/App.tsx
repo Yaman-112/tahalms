@@ -5290,6 +5290,9 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                 const isPrivilegedViewer = effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN';
                 const visibleAssignments = (allowedSuffixes && !isPrivilegedViewer)
                   ? (course.assignments || []).filter((a: any) => {
+                      // Teacher-created targeted assignments bypass the canonical
+                      // title-pattern filter (they're intentional, not legacy imports).
+                      if ((a._count?.targets ?? 0) > 0) return true;
                       const moduleName = course.modules?.find((m: any) => a.title.startsWith(m.name + ' - '))?.name;
                       if (!moduleName) return false;
                       const suffix = a.title.slice((moduleName + ' - ').length).trim();

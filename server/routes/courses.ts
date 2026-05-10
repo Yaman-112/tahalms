@@ -112,7 +112,10 @@ router.get('/:id', async (req: AuthRequest, res) => {
         modules: { orderBy: { position: 'asc' } },
         assignments: {
           orderBy: { dueDate: 'asc' },
-          include: { submissions: studentSubmissionFilter as any },
+          include: {
+            submissions: studentSubmissionFilter as any,
+            _count: { select: { targets: true } },
+          },
         },
         enrollments: {
           include: {
