@@ -118,6 +118,8 @@ router.get('/banks', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, r
       orderBy: { title: 'asc' },
       select: {
         id: true, title: true, type: true, format: true, points: true,
+        moduleId: true,
+        module: { select: { id: true, name: true, position: true } },
         course: { select: { id: true, code: true, name: true } },
         _count: { select: { questions: true } },
       },

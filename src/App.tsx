@@ -4174,9 +4174,32 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                       <select value={bankSourceId} onChange={e => onPickBankSource(e.target.value)}
                         className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]">
                         <option value="">— Select a question bank —</option>
-                        {bankList.map((b: any) => (
-                          <option key={b.id} value={b.id}>{b.title} ({b._count.questions} questions)</option>
-                        ))}
+                        {(() => {
+                          const modules: any[] = course.modules || [];
+                          const groups = new Map<string, any[]>();
+                          const otherKey = 'Other (no module)';
+                          for (const b of bankList) {
+                            let key: string;
+                            if (b.module?.name) key = b.module.name;
+                            else {
+                              const hit = modules.find((m: any) => b.title.startsWith(m.name + ' - ') || b.title === m.name);
+                              key = hit ? hit.name : otherKey;
+                            }
+                            if (!groups.has(key)) groups.set(key, []);
+                            groups.get(key)!.push(b);
+                          }
+                          const orderedKeys = [
+                            ...modules.map((m: any) => m.name).filter((n: string) => groups.has(n)),
+                            ...(groups.has(otherKey) ? [otherKey] : []),
+                          ];
+                          return orderedKeys.map(name => (
+                            <optgroup key={name} label={name}>
+                              {groups.get(name)!.map((b: any) => (
+                                <option key={b.id} value={b.id}>{b.title} ({b._count.questions} questions)</option>
+                              ))}
+                            </optgroup>
+                          ));
+                        })()}
                       </select>
                     </div>
 
@@ -5457,23 +5480,60 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                   <p className="text-sm text-gray-500 mb-6">Existing question pools for {course.code}. Click a bank to preview, or use it to create a new assignment for any batch or student.</p>
                   {bankList.length === 0 ? (
                     <div className="border border-[#E1E1E1] rounded p-8 text-center text-gray-400 text-sm">No question banks found in this course.</div>
-                  ) : (
-                    <div className="border border-[#E1E1E1] rounded divide-y divide-[#E1E1E1] bg-white">
-                      {bankList.map((b: any) => (
-                        <div key={b.id} className="px-4 py-3 flex items-center hover:bg-gray-50">
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[15px] font-medium text-[#2D3B45] truncate">{b.title}</div>
-                            <div className="text-xs text-gray-500 mt-0.5">
-                              {b._count.questions} questions · {b.points} pts ·
-                              <span className={`ml-2 px-2 py-0.5 rounded ${b.format === 'FILE' ? 'bg-gray-100 text-gray-600' : b.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : b.format === 'THEORY' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>{b.format}</span>
+                  ) : (() => {
+                    // Group banks under their module. Prefer the bank's moduleId;
+                    // for legacy banks with no moduleId, infer from a "<Module> - "
+                    // title prefix. Anything left over goes into "Other".
+                    const modules: any[] = course.modules || [];
+                    const moduleByName = new Map<string, any>();
+                    for (const m of modules) moduleByName.set(m.name, m);
+                    const groups = new Map<string, any[]>();
+                    const otherKey = 'Other (no module)';
+                    for (const b of bankList) {
+                      let key: string;
+                      if (b.module?.name) key = b.module.name;
+                      else {
+                        const hit = modules.find((m: any) => b.title.startsWith(m.name + ' - ') || b.title === m.name);
+                        key = hit ? hit.name : otherKey;
+                      }
+                      if (!groups.has(key)) groups.set(key, []);
+                      groups.get(key)!.push(b);
+                    }
+                    const orderedKeys = [
+                      ...modules.map((m: any) => m.name).filter((n: string) => groups.has(n)),
+                      ...(groups.has(otherKey) ? [otherKey] : []),
+                    ];
+                    return (
+                      <div className="space-y-4">
+                        {orderedKeys.map(name => {
+                          const rows = groups.get(name)!;
+                          return (
+                            <div key={name} className="border border-[#E1E1E1] rounded overflow-hidden">
+                              <div className="bg-gray-50 px-4 py-2 border-b border-[#E1E1E1] flex items-center justify-between">
+                                <span className="font-bold text-[14px] text-[#2D3B45] uppercase tracking-wide">{name}</span>
+                                <span className="text-[12px] text-gray-500">{rows.length} bank{rows.length === 1 ? '' : 's'}</span>
+                              </div>
+                              <div className="divide-y divide-[#E1E1E1] bg-white">
+                                {rows.map((b: any) => (
+                                  <div key={b.id} className="px-4 py-3 flex items-center hover:bg-gray-50">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-[15px] font-medium text-[#2D3B45] truncate">{b.title}</div>
+                                      <div className="text-xs text-gray-500 mt-0.5">
+                                        {b._count.questions} questions · {b.points} pts ·
+                                        <span className={`ml-2 px-2 py-0.5 rounded ${b.format === 'FILE' ? 'bg-gray-100 text-gray-600' : b.format === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : b.format === 'THEORY' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'}`}>{b.format}</span>
+                                      </div>
+                                    </div>
+                                    <button onClick={() => openBankPreview(b.id)} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 mr-2">Preview</button>
+                                    <button onClick={() => openBankFlow(b.id)} className="px-3 py-1 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition-colors">Use</button>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                          <button onClick={() => openBankPreview(b.id)} className="px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-50 mr-2">Preview</button>
-                          <button onClick={() => openBankFlow(b.id)} className="px-3 py-1 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition-colors">Use</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </>
               )}
             </div>
