@@ -2,6 +2,7 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { randomUUID } from 'crypto';
+import jwt from 'jsonwebtoken';
 import prisma from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { uploadCourseFile, UPLOAD_DIR } from '../middleware/upload';
@@ -93,6 +94,45 @@ router.post('/courses/:courseId/files', authenticate, (req, res, next) => {
   } catch (err) {
     console.error('Upload course file error:', err);
     return error(res, 'Failed to upload file', 500);
+  }
+});
+
+// GET /api/courses/:courseId/files/:fileId/share-link — mint a public, no-auth
+// link for a file. Teachers/admins only. The link uses a JWT signed with the
+// same secret so anyone with the URL can download.
+router.get('/courses/:courseId/files/:fileId/share-link', authenticate, async (req: AuthRequest, res) => {
+  try {
+    const { courseId, fileId } = req.params;
+    const { role, userId } = req.user!;
+    if (!(await canManage(userId, role, courseId))) return error(res, 'Not authorized', 403);
+
+    const file = await prisma.courseFile.findFirst({ where: { id: fileId, courseId } });
+    if (!file) return error(res, 'File not found', 404);
+
+    const token = jwt.sign({ fileId, courseId, kind: 'file-share' }, process.env.JWT_SECRET!, { expiresIn: '365d' });
+    return success(res, { url: `/api/file-share/${token}` });
+  } catch (err) {
+    console.error('Share-link error:', err);
+    return error(res, 'Failed to mint share link', 500);
+  }
+});
+
+// GET /file-share/:token — public, no-auth download via signed token.
+router.get('/file-share/:token', async (req, res) => {
+  try {
+    const payload = jwt.verify(String(req.params.token || ''), process.env.JWT_SECRET!) as any;
+    if (payload?.kind !== 'file-share' || !payload.fileId || !payload.courseId) {
+      return res.status(400).send('Invalid share link');
+    }
+    const file = await prisma.courseFile.findFirst({ where: { id: payload.fileId, courseId: payload.courseId } });
+    if (!file) return res.status(404).send('File not found');
+    const abs = path.resolve(UPLOAD_DIR, file.filePath);
+    if (!fs.existsSync(abs)) return res.status(404).send('File missing on disk');
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${file.fileName.replace(/"/g, '')}"`);
+    res.sendFile(abs);
+  } catch {
+    return res.status(400).send('Invalid or expired share link');
   }
 });
 

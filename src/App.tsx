@@ -3314,11 +3314,12 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
   );
 }
 
-function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: string; canUpload: boolean; canDelete: (uploaderId: string | null) => boolean; userId: string }) {
+function CourseFilesTab({ courseId, canUpload, canDelete, userId, modules }: { courseId: string; canUpload: boolean; canDelete: (uploaderId: string | null) => boolean; userId: string; modules: any[] }) {
   const { data: files, loading, refetch } = useApi<any[]>(`/courses/${courseId}/files`);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadFolder, setUploadFolder] = useState('');
+  const [uploadModuleId, setUploadModuleId] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatBytes = (n: number) => {
@@ -3336,9 +3337,10 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
       const fd = new FormData();
       fd.append('file', file);
       if (uploadFolder.trim()) fd.append('folder', uploadFolder.trim());
+      if (uploadModuleId) fd.append('moduleId', uploadModuleId);
       const res = await api<any>(`/courses/${courseId}/files`, { method: 'POST', body: fd });
       if (!res.success) setUploadError(res.error || 'Upload failed');
-      else { setUploadFolder(''); refetch(); }
+      else { setUploadFolder(''); setUploadModuleId(''); refetch(); }
     } catch (err: any) { setUploadError(err.message); }
     finally { setUploading(false); if (fileInputRef.current) fileInputRef.current.value = ''; }
   };
@@ -3356,6 +3358,21 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
     const res = await del<any>(`/courses/${courseId}/files/${fileId}`);
     if (res.success) refetch();
     else alert(res.error || 'Delete failed');
+  };
+
+  const handleCopyShareLink = async (fileId: string) => {
+    const res = await api<any>(`/courses/${courseId}/files/${fileId}/share-link`);
+    if (!res.success || !res.data?.url) {
+      alert(res.error || 'Failed to create share link');
+      return;
+    }
+    const fullUrl = `${window.location.origin}${res.data.url}`;
+    try {
+      await navigator.clipboard.writeText(fullUrl);
+      alert('Share link copied to clipboard:\n' + fullUrl);
+    } catch {
+      prompt('Copy this share link:', fullUrl);
+    }
   };
 
   const handleRename = async (fileId: string, currentName: string) => {
@@ -3395,6 +3412,16 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
       {canUpload && (
         <div className="mb-6 border border-[#E1E1E1] rounded-lg p-4 bg-[#F9F9F9]">
           <div className="flex items-center gap-3 flex-wrap">
+            <select
+              value={uploadModuleId}
+              onChange={e => setUploadModuleId(e.target.value)}
+              className="min-w-[200px] px-3 py-2 border border-gray-300 rounded text-[14px] bg-white"
+            >
+              <option value="">— No module —</option>
+              {modules.map((m: any) => (
+                <option key={m.id} value={m.id}>{m.name}</option>
+              ))}
+            </select>
             <input
               type="text"
               value={uploadFolder}
@@ -3451,6 +3478,12 @@ function CourseFilesTab({ courseId, canUpload, canDelete, userId }: { courseId: 
                   </button>
                   {canDelete(f.uploadedById) && (
                     <>
+                      <button
+                        onClick={() => handleCopyShareLink(f.id)}
+                        className="ml-1 px-3 py-1 text-[13px] text-[#008EE2] hover:bg-[#008EE2]/10 rounded"
+                      >
+                        Copy share link
+                      </button>
                       <button
                         onClick={() => handleRename(f.id, f.fileName)}
                         className="ml-1 px-3 py-1 text-[13px] text-[#008EE2] hover:bg-[#008EE2]/10 rounded"
@@ -7072,6 +7105,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
               canUpload={!viewAsStudent && (user?.role === 'TEACHER' || user?.role === 'ADMIN')}
               canDelete={(uploaderId) => !viewAsStudent && (user?.role === 'ADMIN' || uploaderId === user?.id)}
               userId={user?.id || ''}
+              modules={course.modules || []}
             />
           ) : activeSection === 'People' && !viewAsStudent && (user?.role === 'TEACHER' || user?.role === 'ADMIN') ? (
             <CoursePeopleTab courseId={courseId} userId={user?.id || ''} userRole={user?.role || ''} />
