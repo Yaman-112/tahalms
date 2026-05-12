@@ -772,7 +772,7 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         </div>
                         <span className="text-[16px] font-bold text-gray-600">{b.studentCount} students</span>
                       </div>
-                      <h3 className="font-bold text-[#2D3B45] text-sm">{b.course.name}</h3>
+                      <h3 className="font-bold text-[#2D3B45] text-sm">{b.programName || b.course.name}</h3>
 
                       {/* Current module indicator */}
                       {b.currentModuleName && (

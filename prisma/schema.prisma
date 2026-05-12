@@ -222,6 +222,10 @@ model Batch {
   // this batch in their dashboard or course views (admins still see it).
   hiddenFromTeacher Boolean @default(false) @map("hidden_from_teacher")
 
+  // Sheet-sync display: the program label per the master sheet
+  // (e.g. "International Business Administration (Coop)").
+  programName String? @map("program_name")
+
   course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher         User              @relation("TeacherBatches", fields: [teacherId], references: [id], onDelete: Cascade)
   studentProgress StudentProgress[]
