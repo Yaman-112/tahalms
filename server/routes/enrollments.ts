@@ -24,6 +24,22 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
       where.user = { role: 'STUDENT', vNumber: { in: scope } };
     }
 
+    // Teachers don't see hidden enrollments or enrollments in batches they
+    // own which have been hidden (per the master-sheet sync). Admins do.
+    if (req.user!.role === 'TEACHER') {
+      where.hiddenFromTeacher = false;
+      // Hide enrollments whose batch is hidden for this teacher.
+      const hiddenBatchCodes = await prisma.batch.findMany({
+        where: { teacherId: req.user!.userId, hiddenFromTeacher: true },
+        select: { batchCode: true },
+      });
+      if (hiddenBatchCodes.length) {
+        where.batchCode = where.batchCode
+          ? { equals: where.batchCode, notIn: hiddenBatchCodes.map(b => b.batchCode) } as any
+          : { notIn: hiddenBatchCodes.map(b => b.batchCode) };
+      }
+    }
+
     const [enrollments, total] = await Promise.all([
       prisma.enrollment.findMany({
         where,

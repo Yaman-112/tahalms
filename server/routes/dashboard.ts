@@ -155,7 +155,7 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
 
     // Teacher's assigned batches with student counts and progress
     prisma.batch.findMany({
-      where: { teacherId: userId },
+      where: { teacherId: userId, hiddenFromTeacher: false },
       include: {
         course: {
           select: { id: true, name: true, code: true, color: true, modules: { select: { id: true, position: true, name: true }, orderBy: { position: 'asc' } } },
@@ -212,12 +212,12 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
     }),
 
     prisma.course.findMany({
-      where: { batches: { some: { teacherId: userId } }, status: 'PUBLISHED' },
+      where: { batches: { some: { teacherId: userId, hiddenFromTeacher: false } }, status: 'PUBLISHED' },
       include: { _count: { select: { enrollments: true, assignments: true } } },
     }),
 
     prisma.course.findMany({
-      where: { batches: { some: { teacherId: userId } }, status: 'UNPUBLISHED' },
+      where: { batches: { some: { teacherId: userId, hiddenFromTeacher: false } }, status: 'UNPUBLISHED' },
       include: { _count: { select: { enrollments: true } } },
     }),
 
@@ -225,7 +225,7 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
     prisma.submission.findMany({
       where: {
         status: 'SUBMITTED',
-        assignment: { course: { batches: { some: { teacherId: userId } } } },
+        assignment: { course: { batches: { some: { teacherId: userId, hiddenFromTeacher: false } } } },
       },
       take: 10,
       include: {
@@ -237,7 +237,7 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
     // Upcoming assignments
     prisma.assignment.findMany({
       where: {
-        course: { batches: { some: { teacherId: userId } } },
+        course: { batches: { some: { teacherId: userId, hiddenFromTeacher: false } } },
         dueDate: { gte: new Date(), lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) },
       },
       orderBy: { dueDate: 'asc' },

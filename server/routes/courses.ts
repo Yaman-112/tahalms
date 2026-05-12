@@ -82,7 +82,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
     let teacherBatchCodes: string[] | null = null;
     if (req.user!.role === 'TEACHER') {
       const myBatches = await prisma.batch.findMany({
-        where: { teacherId: req.user!.userId, courseId: req.params.id },
+        where: { teacherId: req.user!.userId, courseId: req.params.id, hiddenFromTeacher: false },
         select: { batchCode: true },
       });
       teacherBatchCodes = myBatches.map(b => b.batchCode);
@@ -98,6 +98,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
                 some: {
                   courseId: req.params.id,
                   batchCode: { in: teacherBatchCodes || [] },
+                  hiddenFromTeacher: false,
                 },
               },
             },

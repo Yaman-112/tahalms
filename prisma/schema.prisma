@@ -150,6 +150,11 @@ model Enrollment {
   overallProgress       Float?   @map("overall_progress")       // % of modules completed
   overallGrade          Float?   @map("overall_grade")           // weighted grade so far
 
+  // Sheet-sync visibility: when true, this enrollment is hidden from the
+  // teacher who owns the batch (admins still see it). Set per the master
+  // sheet sync — extras not in the teacher's roster get hidden.
+  hiddenFromTeacher Boolean @default(false) @map("hidden_from_teacher")
+
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   studentProgress StudentProgress[]
@@ -212,6 +217,10 @@ model Batch {
   // Dynamic batch management
   batchType       String      @default("PRIMARY") @map("batch_type")   // PRIMARY or MID_COURSE
   parentBatchCode String?     @map("parent_batch_code")                // links sub-batch to parent
+
+  // Sheet-sync visibility: when true, the assigned teacher does not see
+  // this batch in their dashboard or course views (admins still see it).
+  hiddenFromTeacher Boolean @default(false) @map("hidden_from_teacher")
 
   course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher         User              @relation("TeacherBatches", fields: [teacherId], references: [id], onDelete: Cascade)
