@@ -3224,6 +3224,9 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
   const { data: dashData } = useApi<any>(userRole === 'TEACHER' ? '/dashboard' : null);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [batchFilter, setBatchFilter] = useState<string>('');
+  const [startFrom, setStartFrom] = useState<string>('');
+  const [startTo, setStartTo] = useState<string>('');
   if (loading) return <LoadingSpinner />;
   if (selectedStudentId) {
     return <CourseStudentDetailView studentId={selectedStudentId} courseId={courseId} onBack={() => setSelectedStudentId(null)} />;
@@ -3239,17 +3242,27 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
     : allEnrollments;
 
   const q = search.trim().toLowerCase();
-  const visible = q
-    ? scoped.filter((e: any) => {
-        const u = e.user || {};
-        return (
-          `${u.firstName ?? ''} ${u.lastName ?? ''}`.toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q) ||
-          (u.vNumber || '').toLowerCase().includes(q) ||
-          (e.batchCode || '').toLowerCase().includes(q)
-        );
-      })
-    : scoped;
+  const fromMs = startFrom ? new Date(startFrom + 'T00:00:00').getTime() : null;
+  const toMs = startTo ? new Date(startTo + 'T23:59:59').getTime() : null;
+  const visible = scoped.filter((e: any) => {
+    if (batchFilter && e.batchCode !== batchFilter) return false;
+    if (fromMs != null || toMs != null) {
+      const sd = e.startDate ? new Date(e.startDate).getTime() : null;
+      if (sd == null) return false;
+      if (fromMs != null && sd < fromMs) return false;
+      if (toMs != null && sd > toMs) return false;
+    }
+    if (!q) return true;
+    const u = e.user || {};
+    return (
+      `${u.firstName ?? ''} ${u.lastName ?? ''}`.toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.vNumber || '').toLowerCase().includes(q) ||
+      (e.batchCode || '').toLowerCase().includes(q)
+    );
+  });
+  const filterActive = !!(q || batchFilter || startFrom || startTo);
+  const availableBatches = Array.from(new Set(scoped.map((e: any) => e.batchCode).filter(Boolean))).sort();
 
   // Group by batchCode
   const byBatch = new Map<string, any[]>();
@@ -3265,24 +3278,48 @@ function CoursePeopleTab({ courseId, userId, userRole }: { courseId: string; use
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-[#2D3B45]">People</h2>
         <span className="text-[14px] text-gray-500">
-          {q
+          {filterActive
             ? <>Showing {visible.length} of {scoped.length} student{scoped.length === 1 ? '' : 's'}</>
             : <>{visible.length} student{visible.length === 1 ? '' : 's'} across {batchKeys.length} batch{batchKeys.length === 1 ? '' : 'es'}</>}
         </span>
       </div>
-      <div className="relative">
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search by name, email, student ID, or batch…"
-          className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
-        {q && (
-          <button onClick={() => setSearch('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
-            Clear
-          </button>
-        )}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+        <div className="relative md:col-span-2">
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)}
+            placeholder="Search name / email / student ID…"
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+          {q && (
+            <button onClick={() => setSearch('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm">
+              Clear
+            </button>
+          )}
+        </div>
+        <select value={batchFilter} onChange={e => setBatchFilter(e.target.value)}
+          className="border border-gray-300 rounded px-3 py-2 text-sm bg-white focus:outline-none focus:ring-1 focus:ring-[#008EE2]">
+          <option value="">All batches</option>
+          {availableBatches.map(bc => <option key={bc} value={bc}>{bc}</option>)}
+        </select>
+        <div className="flex items-center gap-1">
+          <input type="date" value={startFrom} onChange={e => setStartFrom(e.target.value)}
+            title="Start date from"
+            className="flex-1 border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+          <span className="text-gray-400 text-xs">to</span>
+          <input type="date" value={startTo} onChange={e => setStartTo(e.target.value)}
+            title="Start date to"
+            className="flex-1 border border-gray-300 rounded px-2 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+        </div>
       </div>
+      {filterActive && (
+        <div className="flex items-center gap-2 text-xs">
+          {batchFilter && <span className="px-2 py-0.5 bg-[#008EE2]/10 text-[#008EE2] rounded">batch: {batchFilter}</span>}
+          {(startFrom || startTo) && <span className="px-2 py-0.5 bg-[#008EE2]/10 text-[#008EE2] rounded">start: {startFrom || '…'} → {startTo || '…'}</span>}
+          <button onClick={() => { setSearch(''); setBatchFilter(''); setStartFrom(''); setStartTo(''); }}
+            className="text-gray-500 hover:text-gray-700 underline">Reset all</button>
+        </div>
+      )}
       {visible.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">{q ? 'No matches.' : 'No enrolled students.'}</div>
+        <div className="text-center py-12 text-gray-400">{filterActive ? 'No matches.' : 'No enrolled students.'}</div>
       ) : (
         batchKeys.map(bc => {
           const rows = byBatch.get(bc)!;
