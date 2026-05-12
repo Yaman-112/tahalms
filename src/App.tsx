@@ -773,6 +773,16 @@ function TeacherDashboardView({ onCourseSelect }: { onCourseSelect: (id: string)
                         <span className="text-[16px] font-bold text-gray-600">{b.studentCount} students</span>
                       </div>
                       <h3 className="font-bold text-[#2D3B45] text-sm">{b.programName || b.course.name}</h3>
+                      {b.shift && (
+                        <div className="mt-1 text-[12px]">
+                          <span className={`px-2 py-0.5 rounded-full font-medium ${
+                            b.shift === 'Morning' ? 'bg-amber-100 text-amber-700' :
+                            b.shift === 'Evening' ? 'bg-indigo-100 text-indigo-700' :
+                            b.shift === 'Weekend' ? 'bg-pink-100 text-pink-700' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>{b.shift}</span>
+                        </div>
+                      )}
 
                       {/* Current module indicator */}
                       {b.currentModuleName && (

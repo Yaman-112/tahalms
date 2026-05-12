@@ -225,6 +225,9 @@ model Batch {
   // Sheet-sync display: the program label per the master sheet
   // (e.g. "International Business Administration (Coop)").
   programName String? @map("program_name")
+  // Sheet-sync display: dominant shift for this batch per the master sheet
+  // (Morning / Evening / Weekend).
+  shift       String? @map("shift")
 
   course          Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher         User              @relation("TeacherBatches", fields: [teacherId], references: [id], onDelete: Cascade)
