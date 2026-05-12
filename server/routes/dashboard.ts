@@ -170,6 +170,7 @@ async function getTeacherDashboard(req: AuthRequest, res: any) {
         by: ['courseId', 'batchCode'],
         where: {
           role: 'STUDENT',
+          hiddenFromTeacher: false,
           OR: teacherBatches.map(b => ({ courseId: b.courseId, batchCode: b.batchCode })),
         },
         _count: true,
