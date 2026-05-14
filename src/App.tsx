@@ -5505,7 +5505,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
             <div className="max-w-5xl">
               {previewBankId ? (
                 <div>
-                  <button onClick={() => { setPreviewBankId(null); setPreviewBankQuestions([]); }} className="flex items-center text-[#008EE2] text-sm mb-4 hover:underline">
+                  <button onClick={() => { setPreviewBankId(null); setPreviewBankQuestions([]); setBuilderQuestions([]); }} className="flex items-center text-[#008EE2] text-sm mb-4 hover:underline">
                     <ChevronLeft size={16} className="mr-1" /> Back to Banks
                   </button>
                   {(() => {
@@ -5519,12 +5519,107 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                           {' '}{previewBankQuestions.filter(q => q.type === 'THEORY').length} Theory ·
                           {' '}Total {previewBankQuestions.reduce((s, q) => s + (q.points || 0), 0)} pts
                         </div>
-                        <div className="mb-6">
+                        <div className="mb-6 flex items-center gap-2">
                           <button onClick={() => { setPreviewBankId(null); openBankFlow(bank?.id); }}
                             className="px-4 py-2 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 transition-colors">
                             Use this bank → Create Assignment
                           </button>
+                          {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                            <>
+                              <button onClick={() => addBuilderQuestion('MCQ')}
+                                className="px-4 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] transition-colors">
+                                + Add MCQ question
+                              </button>
+                              <button onClick={() => addBuilderQuestion('THEORY')}
+                                className="px-4 py-2 bg-purple-100 text-purple-700 rounded text-sm font-medium hover:bg-purple-200 transition-colors">
+                                + Add Theory question
+                              </button>
+                            </>
+                          )}
                         </div>
+
+                        {builderQuestions.length > 0 && (effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                          <div className="mb-6 border border-[#008EE2] rounded-lg bg-blue-50/40 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h3 className="font-bold text-[#2D3B45] text-sm">New questions to add to this bank ({builderQuestions.length})</h3>
+                              <div className="flex gap-2">
+                                <button onClick={() => setBuilderQuestions([])}
+                                  className="px-3 py-1 text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+                                <button disabled={bankSaving || builderQuestions.some(q => !q.text.trim())}
+                                  onClick={async () => {
+                                    setBankSaving(true);
+                                    const res = await api<any>('/questions/append', {
+                                      method: 'POST',
+                                      body: JSON.stringify({
+                                        assignmentId: previewBankId,
+                                        questions: builderQuestions.map(q => ({
+                                          type: q.type,
+                                          text: q.text,
+                                          points: q.points,
+                                          explanation: q.explanation,
+                                          wordLimit: q.wordLimit,
+                                          options: q.type === 'MCQ' ? q.options : undefined,
+                                        })),
+                                      }),
+                                    });
+                                    setBankSaving(false);
+                                    if (res.success) {
+                                      setBuilderQuestions([]);
+                                      const q = await api<any>(`/assignments/${previewBankId}/questions`);
+                                      if (q.success) setPreviewBankQuestions(q.data || []);
+                                    } else {
+                                      alert(res.error || 'Failed to add questions');
+                                    }
+                                  }}
+                                  className="px-4 py-1.5 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                  {bankSaving ? 'Saving…' : `Save ${builderQuestions.length} to bank`}
+                                </button>
+                              </div>
+                            </div>
+                            <div className="space-y-3">
+                              {builderQuestions.map((q, qIdx) => (
+                                <div key={qIdx} className="bg-white border border-gray-200 rounded p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className={`px-2 py-0.5 text-xs font-bold rounded ${q.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{q.type}</span>
+                                    <button onClick={() => removeBuilderQuestion(qIdx)} className="text-red-600 text-sm hover:underline">Remove</button>
+                                  </div>
+                                  <textarea value={q.text} onChange={e => updateBuilderQuestion(qIdx, { text: e.target.value })}
+                                    placeholder="Question text *" rows={2}
+                                    className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2" />
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <label className="text-xs text-gray-600">Points</label>
+                                    <input type="number" value={q.points} onChange={e => updateBuilderQuestion(qIdx, { points: Number(e.target.value) })}
+                                      className="w-24 border border-gray-300 rounded px-2 py-1 text-sm" min={0} />
+                                  </div>
+                                  {q.type === 'MCQ' && (
+                                    <div className="space-y-1">
+                                      {q.options.map((opt, oIdx) => (
+                                        <div key={oIdx} className="flex items-center gap-2">
+                                          <input type="radio" name={`correct-${qIdx}`} checked={opt.isCorrect}
+                                            onChange={() => updateBuilderQuestion(qIdx, {
+                                              options: q.options.map((o, i) => ({ ...o, isCorrect: i === oIdx })),
+                                            })} />
+                                          <input type="text" value={opt.text}
+                                            onChange={e => updateBuilderQuestion(qIdx, {
+                                              options: q.options.map((o, i) => i === oIdx ? { ...o, text: e.target.value } : o),
+                                            })}
+                                            placeholder={`Option ${oIdx + 1}`}
+                                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm" />
+                                          {q.options.length > 2 && (
+                                            <button onClick={() => updateBuilderQuestion(qIdx, { options: q.options.filter((_, i) => i !== oIdx) })}
+                                              className="text-red-600 text-sm">×</button>
+                                          )}
+                                        </div>
+                                      ))}
+                                      <button onClick={() => updateBuilderQuestion(qIdx, { options: [...q.options, { text: '', isCorrect: false }] })}
+                                        className="text-[#008EE2] text-xs hover:underline">+ Add option</button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <div className="border border-[#E1E1E1] rounded divide-y divide-[#E1E1E1] bg-white">
                           {previewBankQuestions.map((q: any, i: number) => (
                             <div key={q.id} className="p-4">

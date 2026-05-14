@@ -146,6 +146,75 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) 
   }
 });
 
+// POST /api/questions/append — append questions to a bank without deleting
+// existing ones. Permission: ADMIN, or a TEACHER who teaches the bank's course.
+router.post('/append', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const { assignmentId, questions } = req.body;
+    if (!assignmentId || !Array.isArray(questions) || questions.length === 0) {
+      return error(res, 'assignmentId and a non-empty questions[] are required');
+    }
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
+      select: { id: true, courseId: true, points: true },
+    });
+    if (!assignment) return error(res, 'Assignment not found', 404);
+
+    if (req.user!.role === 'TEACHER') {
+      const teaches = await prisma.batch.findFirst({
+        where: { teacherId: req.user!.userId, courseId: assignment.courseId },
+        select: { id: true },
+      });
+      if (!teaches) return error(res, 'Not authorized for this course', 403);
+    }
+
+    const last = await prisma.question.findFirst({
+      where: { assignmentId }, orderBy: { position: 'desc' }, select: { position: true },
+    });
+    let pos = (last?.position || 0) + 1;
+
+    const created = [];
+    let addedPoints = 0;
+    for (const q of questions) {
+      if (!q.text?.trim()) continue;
+      const points = parseFloat(q.points) || 1;
+      const isMcq = q.type === 'MCQ';
+      const newQ = await prisma.question.create({
+        data: {
+          assignmentId,
+          type: isMcq ? 'MCQ' : 'THEORY',
+          text: q.text,
+          points,
+          position: pos++,
+          required: q.required !== false,
+          explanation: q.explanation || null,
+          wordLimit: q.wordLimit ? parseInt(q.wordLimit) : null,
+          options: isMcq && Array.isArray(q.options) ? {
+            create: q.options.map((opt: any, j: number) => ({
+              text: String(opt.text || ''),
+              isCorrect: !!opt.isCorrect,
+              position: j + 1,
+            })),
+          } : undefined,
+        },
+        include: { options: true },
+      });
+      created.push(newQ);
+      addedPoints += points;
+    }
+
+    await prisma.assignment.update({
+      where: { id: assignmentId },
+      data: { points: (assignment.points || 0) + addedPoints },
+    });
+
+    return success(res, { added: created.length, addedPoints }, 201);
+  } catch (err) {
+    console.error('Append questions error:', err);
+    return error(res, 'Failed to append questions', 500);
+  }
+});
+
 // POST /api/questions/submit — student submits answers
 router.post('/submit', async (req: AuthRequest, res) => {
   try {
