@@ -5387,7 +5387,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                             <span className="font-bold text-[16px]">Submissions ({assignmentDetail.submissions?.length || 0})</span>
                           </div>
 
-                          {/* Teacher: Show questions overview for quiz formats */}
+                          {/* Teacher: Show questions overview + edit/delete for quiz formats */}
                           {assignmentDetail.format && assignmentDetail.format !== 'FILE' && assignmentQuestions.length > 0 && (
                             <div className="bg-blue-50/50 border-b border-[#E1E1E1] px-4 py-3">
                               <div className="flex items-center space-x-2 mb-2">
@@ -5398,12 +5398,115 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                                   'bg-amber-500 text-white'
                                 }`}>{assignmentDetail.format}</span>
                               </div>
-                              <div className="text-[16px] text-gray-500 space-x-4">
+                              <div className="text-[16px] text-gray-500 space-x-4 mb-3">
                                 <span>MCQ: {assignmentQuestions.filter((q: any) => q.type === 'MCQ').length}</span>
                                 <span>Theory: {assignmentQuestions.filter((q: any) => q.type === 'THEORY').length}</span>
                                 <span>Total Points: {assignmentQuestions.reduce((s: number, q: any) => s + q.points, 0)}</span>
                                 {assignmentDetail.timeLimit && <span>Time: {assignmentDetail.timeLimit} min</span>}
                               </div>
+                              {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                                <div className="bg-white border border-[#E1E1E1] rounded divide-y divide-[#E1E1E1]">
+                                  {assignmentQuestions.map((q: any, i: number) => (
+                                    <div key={q.id} className="p-3">
+                                      {editQId === q.id && editQDraft ? (
+                                        <div>
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className={`px-2 py-0.5 text-xs font-bold rounded ${q.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{q.type}</span>
+                                            <div className="flex gap-2">
+                                              <button onClick={() => { setEditQId(null); setEditQDraft(null); }} className="text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+                                              <button disabled={editQSaving || !editQDraft.text?.trim()}
+                                                onClick={async () => {
+                                                  setEditQSaving(true);
+                                                  const body: any = { text: editQDraft.text, points: editQDraft.points, explanation: editQDraft.explanation || '' };
+                                                  if (q.type === 'MCQ') body.options = editQDraft.options;
+                                                  const res = await patch<any>(`/questions/${q.id}`, body);
+                                                  setEditQSaving(false);
+                                                  if (res.success) {
+                                                    setEditQId(null); setEditQDraft(null);
+                                                    const r = await api<any>(`/questions?assignmentId=${assignmentDetail.id}`);
+                                                    if (r.success) setAssignmentQuestions(r.data || []);
+                                                    await loadAssignmentDetail(assignmentDetail.id);
+                                                  } else { alert(res.error || 'Failed to save'); }
+                                                }}
+                                                className="px-3 py-1 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50">
+                                                {editQSaving ? 'Saving…' : 'Save'}
+                                              </button>
+                                            </div>
+                                          </div>
+                                          <textarea value={editQDraft.text} onChange={e => setEditQDraft({...editQDraft, text: e.target.value})}
+                                            rows={2} className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2" />
+                                          <div className="flex items-center gap-3 mb-2">
+                                            <label className="text-xs text-gray-600">Points</label>
+                                            <input type="number" value={editQDraft.points} onChange={e => setEditQDraft({...editQDraft, points: Number(e.target.value)})}
+                                              className="w-24 border border-gray-300 rounded px-2 py-1 text-sm" min={0} />
+                                          </div>
+                                          {q.type === 'MCQ' && (
+                                            <div className="space-y-1">
+                                              {editQDraft.options.map((opt: any, oIdx: number) => (
+                                                <div key={oIdx} className="flex items-center gap-2">
+                                                  <input type="radio" name={`editAcorrect-${q.id}`} checked={opt.isCorrect}
+                                                    onChange={() => setEditQDraft({...editQDraft, options: editQDraft.options.map((o: any, i: number) => ({...o, isCorrect: i === oIdx}))})} />
+                                                  <input type="text" value={opt.text}
+                                                    onChange={e => setEditQDraft({...editQDraft, options: editQDraft.options.map((o: any, i: number) => i === oIdx ? {...o, text: e.target.value} : o)})}
+                                                    className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm" />
+                                                  {editQDraft.options.length > 2 && (
+                                                    <button onClick={() => setEditQDraft({...editQDraft, options: editQDraft.options.filter((_: any, i: number) => i !== oIdx)})}
+                                                      className="text-red-600 text-sm">×</button>
+                                                  )}
+                                                </div>
+                                              ))}
+                                              <button onClick={() => setEditQDraft({...editQDraft, options: [...editQDraft.options, {text: '', isCorrect: false}]})}
+                                                className="text-[#008EE2] text-xs hover:underline">+ Add option</button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-start">
+                                          <span className="text-gray-400 mr-2 text-sm font-medium">{i + 1}.</span>
+                                          <div className="flex-1">
+                                            <div className="text-sm text-[#2D3B45]">{q.text}</div>
+                                            <div className="text-xs text-gray-500 mt-1">
+                                              <span className={`px-2 py-0.5 rounded ${q.type === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : 'bg-purple-100 text-purple-700'}`}>{q.type}</span>
+                                              <span className="ml-2">{q.points} pts</span>
+                                            </div>
+                                            {q.type === 'MCQ' && q.options?.length > 0 && (
+                                              <ul className="mt-2 ml-2 space-y-0.5">
+                                                {q.options.map((o: any) => (
+                                                  <li key={o.id} className={`text-sm ${o.isCorrect ? 'text-green-700 font-medium' : 'text-gray-600'}`}>
+                                                    {o.isCorrect ? '✓ ' : '○ '}{o.text}
+                                                  </li>
+                                                ))}
+                                              </ul>
+                                            )}
+                                          </div>
+                                          <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
+                                            <button onClick={() => {
+                                                setEditQId(q.id);
+                                                setEditQDraft({
+                                                  text: q.text || '',
+                                                  points: q.points || 0,
+                                                  explanation: q.explanation || '',
+                                                  options: (q.options || []).map((o: any) => ({text: o.text, isCorrect: o.isCorrect})),
+                                                });
+                                              }}
+                                              className="text-xs text-[#008EE2] hover:underline">Edit</button>
+                                            <button onClick={async () => {
+                                                if (!confirm(`Delete question "${(q.text || '').slice(0,50)}…"?`)) return;
+                                                const res = await del<any>(`/questions/${q.id}`);
+                                                if (res.success) {
+                                                  const r = await api<any>(`/questions?assignmentId=${assignmentDetail.id}`);
+                                                  if (r.success) setAssignmentQuestions(r.data || []);
+                                                  await loadAssignmentDetail(assignmentDetail.id);
+                                                } else alert(res.error || 'Failed to delete');
+                                              }}
+                                              className="text-xs text-red-600 hover:underline">Delete</button>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
 
