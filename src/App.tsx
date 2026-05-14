@@ -3601,6 +3601,10 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
   const [courseBatches, setCourseBatches] = useState<any[]>([]);
   const [courseStudents, setCourseStudents] = useState<any[]>([]);
   const [bankSaving, setBankSaving] = useState(false);
+  const [showNewBank, setShowNewBank] = useState(false);
+  const [newBankTitle, setNewBankTitle] = useState('');
+  const [newBankModuleId, setNewBankModuleId] = useState('');
+  const [creatingBank, setCreatingBank] = useState(false);
 
   // Teacher grading state
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
@@ -5651,8 +5655,58 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                 </div>
               ) : (
                 <>
-                  <h1 className="text-[28px] font-medium text-[#2D3B45] mb-2">Question Banks</h1>
+                  <div className="flex items-center justify-between mb-2">
+                    <h1 className="text-[28px] font-medium text-[#2D3B45]">Question Banks</h1>
+                    {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                      <button onClick={() => setShowNewBank(true)}
+                        className="flex items-center space-x-1 bg-purple-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-purple-700 transition-colors">
+                        <Plus size={16} /> <span>New Question Bank</span>
+                      </button>
+                    )}
+                  </div>
                   <p className="text-sm text-gray-500 mb-6">Existing question pools for {course.code}. Click a bank to preview, or use it to create a new assignment for any batch or student.</p>
+                  {showNewBank && (effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                    <div className="mb-6 border border-purple-300 bg-purple-50/40 rounded-lg p-4">
+                      <h3 className="font-bold text-[#2D3B45] text-sm mb-3">New Question Bank</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <input type="text" value={newBankTitle} onChange={e => setNewBankTitle(e.target.value)}
+                          placeholder="Bank title (e.g. Microsoft Word — Quiz 1)"
+                          className="border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#008EE2]" />
+                        <select value={newBankModuleId} onChange={e => setNewBankModuleId(e.target.value)}
+                          className="border border-gray-300 rounded px-3 py-2 text-sm bg-white">
+                          <option value="">— No module —</option>
+                          {(course.modules || []).map((m: any) => (
+                            <option key={m.id} value={m.id}>{m.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setShowNewBank(false); setNewBankTitle(''); setNewBankModuleId(''); }}
+                          className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+                        <button disabled={!newBankTitle.trim() || creatingBank}
+                          onClick={async () => {
+                            setCreatingBank(true);
+                            const res = await api<any>('/assignments/banks', {
+                              method: 'POST',
+                              body: JSON.stringify({ courseId, title: newBankTitle.trim(), moduleId: newBankModuleId || undefined, format: 'MCQ' }),
+                            });
+                            setCreatingBank(false);
+                            if (res.success) {
+                              setShowNewBank(false); setNewBankTitle(''); setNewBankModuleId('');
+                              // Refresh list and jump into preview.
+                              const banksRes = await api<any>(`/assignments/banks?courseId=${courseId}`);
+                              if (banksRes.success) setBankList(banksRes.data || []);
+                              openBankPreview(res.data.id);
+                            } else {
+                              alert(res.error || 'Failed to create bank');
+                            }
+                          }}
+                          className="px-4 py-1.5 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors">
+                          {creatingBank ? 'Creating…' : 'Create bank'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {bankList.length === 0 ? (
                     <div className="border border-[#E1E1E1] rounded p-8 text-center text-gray-400 text-sm">No question banks found in this course.</div>
                   ) : (() => {

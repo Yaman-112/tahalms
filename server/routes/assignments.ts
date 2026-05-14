@@ -106,6 +106,43 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
+// POST /api/assignments/banks — create an empty question bank (an unpublished
+// assignment that holds questions only; not assigned to students). Teachers
+// can create banks for any course they teach a batch in.
+router.post('/banks', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const { courseId, moduleId, title, format } = req.body || {};
+    if (!courseId || !title?.trim()) return error(res, 'courseId and title are required');
+
+    if (req.user!.role === 'TEACHER') {
+      const teaches = await prisma.batch.findFirst({
+        where: { teacherId: req.user!.userId, courseId },
+        select: { id: true },
+      });
+      if (!teaches) return error(res, 'Not authorized for this course', 403);
+    }
+
+    const fmt = ['FILE','MCQ','THEORY','MIXED'].includes((format || '').toUpperCase()) ? (format as string).toUpperCase() : 'MCQ';
+
+    const bank = await prisma.assignment.create({
+      data: {
+        courseId,
+        moduleId: moduleId || null,
+        title: title.trim(),
+        type: 'QUIZ',
+        format: fmt as any,
+        points: 0,
+        published: false,
+      },
+      select: { id: true, title: true, courseId: true, moduleId: true, format: true, points: true },
+    });
+    return success(res, bank, 201);
+  } catch (err) {
+    console.error('Create bank error:', err);
+    return error(res, 'Failed to create bank', 500);
+  }
+});
+
 // GET /api/assignments/banks?courseId=xxx
 // Registered BEFORE /:id so Express doesn't match "banks" as an id param.
 router.get('/banks', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
