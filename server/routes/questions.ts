@@ -215,6 +215,96 @@ router.post('/append', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest,
   }
 });
 
+// PATCH /api/questions/:id — update one question (text / points / options / etc.)
+router.patch('/:id', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const q = await prisma.question.findUnique({
+      where: { id: req.params.id },
+      include: { assignment: { select: { id: true, courseId: true, points: true } }, options: true },
+    });
+    if (!q) return error(res, 'Question not found', 404);
+
+    if (req.user!.role === 'TEACHER') {
+      const teaches = await prisma.batch.findFirst({
+        where: { teacherId: req.user!.userId, courseId: q.assignment.courseId },
+        select: { id: true },
+      });
+      if (!teaches) return error(res, 'Not authorized for this course', 403);
+    }
+
+    const { text, points, explanation, wordLimit, required, options } = req.body || {};
+    const data: any = {};
+    if (typeof text === 'string') data.text = text;
+    if (typeof points !== 'undefined') data.points = parseFloat(points) || 0;
+    if (typeof explanation !== 'undefined') data.explanation = explanation || null;
+    if (typeof wordLimit !== 'undefined') data.wordLimit = wordLimit ? parseInt(wordLimit) : null;
+    if (typeof required !== 'undefined') data.required = !!required;
+
+    const oldPoints = q.points || 0;
+    const updated = await prisma.question.update({ where: { id: q.id }, data });
+
+    // If the caller supplied an options array, replace all options for an MCQ.
+    if (Array.isArray(options) && q.type === 'MCQ') {
+      await prisma.questionOption.deleteMany({ where: { questionId: q.id } });
+      if (options.length > 0) {
+        await prisma.questionOption.createMany({
+          data: options.map((o: any, j: number) => ({
+            questionId: q.id,
+            text: String(o.text || ''),
+            isCorrect: !!o.isCorrect,
+            position: j + 1,
+          })),
+        });
+      }
+    }
+
+    // Update the parent assignment's total points if question points changed.
+    if (typeof points !== 'undefined') {
+      const delta = (parseFloat(points) || 0) - oldPoints;
+      if (delta !== 0) {
+        await prisma.assignment.update({
+          where: { id: q.assignment.id },
+          data: { points: Math.max(0, (q.assignment.points || 0) + delta) },
+        });
+      }
+    }
+
+    return success(res, updated);
+  } catch (err) {
+    console.error('Update question error:', err);
+    return error(res, 'Failed to update question', 500);
+  }
+});
+
+// DELETE /api/questions/:id — remove a question (cascades to options + answers).
+router.delete('/:id', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) => {
+  try {
+    const q = await prisma.question.findUnique({
+      where: { id: req.params.id },
+      include: { assignment: { select: { id: true, courseId: true, points: true } } },
+    });
+    if (!q) return error(res, 'Question not found', 404);
+
+    if (req.user!.role === 'TEACHER') {
+      const teaches = await prisma.batch.findFirst({
+        where: { teacherId: req.user!.userId, courseId: q.assignment.courseId },
+        select: { id: true },
+      });
+      if (!teaches) return error(res, 'Not authorized for this course', 403);
+    }
+
+    await prisma.question.delete({ where: { id: q.id } });
+    await prisma.assignment.update({
+      where: { id: q.assignment.id },
+      data: { points: Math.max(0, (q.assignment.points || 0) - (q.points || 0)) },
+    });
+    return success(res, { id: q.id });
+  } catch (err) {
+    console.error('Delete question error:', err);
+    return error(res, 'Failed to delete question', 500);
+  }
+});
+
 // POST /api/questions/submit — student submits answers
 router.post('/submit', async (req: AuthRequest, res) => {
   try {

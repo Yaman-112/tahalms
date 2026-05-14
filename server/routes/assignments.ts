@@ -459,6 +459,14 @@ router.patch('/:id', requireRole('ADMIN', 'TEACHER'), upload.single('file'), asy
     const existing = await prisma.assignment.findUnique({ where: { id: req.params.id } });
     if (!existing) return error(res, 'Assignment not found', 404);
 
+    if (req.user!.role === 'TEACHER') {
+      const teaches = await prisma.batch.findFirst({
+        where: { teacherId: req.user!.userId, courseId: existing.courseId },
+        select: { id: true },
+      });
+      if (!teaches) return error(res, 'Not authorized for this course', 403);
+    }
+
     const updates: any = { ...req.body };
     if (updates.dueDate) updates.dueDate = new Date(updates.dueDate);
     if (updates.points) updates.points = parseFloat(updates.points);

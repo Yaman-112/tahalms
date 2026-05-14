@@ -3605,6 +3605,12 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
   const [newBankTitle, setNewBankTitle] = useState('');
   const [newBankModuleId, setNewBankModuleId] = useState('');
   const [creatingBank, setCreatingBank] = useState(false);
+  const [editAssignOpen, setEditAssignOpen] = useState(false);
+  const [editAssignDraft, setEditAssignDraft] = useState<any>(null);
+  const [editAssignSaving, setEditAssignSaving] = useState(false);
+  const [editQId, setEditQId] = useState<string | null>(null);
+  const [editQDraft, setEditQDraft] = useState<any>(null);
+  const [editQSaving, setEditQSaving] = useState(false);
 
   // Teacher grading state
   const [gradingSubmissionId, setGradingSubmissionId] = useState<string | null>(null);
@@ -4848,10 +4854,30 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                         <div className="flex items-start justify-between">
                           <h2 className="text-[28px] font-medium text-[#2D3B45] mb-2">{assignmentDetail.title}</h2>
                           {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
-                            <button onClick={openTargetsModal}
-                              className="px-3 py-1.5 border border-purple-600 text-purple-700 rounded text-sm font-medium hover:bg-purple-50 transition-colors">
-                              Manage Targets
-                            </button>
+                            <div className="flex items-center gap-2">
+                              <button onClick={() => {
+                                  setEditAssignDraft({
+                                    title: assignmentDetail.title || '',
+                                    description: assignmentDetail.description || '',
+                                    instructions: assignmentDetail.instructions || '',
+                                    points: assignmentDetail.points || 0,
+                                    dueDate: assignmentDetail.dueDate ? new Date(assignmentDetail.dueDate).toISOString().slice(0,16) : '',
+                                    timeLimit: assignmentDetail.timeLimit || 0,
+                                    negativeMarking: assignmentDetail.negativeMarking || 0,
+                                    shuffleQuestions: !!assignmentDetail.shuffleQuestions,
+                                    showResults: assignmentDetail.showResults !== false,
+                                    published: assignmentDetail.published !== false,
+                                  });
+                                  setEditAssignOpen(true);
+                                }}
+                                className="px-3 py-1.5 border border-[#008EE2] text-[#008EE2] rounded text-sm font-medium hover:bg-blue-50 transition-colors">
+                                Edit
+                              </button>
+                              <button onClick={openTargetsModal}
+                                className="px-3 py-1.5 border border-purple-600 text-purple-700 rounded text-sm font-medium hover:bg-purple-50 transition-colors">
+                                Manage Targets
+                              </button>
+                            </div>
                           )}
                         </div>
                         <div className="flex items-center space-x-4 text-[16px] text-gray-500 flex-wrap">
@@ -4876,6 +4902,100 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                           )}
                         </div>
                       </div>
+
+                      {/* Edit Assignment Modal */}
+                      {editAssignOpen && editAssignDraft && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setEditAssignOpen(false)}>
+                          <div className="bg-white rounded-lg shadow-xl w-[700px] max-w-[95vw] max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+                            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
+                              <h2 className="text-[16px] font-bold text-[#2D3B45]">Edit Assignment</h2>
+                              <button onClick={() => setEditAssignOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                            </div>
+                            <div className="px-5 py-4 overflow-y-auto flex-1 space-y-3">
+                              <div>
+                                <label className="block text-xs font-bold text-[#2D3B45] mb-1">Title *</label>
+                                <input type="text" value={editAssignDraft.title} onChange={e => setEditAssignDraft({...editAssignDraft, title: e.target.value})}
+                                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-[#2D3B45] mb-1">Description</label>
+                                <textarea value={editAssignDraft.description} onChange={e => setEditAssignDraft({...editAssignDraft, description: e.target.value})}
+                                  rows={2} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-[#2D3B45] mb-1">Instructions</label>
+                                <textarea value={editAssignDraft.instructions} onChange={e => setEditAssignDraft({...editAssignDraft, instructions: e.target.value})}
+                                  rows={3} className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                  <label className="block text-xs font-bold text-[#2D3B45] mb-1">Points</label>
+                                  <input type="number" value={editAssignDraft.points} onChange={e => setEditAssignDraft({...editAssignDraft, points: Number(e.target.value)})}
+                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm" min={0} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-[#2D3B45] mb-1">Due Date</label>
+                                  <input type="datetime-local" value={editAssignDraft.dueDate} onChange={e => setEditAssignDraft({...editAssignDraft, dueDate: e.target.value})}
+                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm" />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-[#2D3B45] mb-1">Time Limit (min)</label>
+                                  <input type="number" value={editAssignDraft.timeLimit} onChange={e => setEditAssignDraft({...editAssignDraft, timeLimit: Number(e.target.value)})}
+                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm" min={0} />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-bold text-[#2D3B45] mb-1">Negative Marking</label>
+                                  <input type="number" step="0.25" value={editAssignDraft.negativeMarking} onChange={e => setEditAssignDraft({...editAssignDraft, negativeMarking: Number(e.target.value)})}
+                                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm" min={0} />
+                                </div>
+                              </div>
+                              <label className="flex items-center text-sm">
+                                <input type="checkbox" checked={editAssignDraft.shuffleQuestions} onChange={e => setEditAssignDraft({...editAssignDraft, shuffleQuestions: e.target.checked})} className="mr-2" />
+                                Shuffle questions per student
+                              </label>
+                              <label className="flex items-center text-sm">
+                                <input type="checkbox" checked={editAssignDraft.showResults} onChange={e => setEditAssignDraft({...editAssignDraft, showResults: e.target.checked})} className="mr-2" />
+                                Show results to student after submit
+                              </label>
+                              <label className="flex items-center text-sm">
+                                <input type="checkbox" checked={editAssignDraft.published} onChange={e => setEditAssignDraft({...editAssignDraft, published: e.target.checked})} className="mr-2" />
+                                Published (visible to students)
+                              </label>
+                            </div>
+                            <div className="flex justify-end gap-2 px-5 py-3 border-t border-gray-200">
+                              <button onClick={() => setEditAssignOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+                              <button disabled={!editAssignDraft.title?.trim() || editAssignSaving}
+                                onClick={async () => {
+                                  setEditAssignSaving(true);
+                                  const body = {
+                                    title: editAssignDraft.title,
+                                    description: editAssignDraft.description || '',
+                                    instructions: editAssignDraft.instructions || '',
+                                    points: editAssignDraft.points,
+                                    dueDate: editAssignDraft.dueDate ? new Date(editAssignDraft.dueDate).toISOString() : null,
+                                    timeLimit: editAssignDraft.timeLimit,
+                                    negativeMarking: editAssignDraft.negativeMarking,
+                                    shuffleQuestions: editAssignDraft.shuffleQuestions,
+                                    showResults: editAssignDraft.showResults,
+                                    published: editAssignDraft.published,
+                                  };
+                                  const res = await patch<any>(`/assignments/${assignmentDetail.id}`, body);
+                                  setEditAssignSaving(false);
+                                  if (res.success) {
+                                    setEditAssignOpen(false);
+                                    await loadAssignmentDetail(assignmentDetail.id);
+                                    refetchCourse();
+                                  } else {
+                                    alert(res.error || 'Failed to save');
+                                  }
+                                }}
+                                className="px-4 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50 transition-colors">
+                                {editAssignSaving ? 'Saving…' : 'Save changes'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Manage Targets Modal */}
                       {showTargetsModal && (
@@ -5627,25 +5747,105 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                         <div className="border border-[#E1E1E1] rounded divide-y divide-[#E1E1E1] bg-white">
                           {previewBankQuestions.map((q: any, i: number) => (
                             <div key={q.id} className="p-4">
-                              <div className="flex items-start">
-                                <span className="text-gray-400 mr-2 text-sm font-medium">{i + 1}.</span>
-                                <div className="flex-1">
-                                  <div className="text-sm text-[#2D3B45]">{q.text}</div>
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    <span className={`px-2 py-0.5 rounded ${q.type === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : 'bg-purple-100 text-purple-700'}`}>{q.type}</span>
-                                    <span className="ml-2">{q.points} pts</span>
+                              {editQId === q.id && editQDraft ? (
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className={`px-2 py-0.5 text-xs font-bold rounded ${q.type === 'MCQ' ? 'bg-[#008EE2] text-white' : 'bg-purple-600 text-white'}`}>{q.type}</span>
+                                    <div className="flex gap-2">
+                                      <button onClick={() => { setEditQId(null); setEditQDraft(null); }} className="text-sm text-gray-600 hover:text-gray-900">Cancel</button>
+                                      <button disabled={editQSaving || !editQDraft.text?.trim()}
+                                        onClick={async () => {
+                                          setEditQSaving(true);
+                                          const body: any = {
+                                            text: editQDraft.text,
+                                            points: editQDraft.points,
+                                            explanation: editQDraft.explanation || '',
+                                          };
+                                          if (q.type === 'MCQ') body.options = editQDraft.options;
+                                          const res = await patch<any>(`/questions/${q.id}`, body);
+                                          setEditQSaving(false);
+                                          if (res.success) {
+                                            setEditQId(null); setEditQDraft(null);
+                                            const r = await api<any>(`/assignments/${previewBankId}/questions`);
+                                            if (r.success) setPreviewBankQuestions(r.data || []);
+                                          } else { alert(res.error || 'Failed to save'); }
+                                        }}
+                                        className="px-3 py-1 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] disabled:opacity-50">
+                                        {editQSaving ? 'Saving…' : 'Save'}
+                                      </button>
+                                    </div>
                                   </div>
-                                  {q.type === 'MCQ' && q.options?.length > 0 && (
-                                    <ul className="mt-2 ml-2 space-y-0.5">
-                                      {q.options.map((o: any) => (
-                                        <li key={o.id} className={`text-sm ${o.isCorrect ? 'text-green-700 font-medium' : 'text-gray-600'}`}>
-                                          {o.isCorrect ? '✓ ' : '○ '}{o.text}
-                                        </li>
+                                  <textarea value={editQDraft.text} onChange={e => setEditQDraft({...editQDraft, text: e.target.value})}
+                                    rows={2} className="w-full border border-gray-300 rounded px-2 py-1 text-sm mb-2" />
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <label className="text-xs text-gray-600">Points</label>
+                                    <input type="number" value={editQDraft.points} onChange={e => setEditQDraft({...editQDraft, points: Number(e.target.value)})}
+                                      className="w-24 border border-gray-300 rounded px-2 py-1 text-sm" min={0} />
+                                  </div>
+                                  {q.type === 'MCQ' && (
+                                    <div className="space-y-1">
+                                      {editQDraft.options.map((opt: any, oIdx: number) => (
+                                        <div key={oIdx} className="flex items-center gap-2">
+                                          <input type="radio" name={`editcorrect-${q.id}`} checked={opt.isCorrect}
+                                            onChange={() => setEditQDraft({...editQDraft, options: editQDraft.options.map((o: any, i: number) => ({...o, isCorrect: i === oIdx}))})} />
+                                          <input type="text" value={opt.text}
+                                            onChange={e => setEditQDraft({...editQDraft, options: editQDraft.options.map((o: any, i: number) => i === oIdx ? {...o, text: e.target.value} : o)})}
+                                            className="flex-1 border border-gray-300 rounded px-2 py-1 text-sm" />
+                                          {editQDraft.options.length > 2 && (
+                                            <button onClick={() => setEditQDraft({...editQDraft, options: editQDraft.options.filter((_: any, i: number) => i !== oIdx)})}
+                                              className="text-red-600 text-sm">×</button>
+                                          )}
+                                        </div>
                                       ))}
-                                    </ul>
+                                      <button onClick={() => setEditQDraft({...editQDraft, options: [...editQDraft.options, {text: '', isCorrect: false}]})}
+                                        className="text-[#008EE2] text-xs hover:underline">+ Add option</button>
+                                    </div>
                                   )}
                                 </div>
-                              </div>
+                              ) : (
+                                <div className="flex items-start">
+                                  <span className="text-gray-400 mr-2 text-sm font-medium">{i + 1}.</span>
+                                  <div className="flex-1">
+                                    <div className="text-sm text-[#2D3B45]">{q.text}</div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      <span className={`px-2 py-0.5 rounded ${q.type === 'MCQ' ? 'bg-[#008EE2]/10 text-[#008EE2]' : 'bg-purple-100 text-purple-700'}`}>{q.type}</span>
+                                      <span className="ml-2">{q.points} pts</span>
+                                    </div>
+                                    {q.type === 'MCQ' && q.options?.length > 0 && (
+                                      <ul className="mt-2 ml-2 space-y-0.5">
+                                        {q.options.map((o: any) => (
+                                          <li key={o.id} className={`text-sm ${o.isCorrect ? 'text-green-700 font-medium' : 'text-gray-600'}`}>
+                                            {o.isCorrect ? '✓ ' : '○ '}{o.text}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                  {(effectiveRole === 'TEACHER' || effectiveRole === 'ADMIN') && (
+                                    <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
+                                      <button onClick={() => {
+                                          setEditQId(q.id);
+                                          setEditQDraft({
+                                            text: q.text || '',
+                                            points: q.points || 0,
+                                            explanation: q.explanation || '',
+                                            options: (q.options || []).map((o: any) => ({text: o.text, isCorrect: o.isCorrect})),
+                                          });
+                                        }}
+                                        className="text-xs text-[#008EE2] hover:underline">Edit</button>
+                                      <button onClick={async () => {
+                                          if (!confirm(`Delete question "${q.text.slice(0,50)}…"?`)) return;
+                                          const res = await del<any>(`/questions/${q.id}`);
+                                          if (res.success) {
+                                            const r = await api<any>(`/assignments/${previewBankId}/questions`);
+                                            if (r.success) setPreviewBankQuestions(r.data || []);
+                                          } else alert(res.error || 'Failed to delete');
+                                        }}
+                                        className="text-xs text-red-600 hover:underline">Delete</button>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
