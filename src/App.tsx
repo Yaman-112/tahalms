@@ -3595,9 +3595,10 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
   const [bankSourceId, setBankSourceId] = useState<string>('');
   const [bankQuestions, setBankQuestions] = useState<any[]>([]);
   const [bankSelectedQuestionIds, setBankSelectedQuestionIds] = useState<Set<string>>(new Set());
-  const [bankTargetMode, setBankTargetMode] = useState<'COURSE' | 'BATCH' | 'STUDENT'>('COURSE');
+  const [bankTargetMode, setBankTargetMode] = useState<'COURSE' | 'BATCH' | 'STUDENT' | 'START_DATE'>('COURSE');
   const [bankTargetBatches, setBankTargetBatches] = useState<Set<string>>(new Set());
   const [bankTargetStudents, setBankTargetStudents] = useState<Set<string>>(new Set());
+  const [bankTargetStartDate, setBankTargetStartDate] = useState<string>('');
   const [studentSearch, setStudentSearch] = useState('');
   const [courseBatches, setCourseBatches] = useState<any[]>([]);
   const [courseStudents, setCourseStudents] = useState<any[]>([]);
@@ -3696,7 +3697,14 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
     setCreating(true);
 
     const targetBatchesArr = bankTargetMode === 'BATCH' ? [...bankTargetBatches] : [];
-    const targetStudentsArr = bankTargetMode === 'STUDENT' ? [...bankTargetStudents] : [];
+    let targetStudentsArr: string[] = bankTargetMode === 'STUDENT' ? [...bankTargetStudents] : [];
+    if (bankTargetMode === 'START_DATE') {
+      if (!bankTargetStartDate) { setCreating(false); return; }
+      targetStudentsArr = courseStudents
+        .filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === bankTargetStartDate)
+        .map((s: any) => s.id);
+      if (targetStudentsArr.length === 0) { setCreating(false); return; }
+    }
 
     if (newAssignFormat === 'FILE') {
       // Existing FILE-based creation
@@ -3846,7 +3854,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
           if (cur) cur.count++; else batchSet.set(e.batchCode, { batchCode: e.batchCode, count: 1 });
         }
         if (e.user && (!allowedBatchCodes || (e.batchCode && allowedBatchCodes.has(e.batchCode)))) {
-          studentMap.set(e.user.id, e.user);
+          studentMap.set(e.user.id, { ...e.user, startDate: e.startDate || e.user.startDate || null });
         }
       }
       setCourseBatches([...batchSet.values()].sort((a, b) => a.batchCode.localeCompare(b.batchCode)));
@@ -3858,7 +3866,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
     setActiveSection('Assignments');
     setShowBankFlow(true);
     setBankSourceId(''); setBankQuestions([]); setBankSelectedQuestionIds(new Set());
-    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set()); setStudentSearch('');
+    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set()); setBankTargetStartDate(''); setStudentSearch('');
     setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
     setNewAssignPoints(100); setNewAssignDueDate('');
     setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
@@ -3880,7 +3888,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
 
   const openCreateAssignment = async () => {
     setShowCreateAssignment(true);
-    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set());
+    setBankTargetMode('COURSE'); setBankTargetBatches(new Set()); setBankTargetStudents(new Set()); setBankTargetStartDate('');
     await loadTargetData();
     // Resolve the program-schedule current module and auto-select it.
     setCurrentProgramModule(null);
@@ -3993,7 +4001,13 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
       showResults: newAssignShowResults,
       negativeMarking: newAssignNegativeMarking,
       targetBatches: bankTargetMode === 'BATCH' ? [...bankTargetBatches] : [],
-      targetStudents: bankTargetMode === 'STUDENT' ? [...bankTargetStudents] : [],
+      targetStudents: bankTargetMode === 'STUDENT'
+        ? [...bankTargetStudents]
+        : bankTargetMode === 'START_DATE'
+          ? courseStudents
+              .filter((s: any) => s.startDate && bankTargetStartDate && new Date(s.startDate).toISOString().slice(0, 10) === bankTargetStartDate)
+              .map((s: any) => s.id)
+          : [],
       moduleId: newAssignModuleId || undefined,
       assessmentKind: newAssignKind || undefined,
       ungraded: newAssignUngraded,
@@ -4397,6 +4411,10 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                             <input type="radio" name="bankTargetMode" checked={bankTargetMode === 'STUDENT'} onChange={() => setBankTargetMode('STUDENT')} className="mr-2" />
                             Specific students
                           </label>
+                          <label className="flex items-center text-sm">
+                            <input type="radio" name="bankTargetMode" checked={bankTargetMode === 'START_DATE'} onChange={() => setBankTargetMode('START_DATE')} className="mr-2" />
+                            Students with a specific start date
+                          </label>
                         </div>
 
                         {bankTargetMode === 'BATCH' && (
@@ -4456,6 +4474,33 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                             </div>
                           );
                         })()}
+
+                        {bankTargetMode === 'START_DATE' && (
+                          <div className="mt-3 space-y-2">
+                            <select
+                              value={bankTargetStartDate}
+                              onChange={e => setBankTargetStartDate(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                            >
+                              <option value="">— Select a start date —</option>
+                              {[...new Set(
+                                courseStudents
+                                  .map((s: any) => s.startDate ? new Date(s.startDate).toISOString().slice(0, 10) : null)
+                                  .filter(Boolean) as string[]
+                              )]
+                                .sort()
+                                .map(d => {
+                                  const count = courseStudents.filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === d).length;
+                                  return <option key={d} value={d}>{d} ({count} students)</option>;
+                                })}
+                            </select>
+                            {bankTargetStartDate && (
+                              <div className="text-xs text-gray-500">
+                                {courseStudents.filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === bankTargetStartDate).length} student(s) will be assigned.
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -4466,6 +4511,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                         disabled={!bankSourceId || bankSelectedQuestionIds.size === 0 || !newAssignTitle || bankSaving ||
                           (bankTargetMode === 'BATCH' && bankTargetBatches.size === 0) ||
                           (bankTargetMode === 'STUDENT' && bankTargetStudents.size === 0) ||
+                          (bankTargetMode === 'START_DATE' && !bankTargetStartDate) ||
                           (moduleHasBudgets && (!newAssignModuleId || !newAssignKind || newAssignPoints <= 0 || (remainingForKind != null && newAssignPoints > remainingForKind)))}
                         className="px-6 py-2 bg-[#008EE2] text-white rounded text-sm font-medium hover:bg-[#0074BF] transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
                         {bankSaving ? 'Creating…' : 'Create Assignment'}
@@ -4785,6 +4831,10 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                           <input type="radio" name="newAssignTargetMode" checked={bankTargetMode === 'STUDENT'} onChange={() => setBankTargetMode('STUDENT')} className="mr-2" />
                           Specific students
                         </label>
+                        <label className="flex items-center text-sm">
+                          <input type="radio" name="newAssignTargetMode" checked={bankTargetMode === 'START_DATE'} onChange={() => setBankTargetMode('START_DATE')} className="mr-2" />
+                          Students with a specific start date
+                        </label>
                       </div>
                       {bankTargetMode === 'BATCH' && (
                         <div className="mt-3 border border-gray-200 rounded max-h-48 overflow-y-auto">
@@ -4820,6 +4870,32 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                               {s.firstName} {s.lastName} <span className="text-gray-400 ml-2">{s.email}</span>
                             </label>
                           ))}
+                        </div>
+                      )}
+                      {bankTargetMode === 'START_DATE' && (
+                        <div className="mt-3 space-y-2">
+                          <select
+                            value={bankTargetStartDate}
+                            onChange={e => setBankTargetStartDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                          >
+                            <option value="">— Select a start date —</option>
+                            {[...new Set(
+                              courseStudents
+                                .map((s: any) => s.startDate ? new Date(s.startDate).toISOString().slice(0, 10) : null)
+                                .filter(Boolean) as string[]
+                            )]
+                              .sort()
+                              .map(d => {
+                                const count = courseStudents.filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === d).length;
+                                return <option key={d} value={d}>{d} ({count} students)</option>;
+                              })}
+                          </select>
+                          {bankTargetStartDate && (
+                            <div className="text-xs text-gray-500">
+                              {courseStudents.filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === bankTargetStartDate).length} student(s) will be assigned.
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
