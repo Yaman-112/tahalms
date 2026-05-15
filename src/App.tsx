@@ -3580,6 +3580,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
   const [newAssignDueDate, setNewAssignDueDate] = useState('');
   const [newAssignFormats, setNewAssignFormats] = useState('.pdf,.doc,.docx');
   const [newAssignPublished, setNewAssignPublished] = useState(true);
+  const [newAssignUngraded, setNewAssignUngraded] = useState(false);
   const [newAssignFile, setNewAssignFile] = useState<File | null>(null);
   const [newAssignModuleId, setNewAssignModuleId] = useState<string>('');
   const [newAssignKind, setNewAssignKind] = useState<'' | 'FINAL' | 'PARTICIPATION' | 'ASSIGNMENT' | 'QUIZ'>('');
@@ -3711,6 +3712,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
       if (newAssignDueDate) formData.append('dueDate', new Date(newAssignDueDate).toISOString());
       formData.append('allowedFormats', newAssignFormats);
       formData.append('published', String(newAssignPublished));
+      formData.append('ungraded', String(newAssignUngraded));
       if (newAssignFile) formData.append('file', newAssignFile);
       formData.append('targetBatches', JSON.stringify(targetBatchesArr));
       formData.append('targetStudents', JSON.stringify(targetStudentsArr));
@@ -3732,6 +3734,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
       formData.append('format', newAssignFormat);
       if (newAssignDueDate) formData.append('dueDate', new Date(newAssignDueDate).toISOString());
       formData.append('published', String(newAssignPublished));
+      formData.append('ungraded', String(newAssignUngraded));
       if (newAssignTimeLimit > 0) formData.append('timeLimit', String(newAssignTimeLimit));
       formData.append('negativeMarking', String(newAssignNegativeMarking));
       formData.append('shuffleQuestions', String(newAssignShuffleQuestions));
@@ -3774,7 +3777,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
     setShowCreateAssignment(false);
     setNewAssignTitle(''); setNewAssignDesc(''); setNewAssignInstructions('');
     setNewAssignPoints(100); setNewAssignDueDate(''); setNewAssignFormats('.pdf,.doc,.docx');
-    setNewAssignPublished(true); setNewAssignFile(null);
+    setNewAssignPublished(true); setNewAssignUngraded(false); setNewAssignFile(null);
     setNewAssignFormat('FILE'); setNewAssignTimeLimit(0); setNewAssignNegativeMarking(0);
     setNewAssignShuffleQuestions(false); setNewAssignShowResults(true);
     setNewAssignModuleId('');
@@ -3993,6 +3996,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
       targetStudents: bankTargetMode === 'STUDENT' ? [...bankTargetStudents] : [],
       moduleId: newAssignModuleId || undefined,
       assessmentKind: newAssignKind || undefined,
+      ungraded: newAssignUngraded,
     };
     const res = await api<any>('/assignments/from-bank', {
       method: 'POST',
@@ -4820,10 +4824,14 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                       )}
                     </div>
 
-                    <div className="flex items-center space-x-3">
+                    <div className="flex items-center space-x-6">
                       <label className="flex items-center space-x-2 text-sm text-[#2D3B45]">
                         <input type="checkbox" checked={newAssignPublished} onChange={e => setNewAssignPublished(e.target.checked)} className="rounded border-gray-300" />
                         <span>Published</span>
+                      </label>
+                      <label className="flex items-center space-x-2 text-sm text-[#2D3B45]" title="Practice work. Students can submit and receive a score, but it does not count toward module or overall grade.">
+                        <input type="checkbox" checked={newAssignUngraded} onChange={e => setNewAssignUngraded(e.target.checked)} className="rounded border-gray-300" />
+                        <span>Ungraded (practice — does not count toward grade)</span>
                       </label>
                     </div>
                     <div className="flex items-center space-x-3 pt-4 border-t border-[#E1E1E1]">
@@ -5690,6 +5698,12 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                                     'bg-amber-100 text-amber-700'
                                   }`}>{a.format}</span>
                                 )}
+                                {a.countsTowardGrade === false && (
+                                  <span title="Practice assignment — does not count toward your grade"
+                                    className="px-1.5 py-0.5 text-[14px] font-bold rounded bg-gray-200 text-gray-700 uppercase tracking-wide">
+                                    Ungraded
+                                  </span>
+                                )}
                               </div>
                               <p className="text-[16px] text-gray-500 mt-0.5">
                                 {a.points} pts {a.dueDate && `• Due ${new Date(a.dueDate).toLocaleDateString()}`}
@@ -5698,8 +5712,11 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                             </div>
                             {showGrade ? (
                               <div className="mr-3 text-right">
-                                <div className={`text-[18px] font-bold ${pctColor}`}>{mySub.score}/{a.points}</div>
-                                <div className="text-[12px] text-gray-500">{pct.toFixed(2)}%</div>
+                                <div className={`text-[18px] font-bold ${a.countsTowardGrade === false ? 'text-gray-500' : pctColor}`}>{mySub.score}/{a.points}</div>
+                                <div className="text-[12px] text-gray-500">
+                                  {pct.toFixed(2)}%
+                                  {a.countsTowardGrade === false && <span className="ml-1 italic">(practice)</span>}
+                                </div>
                               </div>
                             ) : effectiveRole === 'STUDENT' && mySub?.status === 'MISSING' ? (
                               <div className="mr-3 text-right">

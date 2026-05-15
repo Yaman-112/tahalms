@@ -343,6 +343,7 @@ model Assignment {
   shuffleQuestions Boolean        @default(false) @map("shuffle_questions")
   showResults    Boolean          @default(true) @map("show_results") // show score after submit
   negativeMarking Float           @default(0) @map("negative_marking") // points deducted per wrong MCQ
+  countsTowardGrade Boolean       @default(true) @map("counts_toward_grade") // false = ungraded practice; excluded from module/overall grade
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 

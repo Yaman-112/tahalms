@@ -28,6 +28,7 @@ router.use(authenticate);
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const courseId = req.query.courseId as string | undefined;
+    const ungradedParam = req.query.ungraded as string | undefined;
     const { role, userId } = req.user!;
 
     let where: any = {};
@@ -36,6 +37,9 @@ router.get('/', async (req: AuthRequest, res) => {
     } else if (role !== 'ADMIN') {
       where.course = { enrollments: { some: { userId } } };
     }
+    // ?ungraded=true → only practice assignments; ?ungraded=false → only graded
+    if (ungradedParam === 'true') where.countsTowardGrade = false;
+    else if (ungradedParam === 'false') where.countsTowardGrade = true;
 
     let assignments = await prisma.assignment.findMany({
       where,
@@ -341,19 +345,27 @@ router.get('/:id/attachment', async (req: AuthRequest, res) => {
 // POST /api/assignments — create with optional file (teacher/admin)
 router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (req: AuthRequest, res) => {
   try {
-    const { courseId, moduleId, assessmentKind, title, description, type, points, dueDate, instructions, allowedFormats, maxFileSize } = req.body;
+    const { courseId, moduleId, assessmentKind, title, description, type, points, dueDate, instructions, allowedFormats, maxFileSize, ungraded, countsTowardGrade } = req.body;
 
     if (!courseId || !title) {
       return error(res, 'courseId and title are required');
     }
 
+    // ungraded=true (or countsTowardGrade=false) marks this as a practice assignment
+    // that's excluded from module/overall grade calculation. Accepts string ("true"/"false")
+    // or boolean since multipart form posts send strings.
+    const truthy = (v: any) => v === true || v === 'true' || v === 1 || v === '1';
+    const isUngraded = truthy(ungraded) || (countsTowardGrade !== undefined && !truthy(countsTowardGrade));
+    const countsTowardGradeFinal = !isUngraded;
+
     // Per-module / per-kind point cap enforcement.
     // If the module has any budget rows, the caller MUST specify a moduleId AND
     // an assessmentKind, and the requested points must fit in the remaining budget.
+    // Ungraded assignments skip this check since their points don't count.
     const kindUpper = (assessmentKind || '').toString().toUpperCase();
     const validKind = ['FINAL', 'PARTICIPATION', 'ASSIGNMENT', 'QUIZ'].includes(kindUpper) ? kindUpper : null;
     const ptsNum = parseFloat(points) || 0;
-    if (moduleId) {
+    if (moduleId && countsTowardGradeFinal) {
       const budgetCount = await prisma.moduleAssessmentBudget.count({ where: { moduleId } });
       if (budgetCount > 0) {
         if (!validKind) {
@@ -400,6 +412,7 @@ router.post('/', requireRole('ADMIN', 'TEACHER'), upload.single('file'), async (
         attachmentName,
         allowedFormats: allowedFormats || 'pdf,doc,docx',
         maxFileSize: parseInt(maxFileSize) || 10,
+        countsTowardGrade: countsTowardGradeFinal,
       },
     });
 
@@ -472,6 +485,12 @@ router.patch('/:id', requireRole('ADMIN', 'TEACHER'), upload.single('file'), asy
     if (updates.points) updates.points = parseFloat(updates.points);
     if (updates.maxFileSize) updates.maxFileSize = parseInt(updates.maxFileSize);
     if (updates.published !== undefined) updates.published = updates.published === 'true' || updates.published === true;
+    if (updates.ungraded !== undefined) {
+      updates.countsTowardGrade = !(updates.ungraded === 'true' || updates.ungraded === true);
+      delete updates.ungraded;
+    } else if (updates.countsTowardGrade !== undefined) {
+      updates.countsTowardGrade = updates.countsTowardGrade === 'true' || updates.countsTowardGrade === true;
+    }
 
     // Handle file replacement
     if (req.file) {
@@ -555,8 +574,10 @@ router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthReque
     const {
       sourceAssignmentId, questionIds, courseId, moduleId, assessmentKind, title, description, type, format,
       points, dueDate, instructions, timeLimit, shuffleQuestions, showResults,
-      negativeMarking, targetBatches, targetStudents,
+      negativeMarking, targetBatches, targetStudents, ungraded, countsTowardGrade,
     } = req.body;
+    const isUngraded = ungraded === true || ungraded === 'true' || (countsTowardGrade !== undefined && !(countsTowardGrade === true || countsTowardGrade === 'true'));
+    const countsTowardGradeFinal = !isUngraded;
 
     if (!sourceAssignmentId || !Array.isArray(questionIds) || questionIds.length === 0) {
       return error(res, 'sourceAssignmentId and a non-empty questionIds[] are required');
@@ -583,7 +604,7 @@ router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthReque
     // Per-module / per-kind point cap enforcement (same as POST /).
     const kindUpper = (assessmentKind || '').toString().toUpperCase();
     const validKind = ['FINAL', 'PARTICIPATION', 'ASSIGNMENT', 'QUIZ'].includes(kindUpper) ? kindUpper : null;
-    if (moduleId) {
+    if (moduleId && countsTowardGradeFinal) {
       const budgetCount = await prisma.moduleAssessmentBudget.count({ where: { moduleId } });
       if (budgetCount > 0) {
         if (!validKind) return error(res, 'assessmentKind is required for this module');
@@ -621,6 +642,7 @@ router.post('/from-bank', requireRole('ADMIN', 'TEACHER'), async (req: AuthReque
         shuffleQuestions: !!shuffleQuestions,
         showResults: showResults !== undefined ? !!showResults : true,
         negativeMarking: typeof negativeMarking === 'number' ? negativeMarking : 0,
+        countsTowardGrade: countsTowardGradeFinal,
       },
     });
 
