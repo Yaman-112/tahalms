@@ -3905,9 +3905,10 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
 
   // Manage-targets modal (assignment detail view)
   const [showTargetsModal, setShowTargetsModal] = useState(false);
-  const [editTargetMode, setEditTargetMode] = useState<'COURSE' | 'BATCH' | 'STUDENT'>('COURSE');
+  const [editTargetMode, setEditTargetMode] = useState<'COURSE' | 'BATCH' | 'STUDENT' | 'START_DATE'>('COURSE');
   const [editTargetBatches, setEditTargetBatches] = useState<Set<string>>(new Set());
   const [editTargetStudents, setEditTargetStudents] = useState<Set<string>>(new Set());
+  const [editTargetStartDate, setEditTargetStartDate] = useState<string>('');
   const [editTargetSaving, setEditTargetSaving] = useState(false);
 
   const openTargetsModal = async () => {
@@ -3922,6 +3923,7 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
     else setEditTargetMode('COURSE');
     setEditTargetBatches(batches);
     setEditTargetStudents(students);
+    setEditTargetStartDate('');
     setShowTargetsModal(true);
   };
 
@@ -3930,8 +3932,19 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
     setEditTargetSaving(true);
     const body: any = {
       targetBatches: editTargetMode === 'BATCH' ? [...editTargetBatches] : [],
-      targetStudents: editTargetMode === 'STUDENT' ? [...editTargetStudents] : [],
+      targetStudents: editTargetMode === 'STUDENT'
+        ? [...editTargetStudents]
+        : editTargetMode === 'START_DATE'
+          ? courseStudents
+              .filter((s: any) => s.startDate && editTargetStartDate && new Date(s.startDate).toISOString().slice(0, 10) === editTargetStartDate)
+              .map((s: any) => s.id)
+          : [],
     };
+    if (editTargetMode === 'START_DATE' && body.targetStudents.length === 0) {
+      setEditTargetSaving(false);
+      alert('No students match the selected start date.');
+      return;
+    }
     const res = await api<any>(`/assignments/${assignmentDetail.id}/targets`, {
       method: 'PUT',
       body: JSON.stringify(body),
@@ -5103,6 +5116,10 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                                   <input type="radio" name="editTargetMode" checked={editTargetMode === 'STUDENT'} onChange={() => setEditTargetMode('STUDENT')} className="mr-2" />
                                   Specific students
                                 </label>
+                                <label className="flex items-center text-sm">
+                                  <input type="radio" name="editTargetMode" checked={editTargetMode === 'START_DATE'} onChange={() => setEditTargetMode('START_DATE')} className="mr-2" />
+                                  Students with a specific start date
+                                </label>
                               </div>
                               {editTargetMode === 'BATCH' && (
                                 <div className="border border-gray-200 rounded max-h-64 overflow-y-auto">
@@ -5140,12 +5157,39 @@ function CourseView({ courseId, deepLinkAssignmentId }: { courseId: string; deep
                                   ))}
                                 </div>
                               )}
+                              {editTargetMode === 'START_DATE' && (
+                                <div className="space-y-2">
+                                  <select
+                                    value={editTargetStartDate}
+                                    onChange={e => setEditTargetStartDate(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                                  >
+                                    <option value="">— Select a start date —</option>
+                                    {[...new Set(
+                                      courseStudents
+                                        .map((s: any) => s.startDate ? new Date(s.startDate).toISOString().slice(0, 10) : null)
+                                        .filter(Boolean) as string[]
+                                    )]
+                                      .sort()
+                                      .map(d => {
+                                        const count = courseStudents.filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === d).length;
+                                        return <option key={d} value={d}>{d} ({count} students)</option>;
+                                      })}
+                                  </select>
+                                  {editTargetStartDate && (
+                                    <div className="text-xs text-gray-500">
+                                      {courseStudents.filter((s: any) => s.startDate && new Date(s.startDate).toISOString().slice(0, 10) === editTargetStartDate).length} student(s) will be assigned.
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
                             <div className="flex justify-end space-x-2 px-5 py-3 border-t border-gray-200">
                               <button onClick={() => setShowTargetsModal(false)} className="px-4 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50">Cancel</button>
                               <button onClick={saveTargets} disabled={editTargetSaving ||
                                 (editTargetMode === 'BATCH' && editTargetBatches.size === 0) ||
-                                (editTargetMode === 'STUDENT' && editTargetStudents.size === 0)}
+                                (editTargetMode === 'STUDENT' && editTargetStudents.size === 0) ||
+                                (editTargetMode === 'START_DATE' && !editTargetStartDate)}
                                 className="px-4 py-1.5 bg-purple-600 text-white rounded text-sm font-medium hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed">
                                 {editTargetSaving ? 'Saving…' : 'Save'}
                               </button>
