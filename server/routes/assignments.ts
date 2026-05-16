@@ -258,17 +258,27 @@ router.get('/:id', async (req: AuthRequest, res) => {
         const studentIds = visibleSubmissions.map(s => s.studentId);
         const enrollments = await prisma.enrollment.findMany({
           where: { courseId: assignment.courseId, userId: { in: studentIds }, role: 'STUDENT' },
-          select: { userId: true, startDate: true, classDays: true },
+          select: { userId: true, startDate: true, classDays: true, batchCode: true },
         });
-        type UserSched = { start: Date | null; classDays: string | null };
+        type UserSched = { start: Date | null; classDays: string | null; batchCode: string | null };
         const schedByUser = new Map<string, UserSched>();
         for (const e of enrollments) {
           const prev = schedByUser.get(e.userId);
-          if (!prev) { schedByUser.set(e.userId, { start: e.startDate, classDays: e.classDays }); continue; }
+          if (!prev) { schedByUser.set(e.userId, { start: e.startDate, classDays: e.classDays, batchCode: e.batchCode }); continue; }
           if (e.startDate && (!prev.start || e.startDate < prev.start)) {
-            schedByUser.set(e.userId, { start: e.startDate, classDays: e.classDays });
+            schedByUser.set(e.userId, { start: e.startDate, classDays: e.classDays, batchCode: e.batchCode });
           }
         }
+
+        // Per-batch module schedule overrides for this assignment's module
+        const batchCodes = [...new Set(Array.from(schedByUser.values()).map(s => s.batchCode).filter((b): b is string => !!b))];
+        const batchOverrides = batchCodes.length > 0
+          ? await prisma.batchModuleSchedule.findMany({
+              where: { batchCode: { in: batchCodes }, moduleId: assignmentModule.id },
+              select: { batchCode: true, startDate: true },
+            })
+          : [];
+        const overrideByBatch = new Map(batchOverrides.map(o => [o.batchCode, o.startDate]));
 
         const courseCode = assignment.course.code;
         const fallbackModuleStart = assignmentModule.startDate;
@@ -278,7 +288,8 @@ router.get('/:id', async (req: AuthRequest, res) => {
           .filter(s => {
             const u = schedByUser.get(s.studentId);
             if (!u || !u.start) return true; // no startDate recorded → don't hide
-            let moduleStart: Date | null = fallbackModuleStart ?? null;
+            const batchOverride = u.batchCode ? overrideByBatch.get(u.batchCode) : undefined;
+            let moduleStart: Date | null = batchOverride ?? fallbackModuleStart ?? null;
             if (courseCode === 'HT') {
               moduleStart = getHtFirstSessionDate(assignmentModule.name, detectHtTrack(u.classDays)) ?? fallbackModuleStart;
             } else if (courseCode === 'CSW') {
@@ -307,10 +318,30 @@ router.get('/:id', async (req: AuthRequest, res) => {
       }
     }
 
+    // For student viewers, overlay per-batch module schedule on returned course.modules
+    let modulesForResponse: any[] = assignment.course.modules as any[];
+    if (req.user!.role === 'STUDENT') {
+      const myEnr = await prisma.enrollment.findFirst({
+        where: { userId: req.user!.userId, courseId: assignment.courseId },
+        select: { batchCode: true },
+      });
+      if (myEnr?.batchCode) {
+        const overrides = await prisma.batchModuleSchedule.findMany({
+          where: { batchCode: myEnr.batchCode, moduleId: { in: modulesForResponse.map(m => m.id) } },
+          select: { moduleId: true, startDate: true },
+        });
+        if (overrides.length > 0) {
+          const omap = new Map(overrides.map(o => [o.moduleId, o.startDate]));
+          modulesForResponse = modulesForResponse.map(m => omap.has(m.id) ? { ...m, startDate: omap.get(m.id) } : m);
+        }
+      }
+    }
+
     // Don't expose server file paths to client
     const { attachmentPath, ...rest } = assignment;
     const sanitized = {
       ...rest,
+      course: { ...assignment.course, modules: modulesForResponse },
       hasAttachment: !!attachmentPath,
       submissions: visibleSubmissions.map((s: any) => {
         const { filePath, ...subRest } = s;

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../db';
 import { authenticate, requireRole, auditorScope, AuthRequest } from '../middleware/auth';
 import { success, error } from '../utils/response';
+import { getBatchScheduleMap } from '../lib/batchSchedule';
 
 const router = Router();
 router.use(authenticate);
@@ -92,6 +93,14 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
 
     const now = new Date();
 
+    // Apply per-batch schedule overrides to each enrollment's modules
+    const allBatchCodes = [...new Set(enrollments.map(e => e.batchCode).filter((b): b is string => !!b))];
+    const allModuleIds = [...new Set(enrollments.flatMap(e => (e.course.modules || []).map((m: any) => m.id)))];
+    const scheduleByBatch = new Map<string, Map<string, Date>>();
+    for (const bc of allBatchCodes) {
+      scheduleByBatch.set(bc, await getBatchScheduleMap(bc, allModuleIds));
+    }
+
     // Enrich enrollments with progress
     const enriched = enrollments.map(e => {
       const courseAssignments = assignmentsByCourse.get(e.courseId) || [];
@@ -110,8 +119,12 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
         .reduce((sum, a) => sum + a.points, 0);
       const gradePct = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : null;
 
-      // Module progress based on dates
-      const modules = e.course.modules || [];
+      // Module progress based on dates — apply per-batch override if present
+      const overrides = e.batchCode ? scheduleByBatch.get(e.batchCode) : undefined;
+      const rawModules = e.course.modules || [];
+      const modules = overrides && overrides.size > 0
+        ? rawModules.map((m: any) => overrides.has(m.id) ? { ...m, startDate: overrides.get(m.id) } : m)
+        : rawModules;
       const totalModules = modules.length;
       const completedModules = modules.filter((m: any) => m.startDate && new Date(m.startDate) < now).length;
       const currentModule = modules.find((m: any, idx: number) => {
@@ -124,6 +137,7 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
 
       return {
         ...e,
+        course: { ...e.course, modules },
         progress: {
           completedAssignments,
           totalAssignments,

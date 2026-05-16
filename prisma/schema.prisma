@@ -257,6 +257,25 @@ model Module {
   @@map("modules")
 }
 
+// Per-batch override of Module.startDate. When a row exists for a given
+// (batchCode, moduleId), that batch's schedule for that module takes
+// precedence over the course-wide Module.startDate. Used to give a teacher
+// (e.g. Shipra) a batch-specific calendar without affecting other teachers'
+// batches in the same course.
+model BatchModuleSchedule {
+  id        String   @id @default(cuid())
+  batchCode String   @map("batch_code")
+  moduleId  String   @map("module_id")
+  startDate DateTime @map("start_date")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([batchCode, moduleId])
+  @@index([batchCode])
+  @@index([moduleId])
+  @@map("batch_module_schedules")
+}
+
 model ModuleAssessmentBudget {
   id         String         @id @default(cuid())
   moduleId   String         @map("module_id")

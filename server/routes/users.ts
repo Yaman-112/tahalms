@@ -5,6 +5,7 @@ import prisma from '../db';
 import { authenticate, requireRole, denyAuditor, isAuditor, auditorScope, AuthRequest } from '../middleware/auth';
 import { createAuditLog } from '../services/audit';
 import { success, error } from '../utils/response';
+import { applyBatchSchedule } from '../lib/batchSchedule';
 
 const router = Router();
 
@@ -161,7 +162,16 @@ router.get('/:id', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res
       }
     }
 
-    return success(res, user);
+    // Apply per-batch module schedule overrides per enrollment
+    const enrollmentsWithSchedule = await Promise.all(
+      user.enrollments.map(async e => ({
+        ...e,
+        course: { ...e.course, modules: await applyBatchSchedule(e.course.modules as any[], e.batchCode) },
+      }))
+    );
+    const userWithSchedule = { ...user, enrollments: enrollmentsWithSchedule };
+
+    return success(res, userWithSchedule);
   } catch (err) {
     console.error('Get user error:', err);
     return error(res, 'Failed to get user', 500);

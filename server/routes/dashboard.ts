@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../db';
 import { authenticate, AuthRequest } from '../middleware/auth';
 import { success, error } from '../utils/response';
+import { applyBatchSchedule } from '../lib/batchSchedule';
 
 const router = Router();
 router.use(authenticate);
@@ -129,10 +130,14 @@ async function getStudentDashboard(req: AuthRequest, res: any) {
   const teacherByKey = new Map<string, any>();
   for (const b of batchTeachers) teacherByKey.set(`${b.courseId}::${b.batchCode}`, b.teacher);
 
-  const enrollmentsWithTeacher = enrollments.map(e => ({
+  const enrollmentsWithTeacher = await Promise.all(enrollments.map(async e => ({
     ...e,
+    course: {
+      ...e.course,
+      modules: await applyBatchSchedule(e.course.modules as any[], e.batchCode),
+    },
     teacher: e.batchCode ? teacherByKey.get(`${e.courseId}::${e.batchCode}`) ?? null : null,
-  }));
+  })));
 
   return success(res, {
     profile,
