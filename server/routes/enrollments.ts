@@ -127,12 +127,14 @@ router.get('/', requireRole('ADMIN', 'TEACHER'), async (req: AuthRequest, res) =
         : rawModules;
       const totalModules = modules.length;
       const completedModules = modules.filter((m: any) => m.startDate && new Date(m.startDate) < now).length;
-      const currentModule = modules.find((m: any, idx: number) => {
-        if (!m.startDate) return false;
-        const mStart = new Date(m.startDate);
-        const nextMod = modules[idx + 1] as any;
-        const mEnd = nextMod?.startDate ? new Date(nextMod.startDate) : new Date(mStart.getTime() + 14 * 86400000);
-        return now >= mStart && now < mEnd;
+      // Current module: find by chronological order (not array position) so
+      // mismatched Module.position vs. schedule order doesn't pick the wrong one.
+      const chronological = modules.filter((m: any) => m.startDate)
+        .map((m: any) => ({ ...m, _start: new Date(m.startDate) }))
+        .sort((a: any, b: any) => a._start - b._start);
+      const currentModule = chronological.find((m: any, idx: number) => {
+        const mEnd = chronological[idx + 1]?._start ?? new Date(m._start.getTime() + 14 * 86400000);
+        return now >= m._start && now < mEnd;
       });
 
       return {
