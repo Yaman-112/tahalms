@@ -321,26 +321,20 @@ router.post('/submit', async (req: AuthRequest, res) => {
     });
     if (!assignment) return error(res, 'Assignment not found', 404);
 
-    // Create or get submission
     const now = new Date();
     const isLate = assignment.dueDate ? now > assignment.dueDate : false;
 
-    const submission = await prisma.submission.upsert({
-      where: { assignmentId_studentId: { assignmentId, studentId } },
-      update: { status: 'SUBMITTED', submittedAt: now, date: now, isLate },
-      create: { assignmentId, studentId, status: 'SUBMITTED', submittedAt: now, date: now, isLate },
-    });
-
-    // Delete old answers for this submission
-    await prisma.studentAnswer.deleteMany({
-      where: { submissionId: submission.id, studentId },
-    });
-
-    // Process each answer
+    // Build answer payloads + tally scores in-memory before touching the DB.
     let mcqScore = 0;
     let mcqTotal = 0;
     let theoryTotal = 0;
-    const savedAnswers = [];
+    const answerData: Array<{
+      questionId: string;
+      selectedOptionId: string | null;
+      textAnswer: string | null;
+      isCorrect: boolean | null;
+      pointsAwarded: number | null;
+    }> = [];
 
     for (const ans of answers) {
       const question = assignment.questions.find(q => q.id === ans.questionId);
@@ -353,56 +347,55 @@ router.post('/submit', async (req: AuthRequest, res) => {
         mcqTotal += question.points;
         const correctOption = question.options.find(o => o.isCorrect);
         isCorrect = correctOption?.id === ans.selectedOptionId;
-
-        if (isCorrect) {
-          pointsAwarded = question.points;
-          mcqScore += question.points;
-        } else {
-          pointsAwarded = -(assignment.negativeMarking || 0);
-          mcqScore -= (assignment.negativeMarking || 0);
-        }
+        if (isCorrect) { pointsAwarded = question.points; mcqScore += question.points; }
+        else { pointsAwarded = -(assignment.negativeMarking || 0); mcqScore -= (assignment.negativeMarking || 0); }
       } else {
-        // Theory — will be graded manually
         theoryTotal += question.points;
-        pointsAwarded = null;
       }
 
-      const saved = await prisma.studentAnswer.create({
-        data: {
-          questionId: ans.questionId,
-          studentId,
-          submissionId: submission.id,
-          selectedOptionId: ans.selectedOptionId || null,
-          textAnswer: ans.textAnswer || null,
-          isCorrect,
-          pointsAwarded,
-        },
+      answerData.push({
+        questionId: ans.questionId,
+        selectedOptionId: ans.selectedOptionId || null,
+        textAnswer: ans.textAnswer || null,
+        isCorrect,
+        pointsAwarded,
       });
-      savedAnswers.push(saved);
     }
 
-    // If all questions are MCQ, auto-grade the submission
-    if (theoryTotal === 0 && mcqTotal > 0) {
-      const finalScore = Math.max(0, mcqScore);
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: { score: finalScore, status: 'GRADED', feedback: `Auto-graded: ${finalScore}/${mcqTotal} points` },
-      });
+    // Pre-compute the final submission state so the transaction is one round-trip per step.
+    const autoGraded = theoryTotal === 0 && mcqTotal > 0;
+    const submissionUpdate: any = { status: 'SUBMITTED', submittedAt: now, date: now, isLate };
+    if (autoGraded) {
+      submissionUpdate.score = Math.max(0, mcqScore);
+      submissionUpdate.status = 'GRADED';
+      submissionUpdate.feedback = `Auto-graded: ${Math.max(0, mcqScore)}/${mcqTotal} points`;
     } else if (mcqTotal > 0) {
-      // Mixed: set partial score from MCQ, status stays SUBMITTED for theory grading
-      await prisma.submission.update({
-        where: { id: submission.id },
-        data: { score: Math.max(0, mcqScore) },
-      });
+      submissionUpdate.score = Math.max(0, mcqScore);
     }
+
+    // One transaction: upsert submission, wipe old answers, bulk-insert new ones.
+    const submission = await prisma.$transaction(async (tx) => {
+      const sub = await tx.submission.upsert({
+        where: { assignmentId_studentId: { assignmentId, studentId } },
+        update: submissionUpdate,
+        create: { assignmentId, studentId, ...submissionUpdate },
+      });
+      await tx.studentAnswer.deleteMany({ where: { submissionId: sub.id, studentId } });
+      if (answerData.length > 0) {
+        await tx.studentAnswer.createMany({
+          data: answerData.map(a => ({ ...a, studentId, submissionId: sub.id })),
+        });
+      }
+      return sub;
+    });
 
     return success(res, {
       submission,
-      answers: savedAnswers,
+      answers: answerData,
       mcqScore: Math.max(0, mcqScore),
       mcqTotal,
       theoryTotal,
-      autoGraded: theoryTotal === 0,
+      autoGraded,
     }, 201);
   } catch (err) {
     console.error('Submit answers error:', err);
